@@ -75,8 +75,15 @@ A `DisposableAgent` is a real agent you can talk to, owned by the caller and thr
 afterwards. Building one
 
 - creates a `HOME` with all `XDG_*` redirected into it,
+- drops every `OPENCODE*` variable from the inherited environment,
 - installs a pinned `opencode` (an agent runtime plus free access to its default model),
 - copies skill directories from a given source into `~/.agents/skills`.
+
+> Dropping those variables matters more than it looks. `OPENCODE_CONFIG_DIR` overrides
+> config lookup outright, so a developer who has one set would otherwise re-attach every
+> disposable agent to their real profile — reading their models and plugins while looking
+> for credentials in an empty home. What surfaces is an opaque provider error, nowhere near
+> the cause.
 
 A test never needs to know opencode is in there: it installs skills, calls `run()`, and
 reads the transcript.

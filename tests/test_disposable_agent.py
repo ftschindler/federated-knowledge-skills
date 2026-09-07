@@ -17,7 +17,7 @@ import textwrap
 from pathlib import Path
 
 import pytest
-from disposable_agent import DisposableAgent
+from disposable_agent import LEAKY_ENV_PREFIX, DisposableAgent
 
 pytestmark = pytest.mark.agent
 
@@ -33,6 +33,12 @@ def test_a_bare_agent_runs_and_touches_nothing_real(bare_agent: DisposableAgent)
     assert bare_agent.env["HOME"] == str(bare_agent.home)
     for var in ("XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_STATE_HOME"):
         assert bare_agent.env[var].startswith(str(bare_agent.home)), var
+
+    # Redirecting HOME is not enough: OPENCODE_CONFIG_DIR overrides config lookup
+    # outright, so a developer who has one set would silently re-attach this agent
+    # to their real profile. Nothing opencode-specific may survive from outside.
+    leaked = sorted(k for k in bare_agent.env if k.startswith(LEAKY_ENV_PREFIX))
+    assert not leaked, f"environment reaches outside the agent: {leaked}"
 
     # The permission grant is what lets a run reach ~/.agents/skills at all.
     config = bare_agent.home / ".config" / "opencode" / "opencode.json"

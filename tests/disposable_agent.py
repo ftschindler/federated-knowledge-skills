@@ -195,6 +195,30 @@ class DisposableAgent:
         )
 
 
+# Variables that would point the agent back at the developer's real setup.
+# Redirecting HOME and XDG_* is not enough on its own: `OPENCODE_CONFIG_DIR`
+# overrides config lookup outright, so a developer who has one set silently
+# re-attaches every "disposable" agent to their real profile — reading their
+# models and plugins while looking for credentials in an empty fake home. The
+# failure that surfaces is an opaque provider error, nowhere near the cause.
+LEAKY_ENV_PREFIX = "OPENCODE"
+
+
+def _isolated_env(home: Path) -> dict[str, str]:
+    """The developer's environment, minus anything that reaches back out of `home`."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith(LEAKY_ENV_PREFIX)}
+    env.update(
+        {
+            "HOME": str(home),
+            "XDG_CONFIG_HOME": str(home / ".config"),
+            "XDG_DATA_HOME": str(home / ".local" / "share"),
+            "XDG_CACHE_HOME": str(home / ".cache"),
+            "XDG_STATE_HOME": str(home / ".local" / "state"),
+        }
+    )
+    return env
+
+
 def _write_opencode_config(home: Path) -> None:
     """Let the agent reach its own home outside its working directory.
 
@@ -227,14 +251,7 @@ def build_disposable_agent(root: Path, *, skills_dir: Path | None = REPO_SKILLS_
     """
     home = root / "home"
     home.mkdir(parents=True, exist_ok=True)
-    env = {
-        **os.environ,
-        "HOME": str(home),
-        "XDG_CONFIG_HOME": str(home / ".config"),
-        "XDG_DATA_HOME": str(home / ".local" / "share"),
-        "XDG_CACHE_HOME": str(home / ".cache"),
-        "XDG_STATE_HOME": str(home / ".local" / "state"),
-    }
+    env = _isolated_env(home)
 
     npm_prefix = home / ".npm"
     npm_prefix.mkdir(parents=True, exist_ok=True)
