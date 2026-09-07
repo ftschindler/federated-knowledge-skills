@@ -16,27 +16,27 @@ guard-%:
 		exit 1; \
 	}
 
-## Run all tests (python scripts + the fkb core/helpers, and skills e2e)
-test: test_python_scripts test_skills
+## Run all tests (support scripts, and the disposable agent)
+test: test_python_scripts test_agent
 
-## Test the python scripts (support scripts + the fkb manifest core, fast, deterministic)
+## Test the support scripts under .scripts/ (fast, deterministic, no network)
 test_python_scripts: | guard-uvx
-	uvx --with pytest --with ruamel.yaml pytest -v -m python_scripts
+	uvx --with pytest pytest -v -m python_scripts
 
-## Test the skills end-to-end by driving opencode in a fake home (slow, needs network)
-test_skills: | guard-node guard-npm guard-npx guard-uvx
-	uvx --with pytest $(shell uv run .scripts/extract-deps.py skills) pytest -v -m skills
+## Test the disposable agent by actually driving one (slow, needs network)
+test_agent: | guard-node guard-npm guard-npx guard-uvx
+	uvx --with pytest $(shell uv run .scripts/extract-deps.py skills) pytest -v -m agent
 
 ## Run the full pre-commit guard suite against all files
 check: | guard-uvx
 	uvx prek run --all-files
 
-## Build a fake opencode home (fkb+kb) and drop into a shell for inspection
-fakehome:
-	.scripts/fake-home.py
+## Build a disposable agent and drop into a shell for inspection
+agent:
+	.scripts/disposable-agent.py
 
 ## Install the pre-commit hooks into this clone
 bootstrap: | guard-git guard-uvx
 	uvx prek install
 
-.PHONY: help test test_python_scripts test_skills check fakehome bootstrap
+.PHONY: help test test_python_scripts test_agent check agent bootstrap

@@ -3,5 +3,5 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 markers = [
   "python_scripts: unit tests for dev/support scripts under .scripts/",
-  "skills: end-to-end tests that drive opencode against the skills (slow, needs network + node)",
+  "agent: end-to-end tests that drive a real agent (slow, needs network + node)",
 ]

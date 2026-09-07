@@ -24,69 +24,79 @@ make bootstrap
 
 ### Using the development version of the skills globally
 
-Simply symlink to these skills with:
+This repo ships no skills yet (see [DESIGN.md](DESIGN.md)). Once it does, symlink them into
+the location every harness reads:
 
 ```bash
 mkdir -p ~/.agents/skills && \
-for ii in $(cd skills && ls -d *); do cd ~/.agents/skills/ && ln -s "${PWD}/skills/${ii}" .; cd - ; done
+for ii in $(cd skills && ls -d *); do ln -s "${PWD}/skills/${ii}" ~/.agents/skills/; done
 ```
 
-> Ensure to remove previously installed skills from the target location beforehand.
+> Remove previously installed copies from the target location beforehand.
 
 ### Running the tests
 
-This repo contains agents skills, scripts the skills invoke, and dev tooling around that.
-We provide tests for each, run all available ones with:
+Two layers, both run by:
 
 ```bash
 make test
 ```
 
-We can also run individual test layers.
+#### Support scripts
 
-#### testing node scripts
-
-Running the node tests is fast and deterministic:
-
-```bash
-make test_node_scripts
-```
-
-#### testing python scripts
-
-Running the Python tests is fast and deterministic as well:
+Fast and deterministic, no network:
 
 ```bash
 make test_python_scripts
 ```
 
-#### testing the skills
+#### The disposable agent
 
-Testing the skills themselves is slower and not deterministic:
-
-```bash
-make test_skills
-```
-
-As we can only test the skills by letting them being carried out by an agent, these tests are move involved:
-
-- they prepare a [throwaway agent environment](#a-throwaway-agent-environment)
-- invoke `opncode` with instructions involving the skills (the non-deterministic part)
-- carry out deterministic tests on the returned output and the created files
-
-#### a throwaway agent environment
-
-The tests
-
-- create a fake `HOME` environment,
-- install a pinned `opencode` into it (as that gives us an agent harness and free access to it's default LLM),
-- install the `fkb*` skills and (depending on the test) the required (`kb*`) skills
-
-which can be manually done as well:
+Slower and non-deterministic, because it drives a real agent:
 
 ```bash
-make fakehome
+make test_agent
 ```
+
+These tests
+
+- build a [disposable agent](#a-disposable-agent),
+- send it a message (the non-deterministic part),
+- assert deterministically on the transcript it returns and the files it leaves.
+
+While the repo has no skills of its own, this layer installs a canary skill authored by the
+test and checks that the agent discovers and follows it. That keeps every moving part
+exercised: the opencode install, the permission grant, skill discovery, activation and
+transcript parsing.
+
+#### A disposable agent
+
+A `DisposableAgent` is a real agent you can talk to, owned by the caller and thrown away
+afterwards. Building one
+
+- creates a `HOME` with all `XDG_*` redirected into it,
+- drops every `OPENCODE*` variable from the inherited environment,
+- installs a pinned `opencode` (an agent runtime plus free access to its default model),
+- copies skill directories from a given source into `~/.agents/skills`.
+
+> Dropping those variables matters more than it looks. `OPENCODE_CONFIG_DIR` overrides
+> config lookup outright, so a developer who has one set would otherwise re-attach every
+> disposable agent to their real profile — reading their models and plugins while looking
+> for credentials in an empty home. What surfaces is an opaque provider error, nowhere near
+> the cause.
+
+A test never needs to know opencode is in there: it installs skills, calls `run()`, and
+reads the transcript.
+
+Build one by hand and drop into a shell inside its world:
+
+```bash
+make agent                                    # this repo's skills, if any
+.scripts/disposable-agent.py --skills DIR     # skills from elsewhere
+.scripts/disposable-agent.py --no-skills      # a bare agent
+```
+
+On a test failure the agent is preserved and the command to enter it is printed.
 
 ### Before you push
 

@@ -1,102 +1,63 @@
-"""Shared fixtures for the federated-knowledge test suite.
+"""Shared fixtures for the tests that drive a real agent.
 
-The `skills` tests are true end-to-end tests: they build an isolated fake HOME
-(see tests/fake_home.py), install a pinned opencode into it, place the fkb skills
-(and, for most tests, the real kb skills) under `~/.agents/skills` exactly as a
-user would, then drive `opencode run` and inspect the artifacts and output.
+Tests marked `agent` are true end-to-end tests: they build a disposable agent
+(see tests/disposable_agent.py), install skills into it exactly as a user would,
+send it a message and inspect the transcript and the files it left behind.
 
-On failure, the fake home is preserved and a copy-pasteable command to enter it
+On failure the agent is preserved and a copy-pasteable command to enter its world
 is printed, so a run can be inspected by hand.
 """
 
 from __future__ import annotations
 
-import subprocess
-from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-from fake_home import FakeHome, build_fake_home
-
-# The public bundle used as a deterministic content anchor for e2e tests. Its
-# knowledge/ subdir is a conformant OKF bundle whose OKF root is auto-discovered
-# by clone-bundle, and it carries a known entry we can assert a query surfaces.
-AGENT_KNOWLEDGE_URL = "https://github.com/stjbrown/agent-knowledge"
-AGENT_KNOWLEDGE_OKF_SUBDIR = "knowledge"
-AGENT_KNOWLEDGE_KNOWN_ENTRY = "references/karpathy_llm_wiki.md"
+from disposable_agent import DisposableAgent, build_disposable_agent
 
 
-@dataclass(frozen=True)
-class AgentKnowledgeFixture:
-    """A once-cloned agent-knowledge checkout, shared read-only across e2e tests."""
-
-    repo_url: str
-    checkout: Path
-    okf_subdir: str
-    known_entry: str
-
-    @property
-    def okf_root(self) -> Path:
-        return self.checkout / self.okf_subdir
-
-    @property
-    def known_entry_path(self) -> Path:
-        return self.okf_root / self.known_entry
-
-
-@pytest.fixture(scope="session")
-def agent_knowledge(tmp_path_factory: pytest.TempPathFactory) -> AgentKnowledgeFixture:
-    checkout = tmp_path_factory.mktemp("agent-knowledge") / "repo"
-    subprocess.run(
-        ["git", "clone", "--depth", "1", "--quiet", AGENT_KNOWLEDGE_URL, str(checkout)],
-        check=True,
-        capture_output=True,
-        text=True,
-        timeout=300,
-    )
-    fixture = AgentKnowledgeFixture(
-        repo_url=AGENT_KNOWLEDGE_URL,
-        checkout=checkout,
-        okf_subdir=AGENT_KNOWLEDGE_OKF_SUBDIR,
-        known_entry=AGENT_KNOWLEDGE_KNOWN_ENTRY,
-    )
-    if not fixture.known_entry_path.is_file():
-        pytest.fail(f"expected known entry missing: {fixture.known_entry_path}")
-    return fixture
-
-
-def _make_home(tmp_path, *, with_kb: bool) -> FakeHome:
+@pytest.fixture
+def bare_agent(tmp_path: Path) -> DisposableAgent:
+    """A disposable agent with no skills installed at all."""
     # pytest keeps the last few `tmp_path` roots on disk by default, so a failing
-    # run's fake home survives long enough to inspect (path is printed on failure).
-    return build_fake_home(tmp_path, with_kb=with_kb)
+    # run's agent survives long enough to inspect (path is printed on failure).
+    return build_disposable_agent(tmp_path, skills_dir=None)
 
 
 @pytest.fixture
-def kb_absent_home(tmp_path) -> FakeHome:
-    """Fake home with ONLY the fkb skills — kb is deliberately not installed."""
-    return _make_home(tmp_path, with_kb=False)
+def agent_factory(tmp_path: Path):
+    """Build a disposable agent with skills from a caller-supplied directory.
 
+    Lets a test author a skill on the fly and install it, so the machinery can be
+    exercised without depending on whichever skills this repo currently ships.
+    """
+    built: list[DisposableAgent] = []
 
-@pytest.fixture
-def kb_present_home(tmp_path) -> FakeHome:
-    """Fake home with fkb skills AND the real kb skills installed (happy path)."""
-    return _make_home(tmp_path, with_kb=True)
+    def _build(skills_dir: Path | None) -> DisposableAgent:
+        agent = build_disposable_agent(tmp_path / f"agent{len(built)}", skills_dir=skills_dir)
+        built.append(agent)
+        return agent
+
+    _build.built = built  # type: ignore[attr-defined]
+    return _build
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """On failure of a test that used a fake home, print how to enter it."""
+    """On failure of a test that used a disposable agent, print how to enter it."""
     outcome = yield
     report = outcome.get_result()
     if report.when != "call" or not report.failed:
         return
-    for name in ("kb_absent_home", "kb_present_home"):
-        fake = item.funcargs.get(name) if hasattr(item, "funcargs") else None
-        if isinstance(fake, FakeHome):
-            report.sections.append(
-                (
-                    "Fake home (inspect it)",
-                    fake.enter_hint(reason=f"Test {item.name!r} failed."),
-                )
+    funcargs = getattr(item, "funcargs", {}) or {}
+    candidates: list[DisposableAgent] = [v for v in funcargs.values() if isinstance(v, DisposableAgent)]
+    factory = funcargs.get("agent_factory")
+    candidates.extend(getattr(factory, "built", []))
+    for agent in candidates:
+        report.sections.append(
+            (
+                "Disposable agent (inspect it)",
+                agent.enter_hint(reason=f"Test {item.name!r} failed."),
             )
-            break
+        )
+        break
