@@ -1,0 +1,24 @@
+.mailmap
+  s_d9270f753fc99f::t_0d5061c9ee03df 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "bc78ba666f6a1412cdbcd13555d8bbce3cb7427f",
+  "prompts": {},
+  "humans": {
+    "h_66a52204f23ba9": {
+      "author": "x <x@example.com>"
+    }
+  },
+  "sessions": {
+    "s_d9270f753fc99f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f84d62ac6ffespe9MtZiAlTm62",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    }
+  }
+}
