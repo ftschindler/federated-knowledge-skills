@@ -1,12 +1,10 @@
-# DESIGN — federated knowledge
+# DESIGN - federated knowledge
 
 **Status:** settled direction, not yet implemented. This document is the **sole source of
 truth** for the design. Change it here first; `README.md`, `DECISIONS.md` and the current
 `skills/` tree describe an earlier architecture until they are rewritten to match.
 
 **Date:** 2026-09-01
-
----
 
 ## 1. What we build
 
@@ -17,19 +15,20 @@ pattern.
 - Each knowledge bundle is its own git repo, optionally published to GitHub Pages.
 - Bundles sit at different privacy tiers: public, team, private, plus read-only upstreams.
 - Content is [OKF v0.2](https://github.com/GoogleCloudPlatform/open-knowledge-format)
-  markdown — plain files, edited directly in an editor, in Obsidian, or in the GitHub web
+  markdown - plain files, edited directly in an editor, in Obsidian, or in the GitHub web
   UI.
 - Agents read and write it as a first-class consumer, across harnesses.
 
 We do not build a knowledge platform. OKF is a file format; this stays a thin layer over
-git. We do not build a security mechanism — access control is git remote permissions and
+git. We do not build a security mechanism - access control is git remote permissions and
 the CI publish gate, and everything here is an agent guardrail that prevents accidents,
 not attackers.
 
 ### Open questions
 
-Detail in §9. None of them blocks the first task; §10 says which task settles each, and
-answering earlier than that trades away what the work would have told us.
+Detail in §9. None of them blocks the first task; [IMPLEMENTATION.md](IMPLEMENTATION.md)
+says which task settles each, and answering earlier than that trades away what the work
+would have told us.
 
 | # | Question | Settled by |
 | --- | --- | --- |
@@ -38,12 +37,10 @@ answering earlier than that trades away what the work would have told us.
 | 9.3 | Whether markdown raw sources become `references/` concepts or stay outside the bundle | T1 |
 | 9.4 | How non-knowledge pages in a bundle satisfy OKF §11 | T1 |
 | 9.5 | How a bundle lints standalone, without knowing it is federated | T6 |
-| 9.6 | How knowledge is structured inside a bundle — directories, `tags`, publishing nav | T1, per bundle |
+| 9.6 | How knowledge is structured inside a bundle - directories, `tags`, publishing nav | T1, per bundle |
 | 9.7 | Whether we may assume more than `uv` is installed | T4 |
 
 §9.8 records what is settled.
-
----
 
 ## 2. Invariants
 
@@ -58,8 +55,6 @@ These bound every decision below. Each was paid for once already (appendix A).
 4. **Everything ships self-contained.** No cross-skill dependencies, no post-install
    configuration, no assumption that another package is present.
 5. **Every command justifies itself** against "git or an editor already does this clearly".
-
----
 
 ## 3. Architecture
 
@@ -80,8 +75,6 @@ The block exists for **activation**. The failure it prevents is an agent that ne
 for the skill and writes a markdown file wherever it happens to be. It carries the two
 triggers an agent does not infer: check fkb before web-searching, and file durable
 knowledge when you learn it.
-
----
 
 ## 4. Bundles and the manifest
 
@@ -171,8 +164,6 @@ write bypasses any skill, so the enforceable guards are each bundle's own pre-co
 and its publish gate. `fkb` makes the right thing easy; the bundle's hooks make the wrong
 thing fail.
 
----
-
 ## 5. Content model
 
 Three layers, from the LLM Wiki pattern.
@@ -186,16 +177,16 @@ needs. `fkb search` (§7) covers the case where the right index is not obvious.
 
 **Writing:** there is no `fkb ingest`. An agent has a write tool and knows markdown.
 
-1. `fkb list` — which bundles exist, which are writable, what the tiers are
+1. `fkb list` - which bundles exist, which are writable, what the tiers are
 2. the agent writes the `.md` file directly
-3. `fkb lint` — did that violate anything
+3. `fkb lint` - did that violate anything
 
 `fkb` answers *where* and *is this legal*. It never touches a concept body, renders, or
 hashes.
 
 ### 5.2 Assets
 
-Images, screenshots and Excalidraw sketches — whether clipped or drawn by us — live
+Images, screenshots and Excalidraw sketches - whether clipped or drawn by us - live
 **beside the concept that references them**, named after it:
 
 ```text
@@ -217,7 +208,7 @@ The cost is real and accepted: renaming or moving a concept means moving its ass
 External artifacts you did not author and cannot change: clipped articles, PDFs,
 transcripts, recordings.
 
-**Non-markdown raw sources** (PDFs, images, audio) follow the asset rule above — beside the
+**Non-markdown raw sources** (PDFs, images, audio) follow the asset rule above - beside the
 concept that draws on them.
 
 **Markdown raw sources** cannot, and this is a spec constraint rather than a preference:
@@ -244,7 +235,7 @@ Whatever the location, two rules hold:
    records `resource:`; a perishable or access-gated source gets archived, with
    `sources[].resource` pointing at the archived copy.
 
-> Licensing does not choose a directory — it chooses whether to **publish**. Verbatim
+> Licensing does not choose a directory - it chooses whether to **publish**. Verbatim
 > third-party content is the same obligation in `references/` as beside a concept, and the
 > real decision is whether the publish gate emits it at all. Private bundles carry no such
 > question.
@@ -280,12 +271,10 @@ Three properties matter more than the wording. It names the trigger phrases, bec
 agent will not guess that "my notes" means a bundle. It defers everything procedural to the
 skill, so the two cannot drift. It fails silent, so a machine without fkb loses nothing.
 
----
-
 ## 6. The skill
 
-**One skill.** Triggers differ — "what do we know about X", "note this down", "audit the
-wiki" — and splitting sharpens the routing descriptions. We keep one anyway, because
+**One skill.** Triggers differ - "what do we know about X", "note this down", "audit the
+wiki" - and splitting sharpens the routing descriptions. We keep one anyway, because
 `references/` is scoped to a single skill directory: three skills means duplicating the OKF
 reference three times or symlinking it, and both drift. Split later if activation proves
 unreliable; siblings would then call the CLI, never each other.
@@ -326,13 +315,13 @@ install nothing.
 
 > A skill that installs runs at unpredictable moments during unrelated work.
 
-### 6.3 Filing knowledge — the decision tree
+### 6.3 Filing knowledge - the decision tree
 
 This is the body's spine.
 
 1. **What am I holding?**
-   - an *external artifact* — a raw source, continue at 2
-   - an *insight from this session*, such as a decision made or a principle extracted —
+   - an *external artifact* - a raw source, continue at 2
+   - an *insight from this session*, such as a decision made or a principle extracted -
      **there is no raw source. Write the concept directly.**
 2. **If external, is it perishable?** A stable public URL archives nothing and records
    `resource:`. A perishable or access-gated source gets archived, recorded in `sources[]`.
@@ -348,7 +337,7 @@ This is the body's spine.
 Seven steps, no lookups, no other skill invoked.
 
 > Step 1's second branch is stated as an explicit prohibition rather than left as an
-> omission — it is the one an ingest-shaped tool gets wrong.
+> omission - it is the one an ingest-shaped tool gets wrong.
 
 ### 6.4 Actors and trust
 
@@ -415,7 +404,7 @@ field we would like to see:
 
 > **`verified` cannot default to empty.** OKF §5.3 derives the trust tier from absence:
 > no key ⇒ unverified. Writing `verified: null` says the same thing a second way, and the
-> vendored validator rejects it outright — it warns unless the value is a `{by, at}` mapping
+> vendored validator rejects it outright - it warns unless the value is a `{by, at}` mapping
 > or a list of them. Requiring the field would also push an agent toward self-asserting it,
 > which §6.4 forbids. Absence is the encoding; leave it absent.
 
@@ -433,7 +422,7 @@ itself without knowing it is federated:
 ### 6.6 What `fkb lint` does across bundles
 
 It iterates every bundle in the manifest and checks each one in place. It does not assume a
-bundle carries a floor declaration or a pre-commit config — a bundle that declares nothing
+bundle carries a floor declaration or a pre-commit config - a bundle that declares nothing
 is held to OKF conformance, which every bundle can meet.
 
 **Findings in a non-writable bundle are reported as warnings, never errors.** An upstream we
@@ -446,8 +435,6 @@ skill exists.
 
 `status: deprecated` and `stale_after` are the *inputs* to deterministic lint. That is why
 the optional OKF fields earn their keep: without them, lint has nothing to check.
-
----
 
 ### 6.7 The skill explains itself
 
@@ -476,7 +463,7 @@ through, what each manifest field means, and what to do first when nothing is co
 
 **The acceptance test is behavioural**, and worth writing down because it is easy to fake:
 a session with no prior context, given only the question, produces an accurate explanation
-and a first command that works. Not a summary of the design — a next step the person can
+and a first command that works. Not a summary of the design - a next step the person can
 run.
 
 ## 7. The CLI
@@ -509,7 +496,7 @@ It runs once per machine and asks nothing about knowledge.
 | An existing local checkout | Register the path as-is, absolute, moving nothing |
 | A bundle that does not exist yet | Scaffold a minimal conformant bundle, register it writable and sealed |
 
-Each asks for the policy it cannot infer — `referenceable_by`, `writable`, `publish` — and
+Each asks for the policy it cannot infer - `referenceable_by`, `writable`, `publish` - and
 ends by printing the manifest line it wrote, so what entered the federation is visible
 before it is used.
 
@@ -526,7 +513,7 @@ neighbours costs no extra call.
 
 This half of house style is **derived**, which is why it is the half in the CLI: it cannot
 drift, needs no declaration, and works on read-only upstreams that will never adopt our
-conventions. The *declared* half — casing rules, prohibitions, intent — lives in the bundle
+conventions. The *declared* half - casing rules, prohibitions, intent - lives in the bundle
 beside its floor declaration (§9.2), never in the manifest (§9.6).
 
 The scan is the one `lint` already performs over frontmatter.
@@ -550,8 +537,6 @@ deterministic and dependency-free. Ranking is §9.1.
 passes: the bundle's declared floor, actor shapes, the reference rule, no-copied-state. It
 does not reimplement conformance checking.
 
----
-
 ## 8. Vendoring from okf-skills
 
 [scaccogatto/okf-skills](https://github.com/scaccogatto/okf-skills) is MIT-licensed, 353
@@ -568,20 +553,20 @@ its "for Claude Code" tagline.
 
 | Artifact | Size | Why |
 | --- | --- | --- |
-| `reference/SPEC.md` | 1012 lines | The verbatim spec. Our current excerpt is 43 lines — enough to check conformance, not enough to author against. Loads on demand only. |
+| `reference/SPEC.md` | 1012 lines | The verbatim spec. Our current excerpt is 43 lines - enough to check conformance, not enough to author against. Loads on demand only. |
 | `templates/concept.md` | 38 lines | Every optional field present and commented, which makes filling them the default rather than an act of recall. |
 | Actor convention (§7) | ~10 lines | See §6.4. |
 | `okf_validate.py` | 571 lines | PEP 723 plus pyyaml, `--json`, `--strict`, `--max-warnings N`. We do not write an OKF linter. |
 
 ### What we skip
 
-- **Attested Computations (OKF §10)** — sanctioned SQL and metric concepts for data
+- **Attested Computations (OKF §10)** - sanctioned SQL and metric concepts for data
   catalogues. It rides along inertly inside `SPEC.md`; the house guide leaves it out.
-- **MCP server, visualizer, GitHub Action, stop hooks, `backfill`** — ~1400 LOC of
+- **MCP server, visualizer, GitHub Action, stop hooks, `backfill`** - ~1400 LOC of
   Claude Code plugin scaffolding. Our publishing stack renders and gates already.
-- **`agents/` subagents** — harness-specific.
-- **`--migrate`** (v0.1 to v0.2) — we have no v0.1 content.
-- **`.okf/` as the default bundle root** — our MkDocs layout owns `docs/`.
+- **`agents/` subagents** - harness-specific.
+- **`--migrate`** (v0.1 to v0.2) - we have no v0.1 content.
+- **`.okf/` as the default bundle root** - our MkDocs layout owns `docs/`.
 
 ### Mechanics
 
@@ -613,28 +598,26 @@ Two adaptations are required:
 > in appendix A. A git submodule pins versions but adds clone friction, and agents handle
 > submodules badly.
 
----
-
 ## 9. Open decisions
 
 ### 9.1 Ranking, once `rg` stops being enough
 
 `fkb search` ships ripgrep-backed (§7). The open part is what replaces the engine when
-lexical matching stops finding things — not whether the command exists.
+lexical matching stops finding things - not whether the command exists.
 
 Karpathy reports index-first navigation working "surprisingly well at moderate scale (~100
 sources, ~hundreds of pages)". Two days of capture produced ~40 concepts, so team-wide
 rollout crosses that band quickly and the question is when, not if.
 
 [qmd](https://github.com/tobi/qmd) is the named candidate: local hybrid BM25 and vector
-search over markdown, with both a CLI and an MCP server. It is also heavy — an index to
+search over markdown, with both a CLI and an MCP server. It is also heavy - an index to
 build, keep fresh, and reason about per bundle.
 
 **Revisit when** a query an agent should have answered from the bundles gets answered from
 the web instead. Record the query when it happens; a handful of real misses is what should
 justify an index, not a projection.
 
-### 9.2 Where a bundle declares its floor — a YAML file at the bundle root
+### 9.2 Where a bundle declares its floor - a YAML file at the bundle root
 
 **Settled: a small YAML file, not the bundle-root `index.md`.** The vendored validator
 warns on any root-index key outside `okf_version` and its own `upkeep`:
@@ -664,7 +647,7 @@ It has consequences to weigh:
 - It blurs Karpathy's layer boundary, where raw sources are the thing the wiki is
   *distilled from*, not part of the wiki.
 
-The alternative — keeping them above the bundle root — preserves the boundary and keeps the
+The alternative - keeping them above the bundle root - preserves the boundary and keeps the
 validator quiet, at the cost of leaving the spec's own convention unused and putting the
 archive somewhere `path` does not reach.
 
@@ -693,7 +676,7 @@ cross-bundle links.
 The open question is packaging. Publishing this repo as a `pre-commit` hook source lets a
 bundle pin it by revision like any other hook, and keeps one implementation of the
 deterministic checks. It also means the hook and the vendored copy inside the skill must
-not drift — plausibly the skill's `scripts/` becomes the single source and the hook wraps
+not drift - plausibly the skill's `scripts/` becomes the single source and the hook wraps
 it.
 
 This is the piece that makes "each bundle stands alone" true rather than aspirational, so
@@ -709,8 +692,8 @@ either:
 > The directory structure is independent of the domain: producers organize concepts however
 > makes sense for the knowledge being captured. (§3)
 
-OKF gives exactly one classification key, `tags` — "a YAML list of short strings for
-cross-cutting categorization" (§4.1) — and no file format for aggregating by it: "a consumer
+OKF gives exactly one classification key, `tags` - "a YAML list of short strings for
+cross-cutting categorization" (§4.1) - and no file format for aggregating by it: "a consumer
 that wants a tag-browsing view can synthesize one at consumption time by scanning
 frontmatter" (§3.1). So there are two axes, directories and `tags`, and no third.
 
@@ -719,8 +702,8 @@ awiki introduced a third, `topic:`, whose value duplicated the top-level directo
 state rule: the path already carries it, and the two can drift. **Drop `topic:` during
 migration.**
 
-The live tension is that top-level directories carry publishing meaning — nav sections, URL
-prefixes — which pulls toward deciding them up front, while structure-emerges-over-time
+The live tension is that top-level directories carry publishing meaning - nav sections, URL
+prefixes - which pulls toward deciding them up front, while structure-emerges-over-time
 pulls the other way. Both existing principles in the public bundle,
 `split-orthogonal-classification-axes-across-folders-and-tags` and
 `categorize-by-what-content-is-not-why-you-made-it`, already bear on this.
@@ -738,9 +721,9 @@ Distinct styles across bundles create a real cost: the skill must decide *where*
    the problem absent. Discovery then only matters for upstreams we do not control.
 2. **Derive the rest.** `fkb resolve` reports the tags, types and top-level directories a
    bundle actually uses (§7). Derived facts cannot drift, need no declaration, and work on
-   an upstream that will never adopt our conventions — which is exactly the case a
+   an upstream that will never adopt our conventions - which is exactly the case a
    declaration cannot reach.
-3. **Declare what derivation cannot see** — casing rules, prohibitions, intent — in the
+3. **Declare what derivation cannot see** - casing rules, prohibitions, intent - in the
    bundle, beside its floor declaration (§9.2). One file, one standalone-parseable answer.
 
 > **Not in the manifest.** §4 admits machine-local facts and federation policy, and house
@@ -763,260 +746,20 @@ Largely an implementation question, recorded here because it bounds what §7 can
 
 - **Canonical OKF home** is `GoogleCloudPlatform/open-knowledge-format`. The
   `knowledge-catalog` path in the okf-skills header is stale; pin from the former.
-- **Claude Code discovery** is not our problem — no Claude Code in use here. If it ever is,
+- **Claude Code discovery** is not our problem - no Claude Code in use here. If it ever is,
   a `~/.claude/skills/fkb` symlink covers it.
 - **Assets live beside their concept** (§5.2).
 - **The floor declaration is a YAML file**, not the bundle-root `index.md` (§9.2).
-- **`verified` is never required and never nulled** — absence is how OKF encodes
+- **`verified` is never required and never nulled** - absence is how OKF encodes
   unverified (§6.5).
-
----
 
 ## 10. The way forward
 
-This section is the implementation plan. It assumes nothing from this repository except
-this document — a fresh session should be able to start here.
-
-### How to use it
-
-**Answer an open question only when a task forces it.** Deciding early trades away the
-information the work itself produces. Every task below therefore names two things: which
-questions it must settle, and which it must leave alone even when the answer feels obvious.
-Leaving one alone is not procrastination; it is refusing to guess when the next task will
-know.
-
-Tasks run in order. Each states what "done" means in terms someone else could check.
-
-### Before starting
-
-A fresh session needs four things, none of which live in this repository.
-
-| What | Where | Why |
-| --- | --- | --- |
-| The OKF v0.2 spec | `GoogleCloudPlatform/open-knowledge-format` | Vendored verbatim (§8) |
-| `okf-skills` at a pinned commit | `scaccogatto/okf-skills` | Source of the validator, template and spec copy (§8) |
-| The publishing template | `~/Projects/public/running-linux` | MkDocs, prek, CI, Pages — reused, not rebuilt |
-| The existing content | `~/.agents/wikis/{public,private}/docs` | ~60 concepts, ~100 transcripts |
-
-Everything else — the manifest schema (§4), the AGENTS.md block (§5.4), the skill layout
-(§6.2), the command set (§7) — is specified in this document.
-
-One thing this repository *does* provide: `tests/disposable_agent.py` builds a throwaway
-agent — a pinned opencode in a redirected HOME — that you install skills into, send a
-message to, and read a parsed transcript back from. It survived the previous architecture
-because it is independent of what it drives. Use it for T2's skill tests rather than
-rebuilding it; `tests/test_disposable_agent.py` shows the shape.
-
----
-
-### T1 — Prepare the bundle, empty
-
-**Goal.** A conformant, publishing bundle that is ready to be written into, before any
-content is migrated. Hours, not days — T2 is blocked on this and nothing else.
-
-**Deliverable.** A git repo from the running-linux template, with the directory layout
-fixed, the floor declaration written, publishing working, and a handful of concepts in it
-as proof.
-
-**Steps.**
-
-- Copy the template: MkDocs, prek, CI, Pages.
-- Fix the top-level directory layout, and decide how the `meta/` pages satisfy OKF §11
-  (§9.4). Both are forced now, because everything written afterwards assumes them.
-- Decide where markdown raw sources live (§9.3). The ~100 transcripts are the concrete
-  case; deciding does not mean moving them yet.
-- Write the floor declaration file (§9.2). Nothing reads it until T4.
-- Write `index.md`, `log.md`, and three or four real concepts by hand.
-
-**Done when.** `okf_validate.py --strict` passes, `mkdocs build --strict` passes, and the
-site is live.
-
-**Settles.** §9.2, §9.3, §9.4, and §9.6 for this bundle.
-
-**Leave alone.** §9.1, §9.5, §9.7. Migrate no bulk content — that is T3.
-
----
-
-### T2 — Minimum capture, and a friction journal
-
-**Goal.** Agent sessions file knowledge from today, while still producing honest evidence
-about which commands are worth building.
-
-**The bargain.** Building before observing risks the journal recording friction with the
-tooling rather than with the task. That risk attaches to the commands, not to the
-instructions, so this task builds every part whose necessity is not in question and
-deliberately withholds the rest.
-
-| Build now | Withhold |
-| --- | --- |
-| The skill, scoped to *filing* (§6.3, §6.4) | Query and audit workflows |
-| `fkb list` | `fkb search` (§9.1) |
-| `fkb lint`, conformance and floor only | `fkb resolve`'s vocabulary reporting (§7) |
-| The AGENTS.md block (§5.4) | Semantic lint (§6.5) |
-| Vendored spec, template, validator (§8) | `fkb init`, `fkb add` |
-
-Withholding `search` and `resolve` is the entire point: reaching for the web when the
-bundle knew the answer, or picking a tag that fits nothing, are the observations that decide
-whether those commands exist.
-
-**Deliverable.** `~/.agents/skills/fkb/` per §6.2 but filing-only, the two commands, the
-AGENTS.md block, and `JOURNAL.md` in this repository beside this document.
-
-**The journal.** The skill instructs the agent to append to `JOURNAL.md` whenever the work
-runs into a limit. Three rules keep it worth reading:
-
-- **Record what happened, not what should be built.** "Searched the web for X; the bundle
-  had it at `principles/y.md`" is evidence. "Search would be useful" is a wish, and wishes
-  are free.
-- **Record only concrete incidents, with the artifacts.** The actual query, the actual path,
-  the actual tag chosen. An entry that names no file and no query did not happen.
-- **Record what was done instead.** The workaround is the measurement. If there was no
-  workaround, say the task was abandoned.
-
-One line per incident, dated, so the file greps:
-
-```markdown
-- **2026-09-04** search — asked "do we pin actions by SHA"; web-searched; bundle had
-  `principles/pin-github-actions-to-full-commit-shas.md`. Read the whole index to find it.
-- **2026-09-05** tags — filed `ci` where the bundle uses `ci-cd`; noticed only at lint.
-```
-
-> Agents asked to report problems will invent plausible ones. The three rules exist to make
-> a fabricated entry obviously empty: no path, no query, nothing done instead.
-
-**Done when.** Filing works end to end from a cold session, and the journal has run for
-seven days or accumulated enough entries to decide T4 without waiting.
-
-**Settles.** Nothing formally. It supplies the evidence for §9.1 and for T4's scope.
-
-**Leave alone.** Everything in the withhold column, however obvious it looks mid-week. The
-whole value of this task is that the gaps stay open long enough to be measured.
-
----
-
-### T3 — Migrate the ~60 public concepts
-
-**Goal.** Move the existing content into the T1 bundle. Runs alongside T2's observation
-window; capture does not wait for it.
-
-**Steps.**
-
-- Copy from `~/.agents/wikis/public/docs`. The published files are canonical; the `raw/`
-  shadows carry nothing extra.
-- Frontmatter: add `type:`; drop `sources: [raw/…]`, `render_hash` and `topic:` (the
-  directory already carries the topic, §9.6).
-- Convert `[[wikilinks]]` to relative markdown links using a filename-and-title map. Emit
-  the unresolved ones as a list for manual review rather than guessing a target.
-- Delete the `raw/` tree once the conversion validates.
-- Move the transcripts wherever T1 decided (§9.3).
-
-**Done when.** `okf_validate.py --strict` and `mkdocs build --strict` both pass, internal
-links resolve, and the unresolved-link list is empty or consciously accepted.
-
-**Leave alone.** The conversion script is disposable and never becomes part of `fkb`.
-
----
-
-### T4 — Finish the CLI
-
-**Goal.** Add the commands the journal justified, and nothing else.
-
-**Specified by this document.** Manifest schema and resolution (§4), the reference rule
-(§4), what `resolve` reports (§7), `lint`'s warning-versus-error behaviour (§6.6).
-
-**Steps.**
-
-- Read `JOURNAL.md` first. A command with no entries against it does not get built.
-- Implement the federation checks in `lint`: the reference rule, cross-bundle links, and
-  demotion to warnings for non-writable bundles (§6.6).
-- Implement `search` if the journal earned it, in pure Python unless §9.7 says otherwise.
-  Output must be bundle-qualified, and a published bundle's hits must render as URLs.
-- Add `resolve`'s vocabulary reporting if the journal shows style mismatches (§7).
-- Implement `fkb init` and `fkb add` with its three arrival paths (§7). Until now the
-  workspace was hand-written; T7 introduces a second bundle and a real user, so setup stops
-  being a one-off.
-
-**Done when.** Every built command runs against the migrated bundle and at least one
-read-only upstream, and the tests drive the installed copy rather than the source tree.
-
-**Settles.** §9.7, and §9.1 to the extent the journal decided it.
-
----
-
-### T5 — Finish the skill
-
-**Goal.** Extend the filing-only skill of T2 into the full one, including onboarding.
-
-**Steps.**
-
-- Add the query workflow and the semantic lint checklist (§6.5).
-- Add the "new here?" branch to `SKILL.md` and write `references/getting-started.md`
-  (§6.7). Take the three arrival paths from the previous `README.md` before T7 deletes it.
-- Add `references/house-style.md` and `references/federation.md`.
-- Fold whatever the journal revealed about the filing instructions back into `SKILL.md`.
-
-**Done when.** Three cold-session tests pass, each starting with no prior context:
-
-1. Given a question, the agent finds the skill, reads a concept and cites it.
-2. Given "note this down", it files a conformant concept that passes `fkb lint` uncorrected.
-3. Given "what is this and how do I start?" on a machine with **no workspace configured**,
-   it explains what a bundle is and gives a first command that runs (§6.7).
-
-The third test is the one that fails quietly. A plausible summary of the design is not a
-pass; a next step the person can run is.
-
-**Leave alone.** §9.6 — the skill reads a bundle's style, it does not impose one.
-
----
-
-### T6 — Ship the standalone pre-commit hook
-
-**Goal.** A bundle enforces its own conformance and floor without `fkb` present.
-
-**Deliverable.** This repository publishes a `pre-commit` hook that a bundle pins by
-revision, wrapping the same checker `fkb lint` calls.
-
-**Constraint.** One implementation, two entry points. If the hook and the skill's copy can
-drift, the design has failed.
-
-**Done when.** A bundle with no knowledge of the federation rejects a non-conformant commit,
-and `fkb lint` reports the same finding on the same file.
-
-**Settles.** §9.5.
-
----
-
-### T7 — Second bundle, then retire the old architecture
-
-**Goal.** Prove federation on more than one bundle, and remove what this design replaces.
-
-**Steps.**
-
-- Migrate the private bundle as in T1 and T3.
-- Populate the manifest with both bundles plus at least one read-only upstream.
-- Exercise the reference rule: confirm a private-to-public link is refused and a
-  public-to-public link is allowed.
-- Fold `JOURNAL.md` into a decisions record and delete it.
-- Update `README.md` to describe what now exists rather than what is planned.
-
-**Done when.** The repository contains this design, the CLI, the skill, the hook and their
-tests, and nothing describing the previous architecture except Appendix A.
-
----
-
-### Already done
-
-- **The stale AGENTS.md block is removed** from `~/.config/opencode/AGENTS.md`
-  (2026-09-02). Cold sessions currently get no wiki instructions at all, which is correct
-  until T4 gives them something true to say.
-- **The retired architecture is deleted** (2026-09-02): the six `fkb-*` skills,
-  `manifest.py`, `install-glue`, the bundle commands and their tests. The last working
-  state is preserved in git history, and what it cost is Appendix A. The disposable-agent
-  test machinery was kept.
-
----
-
-## Appendix A — what the invariants cost
+The implementation plan lives in [IMPLEMENTATION.md](IMPLEMENTATION.md): the tasks T1–T7 in
+order, what "done" means for each, and which of the open questions in §9 each one settles.
+It assumes this document and nothing else from this repository.
+
+## Appendix A - what the invariants cost
 
 Kept short, and only to argue §2.
 
@@ -1033,7 +776,7 @@ flow through prompt obedience; the SKILL.md accumulated three shouted warnings a
 indirection we had introduced ourselves (invariant 2). `create-bundle` already bypassed
 `kb-init` to hand-roll its scaffold, because a skill is prose rather than a callable binary.
 The `kb-*` skills are not installed on this machine while the global AGENTS.md advertises
-fkb, because skills have no dependency resolution — `npx skills add` copies a directory and
+fkb, because skills have no dependency resolution - `npx skills add` copies a directory and
 verifies no "requires" (invariant 4).
 
 The conclusion this design returns to was reached on 2026-08-27 in
@@ -1041,28 +784,24 @@ The conclusion this design returns to was reached on 2026-08-27 in
 
 > OKF plain-markdown files + thin pre-commit scripts + an AGENTS.md contract, no engine
 
----
-
-## Appendix B — deliberate deviations
+## Appendix B - deliberate deviations
 
 | Source | Says | We do | Why |
 | --- | --- | --- | --- |
-| Karpathy | "You never (or rarely) write the wiki yourself — the LLM writes and maintains all of it" | Felix co-authors and edits concepts directly | Karpathy's vault is private, single-reader, optimised for compounding synthesis. Ours is published, multi-tier and human-facing, with a house voice, prek hooks and GitHub web editing as a deliberate entry point. |
+| Karpathy | "You never (or rarely) write the wiki yourself - the LLM writes and maintains all of it" | Felix co-authors and edits concepts directly | Karpathy's vault is private, single-reader, optimised for compounding synthesis. Ours is published, multi-tier and human-facing, with a house voice, prek hooks and GitHub web editing as a deliberate entry point. |
 | OKF §11 | Consumers tolerate every missing optional field | `fkb lint` enforces a per-bundle floor above `type` | Provenance that is merely encouraged does not get written. The floor is ours, not the spec's, and applies only to bundles we own (§6.5). |
 | okf-skills | `.okf/` at the repo root | `docs/` | The publishing stack owns that directory. Consequences for non-knowledge pages are §9.4. |
 | awiki | `[[wikilinks]]` | standard markdown links | Our blueprint mandates them, OKF §6.1 specifies them, and Obsidian and MkDocs both support them. |
-
----
 
 ## Sources
 
 - [Karpathy, LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)
 - [Open Knowledge Format v0.2](https://github.com/GoogleCloudPlatform/open-knowledge-format)
-- [scaccogatto/okf-skills](https://github.com/scaccogatto/okf-skills) — MIT
-- [stjbrown/agent-knowledge](https://github.com/stjbrown/agent-knowledge) — the `kb-*` skills
+- [scaccogatto/okf-skills](https://github.com/scaccogatto/okf-skills) - MIT
+- [stjbrown/agent-knowledge](https://github.com/stjbrown/agent-knowledge) - the `kb-*` skills
 - [TacoTakumi/agent-wiki](https://github.com/TacoTakumi/agent-wiki)
-- [Agent Skills specification](https://agentskills.io) — `SKILL.md`, `references/`,
+- [Agent Skills specification](https://agentskills.io) - `SKILL.md`, `references/`,
   `scripts/`, progressive disclosure
 - Local: `~/.agents/wikis/public/docs/research/substrate-options-…md`,
   `blueprints/mkdocs-material-pkb-publishing-stack.md`
-- Local: `~/Projects/public/running-linux` — the working publishing stack
+- Local: `~/Projects/public/running-linux` - the working publishing stack

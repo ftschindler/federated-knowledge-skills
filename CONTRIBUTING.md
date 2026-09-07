@@ -81,7 +81,7 @@ afterwards. Building one
 
 > Dropping those variables matters more than it looks. `OPENCODE_CONFIG_DIR` overrides
 > config lookup outright, so a developer who has one set would otherwise re-attach every
-> disposable agent to their real profile — reading their models and plugins while looking
+> disposable agent to their real profile - reading their models and plugins while looking
 > for credentials in an empty home. What surfaces is an opaque provider error, nowhere near
 > the cause.
 
