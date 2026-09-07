@@ -1,5 +1,5 @@
 ---
-# Pre-commit config for federated-knowledge.
+# Pre-commit config for federated-knowledge-skills.
 #
 # Principles honored (from the wiki):
 #   - Every file type in the repo has a linter/formatter here (md, mjs/js, yaml,

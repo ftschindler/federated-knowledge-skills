@@ -1,4 +1,4 @@
-# federated-knowledge
+# federated-knowledge-skills
 
 A federated, agent-agnostic knowledge base: privacy-tiered bundles of plain markdown, each
 its own git repo, readable and writable by agents across harnesses and by humans in an

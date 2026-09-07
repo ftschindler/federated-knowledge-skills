@@ -17,8 +17,8 @@ and optionally [make](https://en.wikipedia.org/wiki/Make_(software)).
 ### Clone and bootstrap
 
 ```bash
-git clone https://github.com/ftschindler/federated-knowledge.git
-cd federated-knowledge
+git clone https://github.com/ftschindler/federated-knowledge-skills.git
+cd federated-knowledge-skills
 make bootstrap
 ```
 
