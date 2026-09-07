@@ -297,9 +297,10 @@ short and almost entirely control flow, well under 500 lines.
 │   ├── fkb                     # our CLI (PEP 723, uv)
 │   └── okf_validate.py         # vendored, unmodified (§8)
 └── references/
-    ├── SPEC.md                 # vendored verbatim OKF v0.2 (§8)
-    ├── APACHE-2.0.txt          # vendored — licence for SPEC.md
-    ├── concept-template.md     # vendored, lightly adapted
+    ├── SPEC.md                  # vendored verbatim OKF v0.2 (§8)
+    ├── APACHE-2.0.txt           # vendored — licence for SPEC.md
+    ├── MIT-okf-skills.txt       # vendored — licence for the validator and template
+    ├── concept-template.md      # vendored, lightly adapted
     ├── getting-started.md      # ours — onboarding (§6.7)
     ├── house-style.md          # ours
     └── federation.md           # ours
@@ -570,21 +571,36 @@ its "for Claude Code" tagline.
 
 ### Mechanics
 
-Copy their provenance header, which names the upstream commit and makes a later re-pull a
-diff:
+Every vendored file carries a provenance header naming its upstream commit, which makes a
+later re-pull a diff:
 
 ```text
-Vendored from …/okf/SPEC.md
-Commit:  3fcbb9f828c2f23d109c855ee403c3a4c81f3a96
+Vendored verbatim from the Open Knowledge Format v0.2 specification.
+Source:  https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/main/SPEC.md
+Commit:  ad30107c31c06aec8a7d5636e0d1058118604e6f
 License: Apache-2.0 (c) Google LLC — included verbatim under its terms.
 ```
 
-Two licences travel with the files:
+| Vendored file | Upstream | Pin | Licence text |
+| --- | --- | --- | --- |
+| `references/SPEC.md` | `GoogleCloudPlatform/open-knowledge-format` | `ad30107` | `references/APACHE-2.0.txt` |
+| `scripts/okf_validate.py` | `scaccogatto/okf-skills` | `d8393f3` | `references/MIT-okf-skills.txt` |
+| `references/concept-template.md` | `scaccogatto/okf-skills` | `d8393f3` | `references/MIT-okf-skills.txt` |
 
-- `SPEC.md` is Apache-2.0, © Google LLC. Keep the header, ship `APACHE-2.0.txt`, record it
-  in `NOTICE`.
-- `okf_validate.py` and `concept-template.md` are MIT, © 2026 Marco Boffo. Retain the
-  copyright and permission notice.
+Both licence texts sit in `references/`, beside what they cover, because the skill is
+installed standalone (§6.2) and a copy that leaves this repository has to carry its own
+notices.
+
+`concept-template.md` is adapted rather than verbatim: it drops `verified:` so the template
+cannot invite a self-assertion (§6.5), carries the actor spelling of §6.4, and marks which
+fields are the floor.
+
+Timestamps follow the validator rather than the spec: `stale_after`,
+`sources[].last_modified` and `usage_window` are written as `YYYY-MM-DD` dates. The
+canonical spec makes every timestamp-valued key an ISO 8601 datetime, but the vendored
+validator predates that and rejects the datetime form under `--strict`. All three fields
+sit outside the floor (§6.5), so what the simplification costs is day precision on
+staleness.
 
 Two adaptations are required:
 
@@ -792,6 +808,8 @@ The conclusion this design returns to was reached on 2026-08-27 in
 | OKF §11 | Consumers tolerate every missing optional field | `fkb lint` enforces a per-bundle floor above `type` | Provenance that is merely encouraged does not get written. The floor is ours, not the spec's, and applies only to bundles we own (§6.5). |
 | okf-skills | `.okf/` at the repo root | `docs/` | The publishing stack owns that directory. Consequences for non-knowledge pages are §9.4. |
 | awiki | `[[wikilinks]]` | standard markdown links | Our blueprint mandates them, OKF §6.1 specifies them, and Obsidian and MkDocs both support them. |
+| OKF §5 | Every timestamp-valued key is "an ISO 8601 datetime with an explicit UTC offset" | `YYYY-MM-DD` dates for `stale_after`, `sources[].last_modified` and `usage_window` | The vendored validator predates the change and rejects the datetime form under `--strict` (§8). All three fields sit outside the floor, so the simplification costs day precision on staleness. |
+| OKF §6.1 | Absolute, bundle-relative links (leading `/`) are the recommended form; relative links are also supported | Relative links throughout | Only the relative form resolves in an editor, on the GitHub web UI and in a rendered site at once - the reason §5.2 already keeps assets beside their concept. MkDocs rewrites relative links when a page moves and leaves absolute ones untouched, so a moved target breaks silently. |
 
 ## Sources
 

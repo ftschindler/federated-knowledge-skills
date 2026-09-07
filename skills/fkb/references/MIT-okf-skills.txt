@@ -1,0 +1,38 @@
+Licence for the files vendored from https://github.com/scaccogatto/okf-skills
+at commit d8393f329c97836980566c1cf4e4aa4fe47dc111:
+
+  scripts/okf_validate.py        (upstream skills/validate/scripts/okf_validate.py)
+  references/concept-template.md (upstream skills/okf/templates/concept.md)
+
+okf_validate.py is byte-identical to upstream, so that re-pulling a later
+revision is a clean diff rather than a merge.
+
+concept-template.md is adapted. It drops the `verified:` field, so the template
+cannot invite an author to assert it of their own work; carries this project's
+actor spelling; marks which fields are required; and repairs an upstream YAML
+defect where an unquoted comma inside the `generated:` flow mapping split it
+into a spurious third key.
+
+----------------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2026 Marco Boffo
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
