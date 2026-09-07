@@ -1,0 +1,14 @@
+DESIGN.md
+  h_0f8f9341a40674 675,677-682,812-816,1022-1023
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "105f8b2f4609afb9c14043f0301baf6b96a208e0",
+  "prompts": {},
+  "humans": {
+    "h_0f8f9341a40674": {
+      "author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    }
+  }
+}
