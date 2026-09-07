@@ -801,11 +801,11 @@ A fresh session needs four things, none of which live in this repository.
 Everything else — the manifest schema (§4), the AGENTS.md block (§5.4), the skill layout
 (§6.2), the command set (§7) — is specified in this document.
 
-One thing this repository *does* provide: `tests/fake_home.py` and `tests/conftest.py` build
-an isolated HOME, install a pinned opencode, copy skill directories into `~/.agents/skills`
-and drive `opencode run`, returning a parsed transcript. It survived the previous
-architecture because it is independent of what it drives. Use it for T2's skill tests rather
-than rebuilding it; `tests/test_harness.py` shows the shape.
+One thing this repository *does* provide: `tests/disposable_agent.py` builds a throwaway
+agent — a pinned opencode in a redirected HOME — that you install skills into, send a
+message to, and read a parsed transcript back from. It survived the previous architecture
+because it is independent of what it drives. Use it for T2's skill tests rather than
+rebuilding it; `tests/test_disposable_agent.py` shows the shape.
 
 ---
 
@@ -1011,8 +1011,8 @@ tests, and nothing describing the previous architecture except Appendix A.
   until T4 gives them something true to say.
 - **The retired architecture is deleted** (2026-09-02): the six `fkb-*` skills,
   `manifest.py`, `install-glue`, the bundle commands and their tests. The last working
-  state is preserved in git history, and what it cost is Appendix A. The e2e harness was
-  kept.
+  state is preserved in git history, and what it cost is Appendix A. The disposable-agent
+  test machinery was kept.
 
 ---
 

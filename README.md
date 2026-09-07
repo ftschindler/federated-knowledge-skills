@@ -33,9 +33,9 @@ Three ideas carry most of the design:
 | | |
 | --- | --- |
 | `DESIGN.md` | The design and the plan |
-| `tests/fake_home.py` | Builds an isolated HOME, installs a pinned opencode, drives `opencode run` |
-| `tests/test_harness.py` | Keeps that harness exercised while there is nothing else to test |
-| `.scripts/` | Support scripts: fake-home shell, dependency extraction, mailmap and skill-frontmatter guards |
+| `tests/disposable_agent.py` | A throwaway agent: install skills into it, send it a message, throw it away |
+| `tests/test_disposable_agent.py` | Keeps that machinery exercised while there is nothing else to test |
+| `.scripts/` | Support scripts: build an agent by hand, extract dependencies, guard the mailmap and skill frontmatter |
 | dotfiles, `.github/` | Pre-commit hooks, linters, CI |
 
 No skills and no CLI. Those arrive with the tasks in DESIGN.md §10.
@@ -46,8 +46,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites, bootstrap and the test
 
 ```bash
 make bootstrap   # install the pre-commit hooks
-make test        # support scripts, then the e2e harness
+make test        # support scripts, then a real agent run
 make check       # the full guard suite over every file
+make agent       # build a disposable agent and drop into a shell inside it
 ```
 
 ## History
@@ -58,8 +59,8 @@ layer. It reached 20 commits and a green test suite, and it did not work: skills
 skills is not something an agent reliably carries out. That state is preserved on a tag,
 and what it cost is recorded in DESIGN.md appendix A.
 
-The e2e harness is what survived, because driving a real agent in a disposable home is
-independent of what is being driven.
+The disposable agent is what survived, because building a throwaway agent and talking to it
+is independent of what is being tested.
 
 ## License
 

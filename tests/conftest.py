@@ -1,11 +1,10 @@
-"""Shared fixtures for the end-to-end test harness.
+"""Shared fixtures for the tests that drive a real agent.
 
-The `skills` tests are true end-to-end tests: they build an isolated fake HOME
-(see tests/fake_home.py), install a pinned opencode into it, place skills under
-`~/.agents/skills` exactly as a user would, then drive `opencode run` and inspect
-the artifacts and output.
+Tests marked `agent` are true end-to-end tests: they build a disposable agent
+(see tests/disposable_agent.py), install skills into it exactly as a user would,
+send it a message and inspect the transcript and the files it left behind.
 
-On failure, the fake home is preserved and a copy-pasteable command to enter it
+On failure the agent is preserved and a copy-pasteable command to enter its world
 is printed, so a run can be inspected by hand.
 """
 
@@ -14,30 +13,30 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from fake_home import FakeHome, build_fake_home
+from disposable_agent import DisposableAgent, build_disposable_agent
 
 
 @pytest.fixture
-def empty_home(tmp_path: Path) -> FakeHome:
-    """A fake home with opencode installed and no skills at all."""
+def bare_agent(tmp_path: Path) -> DisposableAgent:
+    """A disposable agent with no skills installed at all."""
     # pytest keeps the last few `tmp_path` roots on disk by default, so a failing
-    # run's fake home survives long enough to inspect (path is printed on failure).
-    return build_fake_home(tmp_path, skills_dir=None)
+    # run's agent survives long enough to inspect (path is printed on failure).
+    return build_disposable_agent(tmp_path, skills_dir=None)
 
 
 @pytest.fixture
-def home_factory(tmp_path: Path):
-    """Build a fake home with skills taken from a caller-supplied directory.
+def agent_factory(tmp_path: Path):
+    """Build a disposable agent with skills from a caller-supplied directory.
 
-    Lets a test author a skill on the fly and install it, so the harness can be
+    Lets a test author a skill on the fly and install it, so the machinery can be
     exercised without depending on whichever skills this repo currently ships.
     """
-    built: list[FakeHome] = []
+    built: list[DisposableAgent] = []
 
-    def _build(skills_dir: Path | None) -> FakeHome:
-        home = build_fake_home(tmp_path / f"home{len(built)}", skills_dir=skills_dir)
-        built.append(home)
-        return home
+    def _build(skills_dir: Path | None) -> DisposableAgent:
+        agent = build_disposable_agent(tmp_path / f"agent{len(built)}", skills_dir=skills_dir)
+        built.append(agent)
+        return agent
 
     _build.built = built  # type: ignore[attr-defined]
     return _build
@@ -45,20 +44,20 @@ def home_factory(tmp_path: Path):
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """On failure of a test that used a fake home, print how to enter it."""
+    """On failure of a test that used a disposable agent, print how to enter it."""
     outcome = yield
     report = outcome.get_result()
     if report.when != "call" or not report.failed:
         return
     funcargs = getattr(item, "funcargs", {}) or {}
-    candidates: list[FakeHome] = [v for v in funcargs.values() if isinstance(v, FakeHome)]
-    factory = funcargs.get("home_factory")
+    candidates: list[DisposableAgent] = [v for v in funcargs.values() if isinstance(v, DisposableAgent)]
+    factory = funcargs.get("agent_factory")
     candidates.extend(getattr(factory, "built", []))
-    for fake in candidates:
+    for agent in candidates:
         report.sections.append(
             (
-                "Fake home (inspect it)",
-                fake.enter_hint(reason=f"Test {item.name!r} failed."),
+                "Disposable agent (inspect it)",
+                agent.enter_hint(reason=f"Test {item.name!r} failed."),
             )
         )
         break

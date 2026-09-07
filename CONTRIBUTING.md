@@ -50,42 +50,46 @@ Fast and deterministic, no network:
 make test_python_scripts
 ```
 
-#### The end-to-end harness
+#### The disposable agent
 
 Slower and non-deterministic, because it drives a real agent:
 
 ```bash
-make test_skills
+make test_agent
 ```
 
 These tests
 
-- prepare a [throwaway agent environment](#a-throwaway-agent-environment),
-- invoke `opencode` with instructions (the non-deterministic part),
-- assert deterministically on the returned transcript and the created files.
+- build a [disposable agent](#a-disposable-agent),
+- send it a message (the non-deterministic part),
+- assert deterministically on the transcript it returns and the files it leaves.
 
 While the repo has no skills of its own, this layer installs a canary skill authored by the
-test and checks that an agent discovers and follows it. That keeps every moving part of the
-harness exercised: the opencode install, the permission grant, skill discovery, activation
-and transcript parsing.
+test and checks that the agent discovers and follows it. That keeps every moving part
+exercised: the opencode install, the permission grant, skill discovery, activation and
+transcript parsing.
 
-#### A throwaway agent environment
+#### A disposable agent
 
-The harness
+A `DisposableAgent` is a real agent you can talk to, owned by the caller and thrown away
+afterwards. Building one
 
-- creates a fake `HOME` with all `XDG_*` redirected into it,
-- installs a pinned `opencode` (an agent harness plus free access to its default model),
+- creates a `HOME` with all `XDG_*` redirected into it,
+- installs a pinned `opencode` (an agent runtime plus free access to its default model),
 - copies skill directories from a given source into `~/.agents/skills`.
 
-Build one by hand and drop into a shell inside it:
+A test never needs to know opencode is in there: it installs skills, calls `run()`, and
+reads the transcript.
+
+Build one by hand and drop into a shell inside its world:
 
 ```bash
-make fakehome                          # this repo's skills, if any
-.scripts/fake-home.py --skills DIR     # skills from elsewhere
-.scripts/fake-home.py --no-skills      # opencode only
+make agent                                    # this repo's skills, if any
+.scripts/disposable-agent.py --skills DIR     # skills from elsewhere
+.scripts/disposable-agent.py --no-skills      # a bare agent
 ```
 
-On a test failure the fake home is preserved and the command to enter it is printed.
+On a test failure the agent is preserved and the command to enter it is printed.
 
 ### Before you push
 
