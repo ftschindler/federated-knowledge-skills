@@ -1,5 +1,5 @@
 ---
-# Pre-commit config for federated-knowledge.
+# Pre-commit config for federated-knowledge-skills.
 #
 # Principles honored (from the wiki):
 #   - Every file type in the repo has a linter/formatter here (md, mjs/js, yaml,
@@ -16,6 +16,19 @@
 # Install:      prek install
 
 minimum_pre_commit_version: "3.0.0"
+
+# Vendored third-party files. They must reach a consumer exactly as upstream
+# published them, and many hooks below fix in place, so no hook may touch them.
+# Listed individually rather than by directory: references/ also holds our own
+# documents, which must stay linted.
+exclude: |
+  (?x)^(
+    skills/fkb/references/SPEC\.md|
+    skills/fkb/references/APACHE-2\.0\.txt|
+    skills/fkb/references/MIT-okf-skills\.txt|
+    skills/fkb/references/concept-template\.md|
+    skills/fkb/scripts/okf_validate\.py
+  )$
 
 repos:
 # ---- content formatters / linters (run FIRST) -------------------------
@@ -146,6 +159,14 @@ repos:
     files: ^skills/.*/SKILL\.md$
     pass_filenames: true
 
+  # House style for markdown: no `---` separators, no em dashes.
+  - id: markdown-style
+    name: Markdown has no `---` separators or em dashes
+    entry: uv run --script .scripts/check_markdown_style.py
+    language: system
+    files: \.md$
+    pass_filenames: true
+
   # Keep author attribution canonical: fail if any commit author is missing
   # from .mailmap, or the file has duplicate emails / unsorted lines.
   - id: check-mailmap
@@ -161,7 +182,7 @@ repos:
     entry: Filename must be lowercase with no whitespace
     language: fail
     files: "[\\sA-Z]"
-    exclude: "^(TODO\\.md|README\\.md|.*/README\\.md|CONTRIBUTING\\.md|DECISIONS\\.md|DESIGN\\.md|LICENSE|Makefile|SKILL\\.md|.*/SKILL\\.md)$"
+    exclude: "^(TODO\\.md|IMPLEMENTATION\\.md|README\\.md|.*/README\\.md|CONTRIBUTING\\.md|DECISIONS\\.md|DESIGN\\.md|LICENSE|Makefile|SKILL\\.md|.*/SKILL\\.md)$"
 
 # ---- general text hygiene (run LAST so it cleans up after everything) --
 

@@ -1,4 +1,4 @@
-# federated-knowledge
+# federated-knowledge-skills
 
 A federated, agent-agnostic knowledge base: privacy-tiered bundles of plain markdown, each
 its own git repo, readable and writable by agents across harnesses and by humans in an
@@ -9,15 +9,17 @@ idea over the [Open Knowledge Format](https://github.com/GoogleCloudPlatform/ope
 with the federation and access tiers that neither of those specifies.
 
 > **Status: design stage.** The architecture is settled and written down. The
-> implementation is not built yet. An earlier attempt was, and was retired — see
+> implementation is not built yet. An earlier attempt was, and was retired - see
 > [below](#history).
 
 ## Read this first
 
 **[DESIGN.md](DESIGN.md) is the sole source of truth.** It specifies what gets built, what
-was deliberately rejected, which questions are still open, and the order of work. It is
-self-contained: everything needed to start is either in it or listed in its "before
-starting" section.
+was deliberately rejected, and which questions are still open.
+[IMPLEMENTATION.md](IMPLEMENTATION.md) carries the order of work: tasks T1–T7, what "done"
+means for each, and which open question each one settles. Together they are
+self-contained - everything needed to start is either in them or listed in
+IMPLEMENTATION.md's "before starting" section.
 
 Three ideas carry most of the design:
 
@@ -32,13 +34,14 @@ Three ideas carry most of the design:
 
 | | |
 | --- | --- |
-| `DESIGN.md` | The design and the plan |
+| `DESIGN.md` | The design |
+| `IMPLEMENTATION.md` | The plan: tasks T1–T7, in order |
 | `tests/disposable_agent.py` | A throwaway agent: install skills into it, send it a message, throw it away |
 | `tests/test_disposable_agent.py` | Keeps that machinery exercised while there is nothing else to test |
 | `.scripts/` | Support scripts: build an agent by hand, extract dependencies, guard the mailmap and skill frontmatter |
 | dotfiles, `.github/` | Pre-commit hooks, linters, CI |
 
-No skills and no CLI. Those arrive with the tasks in DESIGN.md §10.
+No skills and no CLI. Those arrive with the tasks in [IMPLEMENTATION.md](IMPLEMENTATION.md).
 
 ## Working on it
 

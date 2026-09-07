@@ -1,6 +1,12 @@
 ---
 dirs:
 - .
+# The vendored spec carries illustrative links (`/tables/customer-metrics.md`)
+# that were never meant to resolve here. Named individually: this directory also
+# holds our own documents, whose links must stay checked.
+excludedFiles:
+- ./skills/fkb/references/SPEC.md
+- ./skills/fkb/references/concept-template.md
 fileExtensions:
 - md
 useGitIgnore: true

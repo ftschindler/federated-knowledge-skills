@@ -1,6 +1,23 @@
+Licence for the files vendored from https://github.com/scaccogatto/okf-skills
+at commit d8393f329c97836980566c1cf4e4aa4fe47dc111:
+
+  scripts/okf_validate.py        (upstream skills/validate/scripts/okf_validate.py)
+  references/concept-template.md (upstream skills/okf/templates/concept.md)
+
+okf_validate.py is byte-identical to upstream, so that re-pulling a later
+revision is a clean diff rather than a merge.
+
+concept-template.md is adapted. It drops the `verified:` field, so the template
+cannot invite an author to assert it of their own work; carries this project's
+actor spelling; marks which fields are required; and repairs an upstream YAML
+defect where an unquoted comma inside the `generated:` flow mapping split it
+into a spurious third key.
+
+----------------------------------------------------------------------------
+
 MIT License
 
-Copyright (c) 2026 federated-knowledge-skills contributors
+Copyright (c) 2026 Marco Boffo
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
