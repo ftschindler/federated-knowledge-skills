@@ -40,14 +40,17 @@ do not write a concept into a directory you found by looking around.
    `resource:`. A perishable or access-gated source gets archived beside the bundle and
    recorded under `sources:`.
 
-3. **Which bundle?** Run `uv run scripts/fkb list` and choose by sensitivity, not by
-   convenience:
-   - Write only where `writable` is `true`.
-   - `referenceable_by "*"` means any bundle may cite it, so treat it as published.
-   - `referenceable_by []` means it is sealed: nothing may cite it, so nothing in it can
-     surface through a link from somewhere that publishes.
-   - **In doubt, take the most private bundle you may write to.** Moving a concept later
-     costs one commit; disclosing it costs whatever it disclosed.
+3. **Which bundle?**
+
+   - **If the user named one** ("public wiki", "the private bundle"), use that. If the name
+     is ambiguous, ask which they meant rather than guessing.
+   - **Otherwise run `uv run scripts/fkb list`** and choose by sensitivity:
+     - Write only where `writable` is `true`.
+     - `referenceable_by "*"` means any bundle may cite it, so treat it as published.
+     - `referenceable_by []` means it is sealed: nothing may cite it, so nothing in it can
+       surface through a link from somewhere that publishes.
+     - **In doubt, take the most private bundle you may write to.** Moving a concept later
+       costs one commit; disclosing it costs whatever it disclosed.
 
 4. **Where in the bundle?** Read the bundle's own `index.md` and its directory names first,
    and follow what is already there. A bundle's structure is its own; this skill does not
