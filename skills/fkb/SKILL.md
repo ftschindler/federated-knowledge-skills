@@ -6,8 +6,9 @@ description: File durable knowledge into privacy-tiered markdown bundles (the wi
 # Filing knowledge into a bundle
 
 A bundle is an ordinary directory of markdown concepts, one idea per file, in the Open
-Knowledge Format. Several bundles sit side by side at different privacy tiers. You write the
-file that a person then reads and edits: there is no ingest step and no generated copy.
+Knowledge Format ([the spec](references/SPEC.md)). Several bundles sit side by side at
+different privacy tiers. You write the file that a person then reads and edits: there is no
+ingest step and no generated copy.
 
 **This skill currently covers filing only.** Reading is `rg` and the ordinary file tools.
 There is no search command and no audit workflow yet, on purpose.
