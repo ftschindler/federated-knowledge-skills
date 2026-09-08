@@ -1,0 +1,28 @@
+tests/test_fkb_cli.py
+  s_491302f1b64725::t_5ee92e1bbc5f70 84-89
+  s_491302f1b64725::t_cc4b96c93a89bc 104-106,118-119
+skills/fkb/scripts/fkb
+  s_491302f1b64725::t_26cfb772c16b29 107-113,117-121
+  s_491302f1b64725::t_e97a0aeec1e4fc 64-65,67-70,73,75-77
+skills/fkb/SKILL.md
+  s_491302f1b64725::t_39954d3d5d3db6 42-43
+  s_491302f1b64725::t_0f3c478a55f8a2 44-47
+  s_491302f1b64725::t_379ccab3a2ecfa 82-83
+  s_491302f1b64725::t_1919826dbd3b50 17-19,21-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "fb88ca551c90f31db5d7025c7deddd9c862a6399",
+  "prompts": {},
+  "sessions": {
+    "s_491302f1b64725": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f7f685a09ffebQ60db99MlYgci",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    }
+  }
+}
