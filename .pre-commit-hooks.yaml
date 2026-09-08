@@ -1,0 +1,37 @@
+---
+# Hooks a knowledge bundle can pin by revision. A bundle is an ordinary git
+# repository that need not know it belongs to a federation, so these enforce
+# the Open Knowledge Format and the bundle's own declared floor, and nothing
+# that would require a manifest.
+#
+# Both hooks are the same checker under different blocking policies. Pass
+# `--bundle-root`, and `--floor` when the bundle declares one:
+#
+#   - repo: https://github.com/ftschindler/federated-knowledge-skills
+#     rev: <commit>
+#     hooks:
+#     - id: okf-concepts
+#       args: [--bundle-root, docs, --floor, docs/okf-floor.yaml]
+#     - id: okf-bundle
+#       args: [--bundle-root, docs, --floor, docs/okf-floor.yaml]
+
+- id: okf-concepts
+  name: OKF conformance and floor (files being committed)
+  description: >
+    Checks the whole bundle but fails only on findings in the files being
+    committed, so an unfinished concept elsewhere never blocks a commit.
+  entry: skills/fkb/scripts/bundle_lint.py
+  language: script
+  files: \.md$
+  require_serial: true
+
+- id: okf-bundle
+  name: OKF conformance, floor and index coverage (whole bundle)
+  description: >
+    Fails on any finding anywhere, and additionally requires every concept to
+    be linked from an index. Intended for CI rather than per-commit use.
+  entry: skills/fkb/scripts/bundle_lint.py --coverage
+  language: script
+  pass_filenames: false
+  always_run: true
+  require_serial: true
