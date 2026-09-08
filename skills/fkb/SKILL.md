@@ -14,9 +14,12 @@ There is no search command and no audit workflow yet, on purpose.
 
 ## Commands
 
+Paths are relative to this skill's own directory, not to the working directory you happen
+to be in. Run them from here.
+
 ```bash
-~/.agents/skills/fkb/scripts/fkb list          # which bundles exist, and what each allows
-~/.agents/skills/fkb/scripts/fkb lint [name]   # check a bundle, or all of them
+uv run scripts/fkb list          # which bundles exist, and what each allows
+uv run scripts/fkb lint [name]   # check a bundle, or all of them
 ```
 
 If `list` reports no manifest, say so and stop. Do not create one, do not guess a path, and
@@ -36,10 +39,12 @@ do not write a concept into a directory you found by looking around.
    `resource:`. A perishable or access-gated source gets archived beside the bundle and
    recorded under `sources:`.
 
-3. **Which bundle?** Run `fkb list` and choose by sensitivity, not by convenience:
-   - Write only where `write` is `yes`.
-   - `cite  open` means anything may link to it, so treat it as published.
-   - `cite  sealed` means nothing may link to it, so nothing in it can surface elsewhere.
+3. **Which bundle?** Run `uv run scripts/fkb list` and choose by sensitivity, not by
+   convenience:
+   - Write only where `writable` is `true`.
+   - `referenceable_by "*"` means any bundle may cite it, so treat it as published.
+   - `referenceable_by []` means it is sealed: nothing may cite it, so nothing in it can
+     surface through a link from somewhere that publishes.
    - **In doubt, take the most private bundle you may write to.** Moving a concept later
      costs one commit; disclosing it costs whatever it disclosed.
 
@@ -74,8 +79,8 @@ do not write a concept into a directory you found by looking around.
    own voice: say what the page is for rather than copying its `description`. Then append a
    line to `log.md` under today's date. A concept no index points at is one nobody finds.
 
-7. **Lint it.** Run `fkb lint <bundle>` and fix what it calls an ERROR. Warnings are the
-   format's guidance and do not have to be silenced.
+7. **Lint it.** Run `uv run scripts/fkb lint <bundle>` and fix what it calls an ERROR.
+   Warnings are the format's guidance and do not have to be silenced.
 
 8. **Leave the commit to the person**, unless they asked for it. The bundle is a git
    repository with its own hooks, and those hooks are the real gate.

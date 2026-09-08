@@ -81,8 +81,12 @@ def _run(script: Path, *args: str, env: dict[str, str] | None = None) -> subproc
     return subprocess.run(command, capture_output=True, text=True, check=False, env={**os.environ, **(env or {})})
 
 
-def test_list_reports_path_tier_and_publish(tmp_path: Path) -> None:
-    """`list` is what an agent reads before choosing where to write, so it must say who may cite what."""
+def test_list_speaks_the_manifests_own_field_names(tmp_path: Path) -> None:
+    """`list` is read before choosing where to write, and must name the fields it read.
+
+    A label of its own invention would give one policy two vocabularies, leaving
+    an agent no way from what it sees back to the line that produced it.
+    """
     _bundle(tmp_path / "open", {"alpha.md": _concept("Alpha")})
     _bundle(tmp_path / "shut", {"beta.md": _concept("Beta")})
     config = tmp_path / "config" / "fkb"
@@ -97,9 +101,10 @@ def test_list_reports_path_tier_and_publish(tmp_path: Path) -> None:
     )
     result = _run(FKB, "list", env={"XDG_CONFIG_HOME": str(tmp_path / "config")})
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "open" in result.stdout
+    for field in ("path", "referenceable_by", "writable", "publish"):
+        assert field in result.stdout, f"`list` never names `{field}`"
+    assert '"*"' in result.stdout, "the open bundle's permission is not shown as the manifest holds it"
     assert "https://example.invalid/kb" in result.stdout
-    assert "sealed" in result.stdout
 
 
 def test_omitted_policy_fails_closed(tmp_path: Path) -> None:
@@ -110,8 +115,8 @@ def test_omitted_policy_fails_closed(tmp_path: Path) -> None:
         f"bundles:\n  shut:\n    path: {tmp_path / 'shut'}\n", encoding="utf-8"
     )
     result = _run(FKB, "list", env=env)
-    assert "sealed" in result.stdout
-    assert "write      no" in result.stdout
+    assert "referenceable_by  []" in result.stdout
+    assert "writable          false" in result.stdout
 
 
 def test_missing_manifest_says_what_to_write(tmp_path: Path) -> None:

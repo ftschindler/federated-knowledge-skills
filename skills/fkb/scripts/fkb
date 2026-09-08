@@ -61,17 +61,20 @@ class Bundle:
         self.publish = entry.get("publish")
 
     @property
-    def tier(self) -> str:
-        """Who may point at this bundle, which is the disclosure axis.
+    def citation(self) -> str:
+        """`referenceable_by` as the manifest holds it, with a reading of what it means.
 
-        Derived rather than declared: the manifest states the permission and the
-        tier is a reading of it, so the two cannot disagree.
+        The value is printed verbatim so what `list` shows can be found in the
+        file it came from. The gloss is there because `[]` looks like an omission
+        and is in fact the whole point: a bundle nothing may cite cannot surface
+        through a link from one that publishes.
         """
         if self.referenceable_by == "*":
-            return "open"
+            return '"*"  (any bundle may cite this one)'
         if not self.referenceable_by:
-            return "sealed"
-        return "peers: " + ", ".join(self.referenceable_by)
+            return "[]   (sealed: no bundle may cite this one)"
+        listed = ", ".join(self.referenceable_by)
+        return f"[{listed}]  (only these may cite this one)"
 
     @property
     def floor(self) -> Path | None:
@@ -101,14 +104,21 @@ def load_bundles() -> list[Bundle]:
 
 
 def cmd_list(_: argparse.Namespace) -> int:
+    """Print each bundle under the manifest's own field names.
+
+    Inventing labels here would give the same policy two vocabularies, and an
+    agent reading `open` has no way back to the line that produced it. `floor` is
+    the one row naming no manifest field, because it is discovered in the bundle
+    rather than declared about it.
+    """
     for bundle in load_bundles():
         missing = "" if bundle.path.is_dir() else "  (MISSING)"
         print(f"{bundle.name}{missing}")
-        print(f"  path       {bundle.path}")
-        print(f"  cite       {bundle.tier}")
-        print(f"  write      {'yes' if bundle.writable else 'no'}")
-        print(f"  publish    {bundle.publish or '-'}")
-        print(f"  floor      {bundle.floor or 'not declared'}")
+        print(f"  path              {bundle.path}")
+        print(f"  referenceable_by  {bundle.citation}")
+        print(f"  writable          {'true' if bundle.writable else 'false'}")
+        print(f"  publish           {bundle.publish or 'null'}")
+        print(f"  floor             {bundle.floor or 'not declared'}")
     return 0
 
 
