@@ -15,10 +15,12 @@ in those files fail; everything else is still reported. A commit is then never
 blocked by a file the author did not touch, which is what makes a whole-bundle
 check tolerable in a pre-commit hook.
 
-Broken internal links are always a warning. OKF section 6.1 requires consumers
-to tolerate them, and a bundle that publishes has a stricter gate anyway:
-`mkdocs build --strict` refuses a link whose target is not among the built
-files. The warning is what a bundle that does not publish gets instead.
+What may fail a run is deliberately narrow: the specification's hard rules, and
+the fields the bundle's own floor declares. Everything OKF marks as guidance is
+reported and never blocks, so the floor file remains the only place that decides
+what a concept must carry. Broken links fall out of that rule rather than
+needing an exception, and a bundle that publishes has a stricter gate anyway:
+`mkdocs build --strict` refuses a link whose target is not among the built files.
 """
 
 from __future__ import annotations
@@ -35,7 +37,6 @@ from pathlib import Path
 import yaml
 
 RESERVED = {"index.md", "log.md"}
-LINK_MARKER = "cross-link target not found"
 VALIDATOR = Path(__file__).resolve().parent / "okf_validate.py"
 
 MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
@@ -164,10 +165,12 @@ def main() -> int:
     for text in report.get("errors", []):
         path, message = split_finding(text)
         findings.add(path, message, blocks=in_scope(bundle / path))
+    # Only the specification's hard rules and the bundle's own floor may block.
+    # Everything the validator marks as guidance is reported and nothing more,
+    # so the floor file stays the single statement of what a concept must carry.
     for text in report.get("warnings", []):
         path, message = split_finding(text)
-        blocks = False if LINK_MARKER in message else in_scope(bundle / path)
-        findings.add(path, message, blocks=blocks)
+        findings.add(path, message, blocks=False)
 
     if args.floor is not None:
         check_floor(bundle, args.floor, in_scope, findings)
