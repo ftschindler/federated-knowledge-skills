@@ -40,7 +40,7 @@ would have told us.
 | 9.6 | How knowledge is structured inside a bundle - directories, `tags`, publishing nav | T1, per bundle |
 | 9.7 | Whether we may assume more than `uv` is installed | T4 |
 
-§9.8 records what is settled.
+§9.9 records what is settled.
 
 ## 2. Invariants
 
@@ -295,6 +295,7 @@ short and almost entirely control flow, well under 500 lines.
 ├── SKILL.md                    # decisions / control flow
 ├── scripts/
 │   ├── fkb                     # our CLI (PEP 723, uv)
+│   ├── bundle_lint.py          # ours — conformance, floor, coverage (§9.5)
 │   └── okf_validate.py         # vendored, unmodified (§8)
 └── references/
     ├── SPEC.md                  # vendored verbatim OKF v0.2 (§8)
@@ -355,16 +356,26 @@ spec's own example pairs a program (`reference_agent`) with a model (`gemini-2.5
 ours pairs the harness with the model:
 
 ```yaml
-generated: { by: opencode/claude-opus-5, at: 2026-09-01T14:22:00Z }
-verified:  { by: human:felix,            at: 2026-09-02T08:10:00Z }
+generated: { by: opencode/claude-opus-5,  at: 2026-09-01T14:22:00Z }
+verified:  { by: human:felix_schindler,   at: 2026-09-02T08:10:00Z }
 ```
 
 | Situation | `by` | Not |
 | --- | --- | --- |
 | An agent in opencode wrote the concept | `opencode/claude-opus-5` | `fkb`, `claude`, `Sisyphus`, `opencode` |
 | An agent in Codex wrote it | `codex/gpt-5.6-sol` | `codex/codex` |
-| Felix wrote or reviewed it | `human:felix` | `Human:felix`, `human/felix`, `felix` |
+| Felix wrote or reviewed it | `human:felix_schindler` | `human:felix`, `human:ftschindler`, `Human:…`, `human/…` |
 | A scheduled job refreshed it | `process:wiki-nightly` | `process/wiki-nightly` |
+
+**A person's `<id>` is their name, not an account handle.** A forge handle is scoped to one
+forge and one tenant - an Enterprise Managed User is a different login from the same person's
+personal account - so it identifies a login rather than a human, and the same author would
+carry different ids in different bundles. `verified` exists to say *who* confirmed something,
+and the trust tier it feeds (§5.3) is worthless if one person has three ids.
+
+The form pays for itself twice over: it matches the filename of that person's own concept
+(`people/felix_schindler.md`), so an actor resolves inside the bundle, by grep, with no forge
+and no git. That holds in a bundle that was never a repository.
 
 > **The skill is not an actor.** `fkb` is prose an agent reads; the agent is what acts.
 > Naming the skill would record the same string no matter which harness or model produced
@@ -383,8 +394,22 @@ Two consequences worth stating in the skill body:
 
 | | Lives in | Checks |
 | --- | --- | --- |
-| **Deterministic** | the CLI | OKF §11 conformance, **the bundle's declared floor**, actor shapes, links resolve, `stale_after` passed, the reference rule |
+| **Deterministic** | `bundle_lint.py`, called by the CLI and by the standalone hook (§9.5) | OKF §11 conformance, **the bundle's declared floor**, actor shapes, index coverage, links resolve *as a warning*, `stale_after` passed, the reference rule |
 | **Semantic** | `SKILL.md` prose | contradictions between pages, claims superseded by newer sources, orphans, concepts mentioned but lacking a page, gaps |
+
+**A broken internal link is never an error.** OKF §6.1 requires consumers to tolerate one -
+it "may simply represent not-yet-written knowledge" - so lint reports it and continues.
+
+> **A bundle that publishes cannot carry one anyway.** `mkdocs build --strict` aborts on a
+> link whose target is not among the built files, which is stricter than the spec demands.
+> The warning is therefore what a bundle that does *not* publish gets instead, and the
+> private bundle is exactly that case.
+
+**Not-yet-written knowledge is a `status: draft` stub, not a dangling link.** A stub is a
+real file carrying the floor and a one-line `description` saying what it will contain. The
+link resolves, so the site builds; the gap appears in the index, in search and in
+`rg 'status: draft'`; and what was an error state becomes a first-class one that semantic
+lint can reason about. It costs six lines of frontmatter to promise something.
 
 **The floor is what the bundle requires beyond OKF's `type`.** OKF deliberately makes
 everything else optional and requires consumers to tolerate absence, so the floor is ours
@@ -647,56 +672,95 @@ Putting our floor there means our own linter warning about our own config on eve
 silencing it would mean editing the vendored file (§8). A YAML file also parses without a
 markdown-frontmatter reader, which the standalone hook (§9.5) wants.
 
-Still open: the file's name and the floor's exact content. `title`, `description`, `status`
-and `generated` are the candidates from §6.5; whether `tags` joins them depends on §9.6.
+Still open: nothing. The file is `okf-floor.yaml` at the bundle root, and it carries a flat
+`required:` list of the five fields §6.5 argues for - `type`, `title`, `description`,
+`status`, `generated`. `tags` is deliberately absent, which keeps §9.6's question open: add
+one line to require it, the day the vocabulary is decided.
 
-### 9.3 Markdown raw sources: `references/` concepts, or outside the bundle
+**That list is the whole of what a bundle demands beyond the format's own hard rules.** The
+standalone hook reads this file and nothing else, so a field it does not name is reported
+and never enforced (§9.5). The file is therefore the bundle's declaration and the hook's
+configuration at once, which is why the hook takes it as an explicit argument rather than
+discovering it.
 
-OKF §6.3 sanctions `references/` as the home for mirrored external material, **as
-first-class concepts**. That is the spec-aligned option: give a clipped article
-`type: Source` and let it live in the bundle.
+### 9.3 Markdown raw sources live beside the bundle, not inside it
 
-It has consequences to weigh:
+**Settled: `raw/` sits at the repository root, next to `docs/` and outside the bundle.**
+Nothing in it is a concept, nothing in it is published, and the validator never sees it.
 
-- Raw sources appear in `index.md`, in search results, and on the published site unless the
-  publish gate excludes them.
-- It blurs Karpathy's layer boundary, where raw sources are the thing the wiki is
-  *distilled from*, not part of the wiki.
+OKF §6.3 sanctions `references/` as the home for mirrored external material, as first-class
+concepts, and that option was available. It was declined for two reasons. Raw sources would
+appear in the index, in search and on the published site; and it blurs Karpathy's boundary,
+where raw sources are the thing the wiki is *distilled from* rather than part of it.
 
-The alternative - keeping them above the bundle root - preserves the boundary and keeps the
-validator quiet, at the cost of leaving the spec's own convention unused and putting the
-archive somewhere `path` does not reach.
+The cost the spec-aligned option would have avoided is real and accepted: the archive sits
+somewhere a bundle `path` does not reach, so federation tooling cannot see it.
 
-**Decide during the first migration**, when the ~100 transcripts need a home.
+This is one instance of a general shape. **The bundle root holds concepts and nothing else;
+everything else is a sibling directory at the repository root.** `about/` is the other
+instance, holding pages that describe the site (§9.4). The two differ only in whether they
+are published: `about/` is, through the build hook; `raw/` is not, by never being added.
 
-### 9.4 Non-knowledge pages inside a bundle
+> The task list frames this as a decision for the first migration, on the grounds that
+> "~100 transcripts need a home". That count came from the previous architecture and does
+> not survive inspection: the public wiki holds 65 `raw/` files, which are shadows of
+> published concepts that the migration deletes, and an empty `sessions/` directory. What
+> the archive will actually contain is worth establishing before moving anything.
 
-OKF §3.1 is absolute: every non-reserved `.md` is a concept. With `docs/` as the bundle
-root, `running-linux`'s `docs/meta/editing_on_github.md` and `docs/meta/tech_stack.md` are
-concepts that currently carry only `title:`.
+### 9.4 Non-knowledge pages sit outside the bundle root
 
-Three ways out, none yet chosen: give them `type: Document` and accept them as concepts;
-move them above the bundle root and lose them from the published nav; or narrow the bundle
-root to a subdirectory of `docs/` so the meta pages sit outside it.
+**Settled: the bundle root is `docs/`, it holds concepts only, and pages describing the site
+live in `about/` at the repository root.** OKF §3.1 is absolute - every non-reserved `.md`
+is a concept - so a page carrying only `title:` cannot live inside the bundle, and a
+skip-list is not available to us.
+
+Three answers were on the table: accept such pages as concepts with `type: Document`; move
+them above the bundle root; or narrow the bundle root to a subdirectory of `docs/`. The
+second is what we took, inverted - rather than burying the knowledge deeper, the site pages
+were lifted out.
+
+That inversion is what keeps the published site readable. `docs/` is simultaneously the
+bundle root and the MkDocs `docs_dir`, so every concept sits at a top-level URL and the
+knowledge directories appear in the navigation as siblings of `about/`, at one level rather
+than nested under a container.
+
+A build hook of about twenty lines reconciles the two: it publishes `about/` from outside
+`docs_dir`, and moves the bundle's own `index.md` off the site root so a landing page can
+take it. No file is copied or generated - only the mapping from file to URL changes, and
+MkDocs rewrites relative links through the same mapping, so nothing needs editing when the
+index moves.
 
 > A skip-list is not an option. okf-skills is explicit that one "would put the checker out
 > of conformance", and vendoring their validator means inheriting that stance.
 
 ### 9.5 How a bundle lints standalone
 
-A bundle is a normal git repo that does not know it belongs to a federation, so its own
-pre-commit hooks have to enforce OKF conformance and its floor without `fkb` present. The
-federation layer then adds only the checks that need the manifest: the reference rule and
-cross-bundle links.
+**Settled: this repository publishes `pre-commit` hooks, and a bundle pins them by
+revision.** A bundle is a normal git repo that does not know it belongs to a federation, so
+its own hooks enforce OKF conformance and its floor without `fkb` present. The federation
+layer then adds only the checks that need the manifest: the reference rule and cross-bundle
+links.
 
-The open question is packaging. Publishing this repo as a `pre-commit` hook source lets a
-bundle pin it by revision like any other hook, and keeps one implementation of the
-deterministic checks. It also means the hook and the vendored copy inside the skill must
-not drift - plausibly the skill's `scripts/` becomes the single source and the hook wraps
-it.
+`skills/fkb/scripts/bundle_lint.py` is the single implementation, and `fkb lint` calls the
+same file rather than a copy of it. Two hook ids differ only in blocking policy:
 
-This is the piece that makes "each bundle stands alone" true rather than aspirational, so
-it wants settling before the bundle template is fixed.
+| Hook | Blocks on | For |
+| --- | --- | --- |
+| `okf-concepts` | conformance and floor findings **in the files being committed** | every commit |
+| `okf-bundle` | any finding anywhere, plus index coverage | CI |
+
+**Blocking scope is what makes a whole-bundle check bearable per commit.** The vendored
+validator only takes a bundle directory, so a genuinely per-file check would mean writing a
+second conformance implementation, which §8 forbids. Instead the whole bundle is checked and
+only findings in the author's own files fail. A half-finished concept elsewhere in the tree
+never blocks an unrelated commit - the failure mode that teaches people to pass
+`--no-verify`.
+
+The floor declaration is passed explicitly as `--floor`, which makes it this hook's config
+file as well as the bundle's declaration (§9.2). Omitted, the floor check does not run and
+the bundle is held to conformance alone (§6.6); named but missing, it is an error, so a typo
+cannot silently disable it. `fkb lint` finds the same file by convention at the bundle root,
+because it has the manifest and does not need telling.
 
 ### 9.6 How knowledge is structured inside a bundle
 
@@ -747,10 +811,34 @@ Distinct styles across bundles create a real cost: the skill must decide *where*
 > nobody knows the federation exists (§9.5). A manifest pointer would be a second home for
 > something the bundle owns, drifting the moment the bundle is edited on another machine.
 
+**Where the first bundle actually put it, and the problem that creates.** Option 3 says
+"beside its floor declaration", which means inside the bundle. `ftschindler/knowledge` put
+its house style in `about/editing_conventions.md` instead, outside the bundle, because the
+rules are read by people editing the site as much as by anything else and a second copy
+would drift.
+
+That is defensible and it costs something specific: the manifest's `path` points at the
+bundle root, so a tool given only that path cannot see the file. It travels with the
+repository but not with the bundle.
+
+Nothing depends on this yet, because nothing reads house style programmatically.
+[T5](IMPLEMENTATION.md#t5---finish-the-skill) is where it bites, since the skill ships a
+`references/house-style.md` and must not simply restate what the bundle already says.
+**Decide it there**, with three answers available: move the page into the bundle as a
+concept, split the bundle-authoring rules from the site-editing ones, or let the skill
+teach the general rules and leave each bundle's specifics to be read from the repository.
+
 ### 9.7 What we may assume is installed
 
-`fkb` runs through `uv`, which is the one dependency the design already assumes. Whether
-`fkb search` may additionally assume `ripgrep`, or must scan in pure Python, is open.
+**`uv` is assumed, and by a bundle as well as by us.** The standalone hook (§9.5) is a PEP
+723 script that resolves its own dependencies through it, so a bundle that pins the hook
+inherits the assumption. That is a wider claim than this section originally made, and it was
+taken deliberately: the alternative, packaging the checker so `pre-commit` builds its own
+environment, buys a bundle nothing it does not already have, since the skill needs `uv`
+regardless.
+
+Whether `fkb search` may additionally assume `ripgrep`, or must scan in pure Python, is
+still open.
 
 Pure Python keeps the dependency floor at `uv` alone and stays comfortably fast at the scale
 of §9.1. Shipping `rg` as a conditional fast path reintroduces the machine-dependence §7
@@ -758,7 +846,37 @@ rejects, unless results are provably identical.
 
 Largely an implementation question, recorded here because it bounds what §7 can promise.
 
-### 9.8 Settled
+### 9.8 Index files are authored, not generated
+
+**Settled: `fkb` never writes an index.** OKF §8 says an entry SHOULD carry the description
+from the linked concept's frontmatter, which reads like an invitation to generate the file.
+The reference bundle declines it, and the reason is instructive.
+[stjbrown/agent-knowledge](https://github.com/stjbrown/agent-knowledge) truncates one
+description, compresses a second to a fragment and rewrites a third, because an index entry
+is read while scanning a list and a `description` is written to stand alone. Its index also
+carries a statement of the bundle's purpose, a blurb under each section heading, and an order
+that follows how the ideas build rather than the alphabet.
+
+None of that is recoverable from frontmatter. A generator would not bend §7's promise so much
+as produce a worse file, so the SHOULD is best read as guidance about *what an entry is
+about*, not an instruction to copy a string (appendix B).
+
+What deterministic lint may do instead is check **coverage rather than wording**: every
+concept reachable from some index, every index entry resolving to a file. That catches the
+failure worth catching - a concept filed and never linked - while touching no prose, so §7's
+promise and invariant 1 both hold.
+
+**Still open: whether an index sits in every directory or only at the bundle root.** OKF §8
+allows one anywhere and the reference bundle puts one in each folder, which is progressive
+disclosure working as intended. Ours has no folders yet. **Decide during the first
+migration**, when there are directories to disclose.
+
+> A related, smaller point for the skill rather than the design: appending to `log.md` is a
+> find-or-create edit, not a blind append. The newest day goes first, so the agent has to
+> locate today's `## YYYY-MM-DD` heading or insert one at the top. It is the only step of
+> §6.3 that is not a plain write, and it needs saying in the skill body.
+
+### 9.9 Settled
 
 - **Canonical OKF home** is `GoogleCloudPlatform/open-knowledge-format`. The
   `knowledge-catalog` path in the okf-skills header is stale; pin from the former.
@@ -768,6 +886,17 @@ Largely an implementation question, recorded here because it bounds what §7 can
 - **The floor declaration is a YAML file**, not the bundle-root `index.md` (§9.2).
 - **`verified` is never required and never nulled** - absence is how OKF encodes
   unverified (§6.5).
+- **Indexes are authored, never generated by `fkb`**; deterministic lint may check that
+  every concept is covered, never how an entry is worded (§9.8).
+- **A bundle lints itself through pinned `pre-commit` hooks** published from this
+  repository, wrapping the one implementation `fkb lint` also calls (§9.5).
+- **A broken internal link warns, never fails**; not-yet-written knowledge is a
+  `status: draft` stub (§6.5).
+- **The floor file is the only thing that decides what a concept must carry** beyond OKF's
+  own hard rules; a field it does not name is reported and never enforced (§9.2, §9.5).
+- **The bundle root holds concepts and nothing else.** Site pages live in `about/` and raw
+  sources in `raw/`, both siblings of `docs/` at the repository root (§9.3, §9.4).
+- **`uv` is assumed by a bundle too**, because the hook it pins runs through it (§9.7).
 
 ## 10. The way forward
 
@@ -810,6 +939,7 @@ The conclusion this design returns to was reached on 2026-08-27 in
 | awiki | `[[wikilinks]]` | standard markdown links | Our blueprint mandates them, OKF §6.1 specifies them, and Obsidian and MkDocs both support them. |
 | OKF §5 | Every timestamp-valued key is "an ISO 8601 datetime with an explicit UTC offset" | `YYYY-MM-DD` dates for `stale_after`, `sources[].last_modified` and `usage_window` | The vendored validator predates the change and rejects the datetime form under `--strict` (§8). All three fields sit outside the floor, so the simplification costs day precision on staleness. |
 | OKF §6.1 | Absolute, bundle-relative links (leading `/`) are the recommended form; relative links are also supported | Relative links throughout | Only the relative form resolves in an editor, on the GitHub web UI and in a rendered site at once - the reason §5.2 already keeps assets beside their concept. MkDocs rewrites relative links when a page moves and leaves absolute ones untouched, so a moved target breaks silently. |
+| OKF §8 | An index entry SHOULD carry the description from the linked concept's frontmatter | Entries are written in index voice: shorter than the description, tuned to being scanned in a list | The reference bundle `stjbrown/agent-knowledge` truncates, compresses or rewrites every one of its own, and its index additionally carries a purpose statement, per-section blurbs and an order that follows how the ideas build. Copying the descriptions would duplicate state and produce a worse file (§9.8). |
 
 ## Sources
 

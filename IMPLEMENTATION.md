@@ -10,6 +10,16 @@ answered. It was §10 of that document until it grew large enough to stand on it
 This is the implementation plan. It assumes nothing from this repository except
 [DESIGN.md](DESIGN.md) and this file - a fresh session should be able to start here.
 
+## Status
+
+- [x] **[T1](#t1---prepare-the-bundle-empty)** - Prepare the bundle, empty
+- [ ] **[T2](#t2---minimum-capture-and-a-friction-journal)** - Minimum capture, and a friction journal
+- [ ] **[T3](#t3---migrate-the-60-public-concepts)** - Migrate the ~60 public concepts
+- [ ] **[T4](#t4---finish-the-cli)** - Finish the CLI
+- [ ] **[T5](#t5---finish-the-skill)** - Finish the skill
+- [ ] **[T6](#t6---ship-the-standalone-pre-commit-hook)** - Ship the standalone pre-commit hook, *built early, half verifiable*
+- [ ] **[T7](#t7---second-bundle-then-retire-the-old-architecture)** - Second bundle, then retire the old architecture
+
 ## How to use it
 
 **Answer an open question only when a task forces it.** Deciding early trades away the
@@ -17,7 +27,10 @@ information the work itself produces. Every task below therefore names two thing
 questions it must settle, and which it must leave alone even when the answer feels obvious.
 Leaving one alone is not procrastination; it is refusing to guess when the next task will know.
 
-Tasks run in order. Each states what "done" means in terms someone else could check.
+Tasks run in order, and each states what "done" means in terms someone else could check.
+The order is a default rather than a rule: [T6](#t6---ship-the-standalone-pre-commit-hook)
+was built during [T1](#t1---prepare-the-bundle-empty), because content started arriving
+before anything checked it.
 
 ## Before starting
 
@@ -28,7 +41,7 @@ A fresh session needs four things, none of which live in this repository.
 | The OKF v0.2 spec | `GoogleCloudPlatform/open-knowledge-format` | Vendored verbatim ([§8](DESIGN.md#8-vendoring-from-okf-skills)) |
 | `okf-skills` at a pinned commit | `scaccogatto/okf-skills` | Source of the validator, template and spec copy ([§8](DESIGN.md#8-vendoring-from-okf-skills)) |
 | The publishing template | `~/Projects/public/running-linux` | MkDocs, prek, CI, Pages - reused, not rebuilt |
-| The existing content | `~/.agents/wikis/{public,private}/docs` | ~60 concepts, ~100 transcripts |
+| The existing content | `~/.agents/wikis/{public,private}/docs` | ~60 concepts, and a `raw/` tree of shadows the migration deletes |
 
 Everything else - the manifest schema ([§4](DESIGN.md#4-bundles-and-the-manifest)), the
 AGENTS.md block ([§5.4](DESIGN.md#54-the-schema)), the skill layout
@@ -44,6 +57,31 @@ is independent of what it drives. Use it for
 
 ## T1 - Prepare the bundle, empty
 
+**Done.** `ftschindler/knowledge`, published at
+<https://ftschindler.github.io/knowledge>. `okf_validate.py --strict` and
+`mkdocs build --strict` both pass, and the site is live.
+
+What it settled, and where the shape came from:
+
+- The bundle root is `docs/`, which is also the MkDocs `docs_dir`, so concepts sit at
+  top-level URLs. Pages describing the site live in `about/` and raw sources will live in
+  `raw/`, both siblings at the repository root. A build hook publishes `about/` and moves
+  the bundle index off the site root.
+- The floor declaration is `docs/okf-floor.yaml`, a flat `required:` list of five fields.
+- The whole running-linux stack was taken, Obsidian vault config included, so the bundle is
+  editable by a person in an editor, in Obsidian or on GitHub as readily as by an agent.
+
+Two departures from the plan below, both deliberate. The bundle holds one hand-written
+concept rather than three or four, because real content started arriving before the proof
+was needed. And [§9.5](DESIGN.md#95-how-a-bundle-lints-standalone) was settled here rather
+than left alone: content was landing with nothing checking it, which is the case that
+section was written for.
+
+Three fixes went into infrastructure copied from running-linux, each a latent fault there
+too: `check_mailmap.py` crashed on a repository with no commits, `copilot-instructions.md`
+pointed at pages that do not exist here, and two governance steps assumed a pull request
+payload.
+
 **Goal.** A conformant, publishing bundle that is ready to be written into, before any content
 is migrated. Hours, not days - [T2](#t2---minimum-capture-and-a-friction-journal) is blocked on
 this and nothing else.
@@ -55,11 +93,11 @@ the floor declaration written, publishing working, and a handful of concepts in 
 
 - Copy the template: MkDocs, prek, CI, Pages.
 - Fix the top-level directory layout, and decide how the `meta/` pages satisfy OKF §11
-  ([§9.4](DESIGN.md#94-non-knowledge-pages-inside-a-bundle)). Both are forced now, because
+  ([§9.4](DESIGN.md#94-non-knowledge-pages-sit-outside-the-bundle-root)). Both are forced now, because
   everything written afterwards assumes them.
 - Decide where markdown raw sources live
-  ([§9.3](DESIGN.md#93-markdown-raw-sources-references-concepts-or-outside-the-bundle)). The
-  ~100 transcripts are the concrete case; deciding does not mean moving them yet.
+  ([§9.3](DESIGN.md#93-markdown-raw-sources-live-beside-the-bundle-not-inside-it)).
+  Deciding does not mean moving anything yet.
 - Write the floor declaration file
   ([§9.2](DESIGN.md#92-where-a-bundle-declares-its-floor---a-yaml-file-at-the-bundle-root)).
   Nothing reads it until [T4](#t4---finish-the-cli).
@@ -70,8 +108,8 @@ is live.
 
 **Settles.**
 [§9.2](DESIGN.md#92-where-a-bundle-declares-its-floor---a-yaml-file-at-the-bundle-root),
-[§9.3](DESIGN.md#93-markdown-raw-sources-references-concepts-or-outside-the-bundle),
-[§9.4](DESIGN.md#94-non-knowledge-pages-inside-a-bundle), and
+[§9.3](DESIGN.md#93-markdown-raw-sources-live-beside-the-bundle-not-inside-it),
+[§9.4](DESIGN.md#94-non-knowledge-pages-sit-outside-the-bundle-root), and
 [§9.6](DESIGN.md#96-how-knowledge-is-structured-inside-a-bundle) for this bundle.
 
 **Leave alone.** [§9.1](DESIGN.md#91-ranking-once-rg-stops-being-enough),
@@ -103,6 +141,22 @@ those commands exist.
 
 **Deliverable.** `~/.agents/skills/fkb/` per [§6.2](DESIGN.md#62-layout) but filing-only, the
 two commands, the AGENTS.md block, and `JOURNAL.md` in this repository beside this file.
+
+**What [T6](#t6---ship-the-standalone-pre-commit-hook) already did for this task.**
+`fkb lint` is not written from scratch: `skills/fkb/scripts/bundle_lint.py` exists, checks
+conformance and the declared floor, and is what the first bundle already runs on every
+commit. `fkb lint` becomes its second entry point, adding what needs the manifest. Confirm
+while wiring it that both report the same finding on the same file, which is the half of
+T6's "done when" that could not be checked at the time.
+
+Two constraints on the skill body that were settled while building
+[T1](#t1---prepare-the-bundle-empty), and are easy to breach without noticing:
+
+- **The skill may not cite this design.** It ships standalone, so every rule it depends on
+  is stated in it or in its `references/`, never referred to by section number.
+- **The floor decides what a concept must carry**, so the skill tells an agent to satisfy
+  the bundle's floor rather than carrying its own list of required fields, which would be a
+  second declaration free to drift.
 
 **The journal.** The skill instructs the agent to append to `JOURNAL.md` whenever the work runs
 into a limit. Three rules keep it worth reading:
@@ -148,14 +202,29 @@ not wait for it.
   shadows carry nothing extra.
 - Frontmatter: add `type:`; drop `sources: [raw/…]`, `render_hash` and `topic:` (the directory
   already carries the topic, [§9.6](DESIGN.md#96-how-knowledge-is-structured-inside-a-bundle)).
+  Add the rest of the floor the bundle declares, which the incoming files do not carry:
+  `description`, `status` and `generated`. The bundle's own hook rejects them otherwise.
+- Rename to the bundle's convention: the incoming files are hyphenated, the bundle uses
+  underscores. The filename-and-title map the wikilink conversion already builds is where
+  this belongs, so it costs nothing extra.
+- Strip the body `# Title` from every concept. The vault repeats the frontmatter title as a
+  first-level heading; here that is a second `h1` and fails `MD025` on all ~60 files.
 - Convert `[[wikilinks]]` to relative markdown links using a filename-and-title map. Emit the
   unresolved ones as a list for manual review rather than guessing a target.
 - Delete the `raw/` tree once the conversion validates.
-- Move the transcripts wherever [T1](#t1---prepare-the-bundle-empty) decided
-  ([§9.3](DESIGN.md#93-markdown-raw-sources-references-concepts-or-outside-the-bundle)).
+- Move whatever raw sources survive into `raw/`, beside `docs/` and outside the bundle
+  ([§9.3](DESIGN.md#93-markdown-raw-sources-live-beside-the-bundle-not-inside-it)). Establish
+  first what the archive actually holds: the public wiki's `raw/` is 65 shadows of published
+  concepts, which this task deletes, and its `sessions/` directory is empty.
+- Write the index as the concepts arrive, in index voice rather than by copying each
+  `description` (appendix B). Sixty entries is the point at which the section headings and
+  their order start doing real work.
 
-**Done when.** `okf_validate.py --strict` and `mkdocs build --strict` both pass, internal links
-resolve, and the unresolved-link list is empty or consciously accepted.
+**Done when.** The bundle's own `okf-concepts` hook passes, `mkdocs build --strict` passes,
+internal links resolve, and the unresolved-link list is empty or consciously accepted.
+
+> The hook is the check that matters now, not `okf_validate.py` alone: it enforces the floor
+> as well as conformance, and it is what a commit will run.
 
 **Leave alone.** The conversion script is disposable and never becomes part of `fkb`.
 
@@ -223,6 +292,29 @@ reads a bundle's style, it does not impose one.
 
 ## T6 - Ship the standalone pre-commit hook
 
+**Built during [T1](#t1---prepare-the-bundle-empty), and half verifiable until
+[T4](#t4---finish-the-cli).** `skills/fkb/scripts/bundle_lint.py` ships behind two hook ids
+in `.pre-commit-hooks.yaml`, and `ftschindler/knowledge` pins them by revision. Nine tests
+cover it under the existing `python_scripts` marker.
+
+Two properties are worth carrying forward, because neither is obvious from the code:
+
+- **Only the floor decides.** Two layers may fail a run and no others: the format's hard
+  rules, and the fields `okf-floor.yaml` declares. Everything OKF marks as recommended is
+  reported and left alone, so a field the floor does not name is never enforced.
+- **Blocking scope is what makes it bearable per commit.** The vendored validator accepts a
+  bundle, never a file list, so the whole bundle is checked and only findings in the files
+  being committed fail. An unfinished concept elsewhere never blocks an unrelated commit.
+  With `--all-files` every file is in scope, so the same hook is strict in CI without a
+  second configuration.
+
+`okf-bundle` adds index coverage and nothing else, and sits on pre-commit's manual stage so
+it stays off the commit path; the bundle's governance workflow invokes it by name.
+
+**What remains.** The second half of "done when" cannot be checked yet: `fkb lint` does not
+exist, so the claim that both entry points report the same finding on the same file is
+unverified. Confirm it in [T4](#t4---finish-the-cli), when the CLI calls this module.
+
 **Goal.** A bundle enforces its own conformance and floor without `fkb` present.
 
 **Deliverable.** This repository publishes a `pre-commit` hook that a bundle pins by revision,
@@ -255,6 +347,8 @@ their tests, and nothing describing the previous architecture except DESIGN.md a
 
 ## Already done
 
+Work that belongs to no task, recorded so it is not looked for.
+
 - **The stale AGENTS.md block is removed** from `~/.config/opencode/AGENTS.md` (2026-09-02).
   Cold sessions currently get no wiki instructions at all, which is correct until
   [T4](#t4---finish-the-cli) gives them something true to say.
@@ -262,3 +356,11 @@ their tests, and nothing describing the previous architecture except DESIGN.md a
   `install-glue`, the bundle commands and their tests. The last working state is preserved in
   git history, and what it cost is DESIGN.md appendix A. The disposable-agent test machinery
   was kept.
+- **The OKF material is vendored** (2026-09-07): the specification from its canonical
+  repository, the validator and concept template from `okf-skills`, each pinned and with its
+  licence beside it. The validator is byte-identical so a re-pull stays a diff; the template
+  is adapted. Details in [§8](DESIGN.md#8-vendoring-from-okf-skills).
+- **Six decisions made while building [T1](#t1---prepare-the-bundle-empty) were written back
+  into DESIGN.md** (2026-09-07). They had been recorded only in commit messages, which say why
+  a change happened and not what is currently true, leaving four sections describing questions
+  as open that were in fact answered.

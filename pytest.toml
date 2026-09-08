@@ -2,6 +2,6 @@
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 markers = [
-  "python_scripts: unit tests for dev/support scripts under .scripts/",
+  "python_scripts: unit tests for the python scripts under .scripts/ and skills/",
   "agent: end-to-end tests that drive a real agent (slow, needs network + node)",
 ]

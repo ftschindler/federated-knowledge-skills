@@ -25,11 +25,13 @@ sources:                          # what this was derived from; omit if nothing
   Actors (SPEC.md §7). `by` names what did the writing, never the skill:
 
     <harness>/<model>    an agent           opencode/claude-opus-5, codex/gpt-5.6-sol
-    human:<id>           a person           human:felix
+    human:<id>           a person           human:felix_schindler
     process:<id>         a scheduled job    process:wiki-nightly
 
   Not `fkb`, not `claude`, not a bare `opencode` - the field exists to record
-  which harness and model produced the content.
+  which harness and model produced the content. A person's id is their name,
+  not a forge handle: a handle belongs to one account on one forge, so the
+  same person would carry different ids in different bundles.
 
   `generated.by` is required whenever `generated` is present; half a block is
   malformed. Spelling is load-bearing: `Human:felix` or `human/felix` silently
