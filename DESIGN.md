@@ -672,37 +672,63 @@ Putting our floor there means our own linter warning about our own config on eve
 silencing it would mean editing the vendored file (§8). A YAML file also parses without a
 markdown-frontmatter reader, which the standalone hook (§9.5) wants.
 
-Still open: the file's name and the floor's exact content. `title`, `description`, `status`
-and `generated` are the candidates from §6.5; whether `tags` joins them depends on §9.6.
+Still open: nothing. The file is `okf-floor.yaml` at the bundle root, and it carries a flat
+`required:` list of the five fields §6.5 argues for - `type`, `title`, `description`,
+`status`, `generated`. `tags` is deliberately absent, which keeps §9.6's question open: add
+one line to require it, the day the vocabulary is decided.
 
-### 9.3 Markdown raw sources: `references/` concepts, or outside the bundle
+**That list is the whole of what a bundle demands beyond the format's own hard rules.** The
+standalone hook reads this file and nothing else, so a field it does not name is reported
+and never enforced (§9.5). The file is therefore the bundle's declaration and the hook's
+configuration at once, which is why the hook takes it as an explicit argument rather than
+discovering it.
 
-OKF §6.3 sanctions `references/` as the home for mirrored external material, **as
-first-class concepts**. That is the spec-aligned option: give a clipped article
-`type: Source` and let it live in the bundle.
+### 9.3 Markdown raw sources live beside the bundle, not inside it
 
-It has consequences to weigh:
+**Settled: `raw/` sits at the repository root, next to `docs/` and outside the bundle.**
+Nothing in it is a concept, nothing in it is published, and the validator never sees it.
 
-- Raw sources appear in `index.md`, in search results, and on the published site unless the
-  publish gate excludes them.
-- It blurs Karpathy's layer boundary, where raw sources are the thing the wiki is
-  *distilled from*, not part of the wiki.
+OKF §6.3 sanctions `references/` as the home for mirrored external material, as first-class
+concepts, and that option was available. It was declined for two reasons. Raw sources would
+appear in the index, in search and on the published site; and it blurs Karpathy's boundary,
+where raw sources are the thing the wiki is *distilled from* rather than part of it.
 
-The alternative - keeping them above the bundle root - preserves the boundary and keeps the
-validator quiet, at the cost of leaving the spec's own convention unused and putting the
-archive somewhere `path` does not reach.
+The cost the spec-aligned option would have avoided is real and accepted: the archive sits
+somewhere a bundle `path` does not reach, so federation tooling cannot see it.
 
-**Decide during the first migration**, when the ~100 transcripts need a home.
+This is one instance of a general shape. **The bundle root holds concepts and nothing else;
+everything else is a sibling directory at the repository root.** `about/` is the other
+instance, holding pages that describe the site (§9.4). The two differ only in whether they
+are published: `about/` is, through the build hook; `raw/` is not, by never being added.
 
-### 9.4 Non-knowledge pages inside a bundle
+> The task list frames this as a decision for the first migration, on the grounds that
+> "~100 transcripts need a home". That count came from the previous architecture and does
+> not survive inspection: the public wiki holds 65 `raw/` files, which are shadows of
+> published concepts that the migration deletes, and an empty `sessions/` directory. What
+> the archive will actually contain is worth establishing before moving anything.
 
-OKF §3.1 is absolute: every non-reserved `.md` is a concept. With `docs/` as the bundle
-root, `running-linux`'s `docs/meta/editing_on_github.md` and `docs/meta/tech_stack.md` are
-concepts that currently carry only `title:`.
+### 9.4 Non-knowledge pages sit outside the bundle root
 
-Three ways out, none yet chosen: give them `type: Document` and accept them as concepts;
-move them above the bundle root and lose them from the published nav; or narrow the bundle
-root to a subdirectory of `docs/` so the meta pages sit outside it.
+**Settled: the bundle root is `docs/`, it holds concepts only, and pages describing the site
+live in `about/` at the repository root.** OKF §3.1 is absolute - every non-reserved `.md`
+is a concept - so a page carrying only `title:` cannot live inside the bundle, and a
+skip-list is not available to us.
+
+Three answers were on the table: accept such pages as concepts with `type: Document`; move
+them above the bundle root; or narrow the bundle root to a subdirectory of `docs/`. The
+second is what we took, inverted - rather than burying the knowledge deeper, the site pages
+were lifted out.
+
+That inversion is what keeps the published site readable. `docs/` is simultaneously the
+bundle root and the MkDocs `docs_dir`, so every concept sits at a top-level URL and the
+knowledge directories appear in the navigation as siblings of `about/`, at one level rather
+than nested under a container.
+
+A build hook of about twenty lines reconciles the two: it publishes `about/` from outside
+`docs_dir`, and moves the bundle's own `index.md` off the site root so a landing page can
+take it. No file is copied or generated - only the mapping from file to URL changes, and
+MkDocs rewrites relative links through the same mapping, so nothing needs editing when the
+index moves.
 
 > A skip-list is not an option. okf-skills is explicit that one "would put the checker out
 > of conformance", and vendoring their validator means inheriting that stance.
@@ -787,8 +813,15 @@ Distinct styles across bundles create a real cost: the skill must decide *where*
 
 ### 9.7 What we may assume is installed
 
-`fkb` runs through `uv`, which is the one dependency the design already assumes. Whether
-`fkb search` may additionally assume `ripgrep`, or must scan in pure Python, is open.
+**`uv` is assumed, and by a bundle as well as by us.** The standalone hook (§9.5) is a PEP
+723 script that resolves its own dependencies through it, so a bundle that pins the hook
+inherits the assumption. That is a wider claim than this section originally made, and it was
+taken deliberately: the alternative, packaging the checker so `pre-commit` builds its own
+environment, buys a bundle nothing it does not already have, since the skill needs `uv`
+regardless.
+
+Whether `fkb search` may additionally assume `ripgrep`, or must scan in pure Python, is
+still open.
 
 Pure Python keeps the dependency floor at `uv` alone and stays comfortably fast at the scale
 of §9.1. Shipping `rg` as a conditional fast path reintroduces the machine-dependence §7
@@ -842,6 +875,11 @@ migration**, when there are directories to disclose.
   repository, wrapping the one implementation `fkb lint` also calls (§9.5).
 - **A broken internal link warns, never fails**; not-yet-written knowledge is a
   `status: draft` stub (§6.5).
+- **The floor file is the only thing that decides what a concept must carry** beyond OKF's
+  own hard rules; a field it does not name is reported and never enforced (§9.2, §9.5).
+- **The bundle root holds concepts and nothing else.** Site pages live in `about/` and raw
+  sources in `raw/`, both siblings of `docs/` at the repository root (§9.3, §9.4).
+- **`uv` is assumed by a bundle too**, because the hook it pins runs through it (§9.7).
 
 ## 10. The way forward
 

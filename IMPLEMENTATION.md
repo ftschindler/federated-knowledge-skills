@@ -55,10 +55,10 @@ the floor declaration written, publishing working, and a handful of concepts in 
 
 - Copy the template: MkDocs, prek, CI, Pages.
 - Fix the top-level directory layout, and decide how the `meta/` pages satisfy OKF §11
-  ([§9.4](DESIGN.md#94-non-knowledge-pages-inside-a-bundle)). Both are forced now, because
+  ([§9.4](DESIGN.md#94-non-knowledge-pages-sit-outside-the-bundle-root)). Both are forced now, because
   everything written afterwards assumes them.
 - Decide where markdown raw sources live
-  ([§9.3](DESIGN.md#93-markdown-raw-sources-references-concepts-or-outside-the-bundle)). The
+  ([§9.3](DESIGN.md#93-markdown-raw-sources-live-beside-the-bundle-not-inside-it)). The
   ~100 transcripts are the concrete case; deciding does not mean moving them yet.
 - Write the floor declaration file
   ([§9.2](DESIGN.md#92-where-a-bundle-declares-its-floor---a-yaml-file-at-the-bundle-root)).
@@ -70,8 +70,8 @@ is live.
 
 **Settles.**
 [§9.2](DESIGN.md#92-where-a-bundle-declares-its-floor---a-yaml-file-at-the-bundle-root),
-[§9.3](DESIGN.md#93-markdown-raw-sources-references-concepts-or-outside-the-bundle),
-[§9.4](DESIGN.md#94-non-knowledge-pages-inside-a-bundle), and
+[§9.3](DESIGN.md#93-markdown-raw-sources-live-beside-the-bundle-not-inside-it),
+[§9.4](DESIGN.md#94-non-knowledge-pages-sit-outside-the-bundle-root), and
 [§9.6](DESIGN.md#96-how-knowledge-is-structured-inside-a-bundle) for this bundle.
 
 **Leave alone.** [§9.1](DESIGN.md#91-ranking-once-rg-stops-being-enough),
@@ -152,7 +152,7 @@ not wait for it.
   unresolved ones as a list for manual review rather than guessing a target.
 - Delete the `raw/` tree once the conversion validates.
 - Move the transcripts wherever [T1](#t1---prepare-the-bundle-empty) decided
-  ([§9.3](DESIGN.md#93-markdown-raw-sources-references-concepts-or-outside-the-bundle)).
+  ([§9.3](DESIGN.md#93-markdown-raw-sources-live-beside-the-bundle-not-inside-it)).
 
 **Done when.** `okf_validate.py --strict` and `mkdocs build --strict` both pass, internal links
 resolve, and the unresolved-link list is empty or consciously accepted.
