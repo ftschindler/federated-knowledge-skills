@@ -1,0 +1,26 @@
+skills/fkb/scripts/bundle_lint.py
+  s_d9270f753fc99f::t_e43a6a19d67c82 1-27,29-30,32-40,42-62,64-71,73-88,90-110,112-113,116-117,119-183
+  s_d9270f753fc99f::t_193a58fec61816 72
+  s_d9270f753fc99f::t_f2fa3904d9e2cd 63
+  s_d9270f753fc99f::t_353c711fc97333 28,41
+  s_d9270f753fc99f::t_6c58dd6ee02319 31,89,111,114-115,118
+.pre-commit-hooks.yaml
+  s_d9270f753fc99f::t_193a58fec61816 1
+  s_d9270f753fc99f::t_82cd7ad1541129 2-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "c8b81c0b7d00c15164c964667691405016dd3168",
+  "prompts": {},
+  "sessions": {
+    "s_d9270f753fc99f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f84d62ac6ffespe9MtZiAlTm62",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    }
+  }
+}
