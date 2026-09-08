@@ -1,0 +1,19 @@
+skills/fkb/scripts/bundle_lint.py
+  s_491302f1b64725::t_6a805905647929 137-149,152-153,157-158,179-181,183-195
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "0fa77c44899b765789941ed6928d8f7e150f7038",
+  "prompts": {},
+  "sessions": {
+    "s_491302f1b64725": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f7f685a09ffebQ60db99MlYgci",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    }
+  }
+}
