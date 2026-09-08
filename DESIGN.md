@@ -295,6 +295,7 @@ short and almost entirely control flow, well under 500 lines.
 ├── SKILL.md                    # decisions / control flow
 ├── scripts/
 │   ├── fkb                     # our CLI (PEP 723, uv)
+│   ├── bundle_lint.py          # ours — conformance, floor, coverage (§9.5)
 │   └── okf_validate.py         # vendored, unmodified (§8)
 └── references/
     ├── SPEC.md                  # vendored verbatim OKF v0.2 (§8)
@@ -393,8 +394,22 @@ Two consequences worth stating in the skill body:
 
 | | Lives in | Checks |
 | --- | --- | --- |
-| **Deterministic** | the CLI | OKF §11 conformance, **the bundle's declared floor**, actor shapes, links resolve, `stale_after` passed, the reference rule |
+| **Deterministic** | `bundle_lint.py`, called by the CLI and by the standalone hook (§9.5) | OKF §11 conformance, **the bundle's declared floor**, actor shapes, index coverage, links resolve *as a warning*, `stale_after` passed, the reference rule |
 | **Semantic** | `SKILL.md` prose | contradictions between pages, claims superseded by newer sources, orphans, concepts mentioned but lacking a page, gaps |
+
+**A broken internal link is never an error.** OKF §6.1 requires consumers to tolerate one -
+it "may simply represent not-yet-written knowledge" - so lint reports it and continues.
+
+> **A bundle that publishes cannot carry one anyway.** `mkdocs build --strict` aborts on a
+> link whose target is not among the built files, which is stricter than the spec demands.
+> The warning is therefore what a bundle that does *not* publish gets instead, and the
+> private bundle is exactly that case.
+
+**Not-yet-written knowledge is a `status: draft` stub, not a dangling link.** A stub is a
+real file carrying the floor and a one-line `description` saying what it will contain. The
+link resolves, so the site builds; the gap appears in the index, in search and in
+`rg 'status: draft'`; and what was an error state becomes a first-class one that semantic
+lint can reason about. It costs six lines of frontmatter to promise something.
 
 **The floor is what the bundle requires beyond OKF's `type`.** OKF deliberately makes
 everything else optional and requires consumers to tolerate absence, so the floor is ours
@@ -694,19 +709,32 @@ root to a subdirectory of `docs/` so the meta pages sit outside it.
 
 ### 9.5 How a bundle lints standalone
 
-A bundle is a normal git repo that does not know it belongs to a federation, so its own
-pre-commit hooks have to enforce OKF conformance and its floor without `fkb` present. The
-federation layer then adds only the checks that need the manifest: the reference rule and
-cross-bundle links.
+**Settled: this repository publishes `pre-commit` hooks, and a bundle pins them by
+revision.** A bundle is a normal git repo that does not know it belongs to a federation, so
+its own hooks enforce OKF conformance and its floor without `fkb` present. The federation
+layer then adds only the checks that need the manifest: the reference rule and cross-bundle
+links.
 
-The open question is packaging. Publishing this repo as a `pre-commit` hook source lets a
-bundle pin it by revision like any other hook, and keeps one implementation of the
-deterministic checks. It also means the hook and the vendored copy inside the skill must
-not drift - plausibly the skill's `scripts/` becomes the single source and the hook wraps
-it.
+`skills/fkb/scripts/bundle_lint.py` is the single implementation, and `fkb lint` calls the
+same file rather than a copy of it. Two hook ids differ only in blocking policy:
 
-This is the piece that makes "each bundle stands alone" true rather than aspirational, so
-it wants settling before the bundle template is fixed.
+| Hook | Blocks on | For |
+| --- | --- | --- |
+| `okf-concepts` | conformance and floor findings **in the files being committed** | every commit |
+| `okf-bundle` | any finding anywhere, plus index coverage | CI |
+
+**Blocking scope is what makes a whole-bundle check bearable per commit.** The vendored
+validator only takes a bundle directory, so a genuinely per-file check would mean writing a
+second conformance implementation, which §8 forbids. Instead the whole bundle is checked and
+only findings in the author's own files fail. A half-finished concept elsewhere in the tree
+never blocks an unrelated commit - the failure mode that teaches people to pass
+`--no-verify`.
+
+The floor declaration is passed explicitly as `--floor`, which makes it this hook's config
+file as well as the bundle's declaration (§9.2). Omitted, the floor check does not run and
+the bundle is held to conformance alone (§6.6); named but missing, it is an error, so a typo
+cannot silently disable it. `fkb lint` finds the same file by convention at the bundle root,
+because it has the manifest and does not need telling.
 
 ### 9.6 How knowledge is structured inside a bundle
 
@@ -810,6 +838,10 @@ migration**, when there are directories to disclose.
   unverified (§6.5).
 - **Indexes are authored, never generated by `fkb`**; deterministic lint may check that
   every concept is covered, never how an entry is worded (§9.8).
+- **A bundle lints itself through pinned `pre-commit` hooks** published from this
+  repository, wrapping the one implementation `fkb lint` also calls (§9.5).
+- **A broken internal link warns, never fails**; not-yet-written knowledge is a
+  `status: draft` stub (§6.5).
 
 ## 10. The way forward
 
