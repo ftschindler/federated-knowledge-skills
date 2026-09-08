@@ -182,7 +182,7 @@ repos:
     entry: Filename must be lowercase with no whitespace
     language: fail
     files: "[\\sA-Z]"
-    exclude: "^(TODO\\.md|IMPLEMENTATION\\.md|README\\.md|.*/README\\.md|CONTRIBUTING\\.md|DECISIONS\\.md|DESIGN\\.md|LICENSE|Makefile|SKILL\\.md|.*/SKILL\\.md)$"
+    exclude: "^(TODO\\.md|IMPLEMENTATION\\.md|README\\.md|.*/README\\.md|CONTRIBUTING\\.md|DECISIONS\\.md|DESIGN\\.md|JOURNAL\\.md|.*/JOURNAL\\.md|LICENSE|Makefile|SKILL\\.md|.*/SKILL\\.md)$"
 
 # ---- general text hygiene (run LAST so it cleans up after everything) --
 
