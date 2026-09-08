@@ -1,0 +1,19 @@
+skills/fkb/SKILL.md
+  s_491302f1b64725::t_5efa11099146d7 43-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "6448fc7ee4be6c061ed1202d4bb847663f3e6553",
+  "prompts": {},
+  "sessions": {
+    "s_491302f1b64725": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f7f685a09ffebQ60db99MlYgci",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    }
+  }
+}
