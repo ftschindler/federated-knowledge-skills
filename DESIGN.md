@@ -355,16 +355,26 @@ spec's own example pairs a program (`reference_agent`) with a model (`gemini-2.5
 ours pairs the harness with the model:
 
 ```yaml
-generated: { by: opencode/claude-opus-5, at: 2026-09-01T14:22:00Z }
-verified:  { by: human:felix,            at: 2026-09-02T08:10:00Z }
+generated: { by: opencode/claude-opus-5,  at: 2026-09-01T14:22:00Z }
+verified:  { by: human:felix_schindler,   at: 2026-09-02T08:10:00Z }
 ```
 
 | Situation | `by` | Not |
 | --- | --- | --- |
 | An agent in opencode wrote the concept | `opencode/claude-opus-5` | `fkb`, `claude`, `Sisyphus`, `opencode` |
 | An agent in Codex wrote it | `codex/gpt-5.6-sol` | `codex/codex` |
-| Felix wrote or reviewed it | `human:felix` | `Human:felix`, `human/felix`, `felix` |
+| Felix wrote or reviewed it | `human:felix_schindler` | `human:felix`, `human:ftschindler`, `Human:…`, `human/…` |
 | A scheduled job refreshed it | `process:wiki-nightly` | `process/wiki-nightly` |
+
+**A person's `<id>` is their name, not an account handle.** A forge handle is scoped to one
+forge and one tenant - an Enterprise Managed User is a different login from the same person's
+personal account - so it identifies a login rather than a human, and the same author would
+carry different ids in different bundles. `verified` exists to say *who* confirmed something,
+and the trust tier it feeds (§5.3) is worthless if one person has three ids.
+
+The form pays for itself twice over: it matches the filename of that person's own concept
+(`people/felix_schindler.md`), so an actor resolves inside the bundle, by grep, with no forge
+and no git. That holds in a bundle that was never a repository.
 
 > **The skill is not an actor.** `fkb` is prose an agent reads; the agent is what acts.
 > Naming the skill would record the same string no matter which harness or model produced
