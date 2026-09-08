@@ -42,9 +42,13 @@ do not write a concept into a directory you found by looking around.
 
 3. **Which bundle?**
 
-   - **If the user named one** ("public wiki", "the private bundle"), use that. If the name
-     is ambiguous, ask which they meant rather than guessing.
-   - **Otherwise run `uv run scripts/fkb list`** and choose by sensitivity:
+   Run `uv run scripts/fkb list` to see what exists and what each allows. Then:
+
+   - **If the user named one** ("public wiki", "the private bundle"):
+     - If exactly one bundle matches that name, use it.
+     - If more than one could match, ask which they meant rather than guessing.
+     - If none matches, tell them what *is* available and ask again.
+   - **Otherwise choose by sensitivity**:
      - Write only where `writable` is `true`.
      - `referenceable_by "*"` means any bundle may cite it, so treat it as published.
      - `referenceable_by []` means it is sealed: nothing may cite it, so nothing in it can
