@@ -811,6 +811,23 @@ Distinct styles across bundles create a real cost: the skill must decide *where*
 > nobody knows the federation exists (§9.5). A manifest pointer would be a second home for
 > something the bundle owns, drifting the moment the bundle is edited on another machine.
 
+**Where the first bundle actually put it, and the problem that creates.** Option 3 says
+"beside its floor declaration", which means inside the bundle. `ftschindler/knowledge` put
+its house style in `about/editing_conventions.md` instead, outside the bundle, because the
+rules are read by people editing the site as much as by anything else and a second copy
+would drift.
+
+That is defensible and it costs something specific: the manifest's `path` points at the
+bundle root, so a tool given only that path cannot see the file. It travels with the
+repository but not with the bundle.
+
+Nothing depends on this yet, because nothing reads house style programmatically.
+[T5](IMPLEMENTATION.md#t5---finish-the-skill) is where it bites, since the skill ships a
+`references/house-style.md` and must not simply restate what the bundle already says.
+**Decide it there**, with three answers available: move the page into the bundle as a
+concept, split the bundle-authoring rules from the site-editing ones, or let the skill
+teach the general rules and leave each bundle's specifics to be read from the repository.
+
 ### 9.7 What we may assume is installed
 
 **`uv` is assumed, and by a bundle as well as by us.** The standalone hook (§9.5) is a PEP

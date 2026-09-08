@@ -142,6 +142,22 @@ those commands exist.
 **Deliverable.** `~/.agents/skills/fkb/` per [§6.2](DESIGN.md#62-layout) but filing-only, the
 two commands, the AGENTS.md block, and `JOURNAL.md` in this repository beside this file.
 
+**What [T6](#t6---ship-the-standalone-pre-commit-hook) already did for this task.**
+`fkb lint` is not written from scratch: `skills/fkb/scripts/bundle_lint.py` exists, checks
+conformance and the declared floor, and is what the first bundle already runs on every
+commit. `fkb lint` becomes its second entry point, adding what needs the manifest. Confirm
+while wiring it that both report the same finding on the same file, which is the half of
+T6's "done when" that could not be checked at the time.
+
+Two constraints on the skill body that were settled while building
+[T1](#t1---prepare-the-bundle-empty), and are easy to breach without noticing:
+
+- **The skill may not cite this design.** It ships standalone, so every rule it depends on
+  is stated in it or in its `references/`, never referred to by section number.
+- **The floor decides what a concept must carry**, so the skill tells an agent to satisfy
+  the bundle's floor rather than carrying its own list of required fields, which would be a
+  second declaration free to drift.
+
 **The journal.** The skill instructs the agent to append to `JOURNAL.md` whenever the work runs
 into a limit. Three rules keep it worth reading:
 
@@ -186,6 +202,13 @@ not wait for it.
   shadows carry nothing extra.
 - Frontmatter: add `type:`; drop `sources: [raw/…]`, `render_hash` and `topic:` (the directory
   already carries the topic, [§9.6](DESIGN.md#96-how-knowledge-is-structured-inside-a-bundle)).
+  Add the rest of the floor the bundle declares, which the incoming files do not carry:
+  `description`, `status` and `generated`. The bundle's own hook rejects them otherwise.
+- Rename to the bundle's convention: the incoming files are hyphenated, the bundle uses
+  underscores. The filename-and-title map the wikilink conversion already builds is where
+  this belongs, so it costs nothing extra.
+- Strip the body `# Title` from every concept. The vault repeats the frontmatter title as a
+  first-level heading; here that is a second `h1` and fails `MD025` on all ~60 files.
 - Convert `[[wikilinks]]` to relative markdown links using a filename-and-title map. Emit the
   unresolved ones as a list for manual review rather than guessing a target.
 - Delete the `raw/` tree once the conversion validates.
@@ -193,9 +216,15 @@ not wait for it.
   ([§9.3](DESIGN.md#93-markdown-raw-sources-live-beside-the-bundle-not-inside-it)). Establish
   first what the archive actually holds: the public wiki's `raw/` is 65 shadows of published
   concepts, which this task deletes, and its `sessions/` directory is empty.
+- Write the index as the concepts arrive, in index voice rather than by copying each
+  `description` (appendix B). Sixty entries is the point at which the section headings and
+  their order start doing real work.
 
-**Done when.** `okf_validate.py --strict` and `mkdocs build --strict` both pass, internal links
-resolve, and the unresolved-link list is empty or consciously accepted.
+**Done when.** The bundle's own `okf-concepts` hook passes, `mkdocs build --strict` passes,
+internal links resolve, and the unresolved-link list is empty or consciously accepted.
+
+> The hook is the check that matters now, not `okf_validate.py` alone: it enforces the floor
+> as well as conformance, and it is what a commit will run.
 
 **Leave alone.** The conversion script is disposable and never becomes part of `fkb`.
 
