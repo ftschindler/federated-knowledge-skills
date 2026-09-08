@@ -1,0 +1,26 @@
+skills/fkb/references/concept-template.md
+  s_d9270f753fc99f::t_4735209bbf48f7 28,32-34
+DESIGN.md
+  s_d9270f753fc99f::t_b11001ef2f0415 358-359,366,369-377
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "23ac92a6982c318489947cfec2e645ae4196a976",
+  "prompts": {},
+  "humans": {
+    "h_0f8f9341a40674": {
+      "author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    }
+  },
+  "sessions": {
+    "s_d9270f753fc99f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f84d62ac6ffespe9MtZiAlTm62",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    }
+  }
+}
