@@ -50,9 +50,16 @@ class Findings:
         (self.blocking if blocks else self.reported).append(f"{path}: {message}")
 
 
-def finding_path(text: str) -> str:
-    """The validator emits `<relative path>: <message>` strings, not records."""
-    return text.split(": ", 1)[0]
+def split_finding(text: str) -> tuple[str, str]:
+    """Split the validator's `<relative path>: <message>` string into its parts.
+
+    The report is a list of prose strings rather than records, so the path has to
+    be recovered by splitting. A line without the separator keeps its whole text
+    as the message and is attributed to the bundle itself, so an unrecognised
+    emitter is reported rather than crashing the run.
+    """
+    path, separator, message = text.partition(": ")
+    return (path, message) if separator else ("", text)
 
 
 def run_validator(bundle: Path) -> dict:
@@ -154,13 +161,13 @@ def main() -> int:
 
     findings = Findings()
     report = run_validator(bundle)
-    for message in report.get("errors", []):
-        path = finding_path(message)
-        findings.add(path, message.split(": ", 1)[1], blocks=in_scope(bundle / path))
-    for message in report.get("warnings", []):
-        path = finding_path(message)
-        body = message.split(": ", 1)[1]
-        findings.add(path, body, blocks=False if LINK_MARKER in body else in_scope(bundle / path))
+    for text in report.get("errors", []):
+        path, message = split_finding(text)
+        findings.add(path, message, blocks=in_scope(bundle / path))
+    for text in report.get("warnings", []):
+        path, message = split_finding(text)
+        blocks = False if LINK_MARKER in message else in_scope(bundle / path)
+        findings.add(path, message, blocks=blocks)
 
     if args.floor is not None:
         check_floor(bundle, args.floor, in_scope, findings)
