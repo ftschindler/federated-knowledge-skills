@@ -14,6 +14,13 @@
 #       args: [--bundle-root, docs, --floor, docs/okf-floor.yaml]
 #     - id: okf-bundle
 #       args: [--bundle-root, docs, --floor, docs/okf-floor.yaml]
+#
+# `okf-concepts` needs no second hook to be strict in CI. Run with --all-files,
+# every file is in scope and every finding blocks, which is what a governance
+# workflow already does. `okf-bundle` therefore adds index coverage and nothing
+# else, and sits on the manual stage so it never runs on a commit:
+#
+#   prek run --hook-stage manual --all-files okf-bundle
 
 - id: okf-concepts
   name: OKF conformance and floor (files being committed)
@@ -35,3 +42,4 @@
   pass_filenames: false
   always_run: true
   require_serial: true
+  stages: [manual]
