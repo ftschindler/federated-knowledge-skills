@@ -134,24 +134,28 @@ def check_coverage(bundle: Path, in_scope: Callable[[Path], bool], findings: Fin
             )
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--bundle-root", required=True, type=Path)
-    parser.add_argument("--floor", type=Path)
-    parser.add_argument("--coverage", action="store_true")
-    parser.add_argument("files", nargs="*", type=Path)
-    args = parser.parse_args()
+def lint(
+    bundle: Path,
+    *,
+    floor: Path | None = None,
+    coverage: bool = False,
+    files: list[Path] | None = None,
+) -> Findings:
+    """Check one bundle, and return what was found without printing anything.
 
-    bundle = args.bundle_root
+    This is the whole checker. The command line below is one caller and the
+    `fkb` CLI is the other, so neither can drift from the other: what a bundle's
+    own pre-commit hook rejects is exactly what the federation's linter reports.
+    """
     if not bundle.is_dir():
         sys.exit(f"bundle_lint: --bundle-root {bundle} is not a directory")
-    if args.floor is not None and not args.floor.is_file():
-        sys.exit(f"bundle_lint: --floor {args.floor} does not exist")
+    if floor is not None and not floor.is_file():
+        sys.exit(f"bundle_lint: --floor {floor} does not exist")
 
     # No file arguments means nothing is out of scope: everything blocks. With
     # them, the caller is a per-file hook and only the author's own files do.
-    if args.files:
-        scoped = {p.resolve() for p in args.files}
+    if files:
+        scoped = {p.resolve() for p in files}
 
         def in_scope(path: Path) -> bool:
             return path.resolve() in scoped
@@ -172,10 +176,23 @@ def main() -> int:
         path, message = split_finding(text)
         findings.add(path, message, blocks=False)
 
-    if args.floor is not None:
-        check_floor(bundle, args.floor, in_scope, findings)
-    if args.coverage:
+    if floor is not None:
+        check_floor(bundle, floor, in_scope, findings)
+    if coverage:
         check_coverage(bundle, in_scope, findings)
+    return findings
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--bundle-root", required=True, type=Path)
+    parser.add_argument("--floor", type=Path)
+    parser.add_argument("--coverage", action="store_true")
+    parser.add_argument("files", nargs="*", type=Path)
+    args = parser.parse_args()
+
+    bundle = args.bundle_root
+    findings = lint(bundle, floor=args.floor, coverage=args.coverage, files=args.files)
 
     for line in findings.reported:
         print(f"  warn   {line}")
