@@ -1,0 +1,32 @@
+tests/test_bundle_lint.py
+  s_7cce835e1dbdf0::t_59e8a306aed767 50
+  s_7cce835e1dbdf0::t_99c2abd917cdc5 1-49,51-162
+pytest.toml
+  s_7cce835e1dbdf0::t_084e5c6c7f65bf 5
+skills/fkb/scripts/bundle_lint.py
+  s_d9270f753fc99f::t_da0085f78b7cb1 53-62,164-170
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "c1c9e4f87cff6ac3e7485245841692828cd3fc6e",
+  "prompts": {},
+  "sessions": {
+    "s_7cce835e1dbdf0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f800291a7ffeEuaSOLpW5570VA",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    },
+    "s_d9270f753fc99f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f84d62ac6ffespe9MtZiAlTm62",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    }
+  }
+}
