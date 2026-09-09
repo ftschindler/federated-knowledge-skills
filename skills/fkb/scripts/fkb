@@ -1,0 +1,171 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pyyaml>=6"]
+# ///
+"""fkb - the federated knowledge bundles a machine can see.
+
+Two commands, deliberately. `list` answers "which bundles exist and what may I
+do with each", which is the question that has to be answered before anything is
+written. `lint` answers "does this bundle hold up", by calling the same checker
+a bundle's own pre-commit hook calls.
+
+Everything else is withheld on purpose while the journal records what is
+actually missing, so that what gets built next is answering an incident rather
+than a guess.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+from pathlib import Path
+
+import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import bundle_lint
+
+FLOOR_FILE = "okf-floor.yaml"
+
+
+def manifest_path() -> Path:
+    config = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
+    return Path(config) / "fkb" / "workspace.yaml"
+
+
+class Bundle:
+    """One bundle as this machine sees it, with the manifest's cautious defaults.
+
+    Omitting `referenceable_by` means nothing may cite the bundle; omitting
+    `writable` means no agent may author into it. Both fail closed, so a bundle
+    that was added carelessly discloses nothing until someone opens it on
+    purpose.
+    """
+
+    def __init__(self, name: str, entry: dict, workspace_root: Path | None) -> None:
+        self.name = name
+        raw = entry.get("path")
+        if not raw:
+            sys.exit(f"fkb: bundle `{name}` declares no path")
+        path = Path(raw).expanduser()
+        if not path.is_absolute():
+            if workspace_root is None:
+                sys.exit(f"fkb: bundle `{name}` has a relative path but no workspace_root is set")
+            path = workspace_root / path
+        self.path = path
+        self.referenceable_by = entry.get("referenceable_by", [])
+        self.writable = bool(entry.get("writable", False))
+        self.publish = entry.get("publish")
+
+    @property
+    def citation(self) -> str:
+        """`referenceable_by` as the manifest holds it, with a reading of what it means.
+
+        The value is printed verbatim so what `list` shows can be found in the
+        file it came from. The gloss is there because `[]` looks like an omission
+        and is in fact the whole point: a bundle nothing may cite cannot surface
+        through a link from one that publishes.
+        """
+        if self.referenceable_by == "*":
+            return '"*"  (any bundle may cite this one)'
+        if not self.referenceable_by:
+            return "[]   (sealed: no bundle may cite this one)"
+        listed = ", ".join(self.referenceable_by)
+        return f"[{listed}]  (only these may cite this one)"
+
+    @property
+    def floor(self) -> Path | None:
+        candidate = self.path / FLOOR_FILE
+        return candidate if candidate.is_file() else None
+
+
+def load_bundles() -> list[Bundle]:
+    path = manifest_path()
+    if not path.is_file():
+        sys.exit(
+            f"fkb: no workspace manifest at {path}.\n"
+            "Write one by hand: `workspace_root:` and a `bundles:` mapping, "
+            "each with at least a `path`."
+        )
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as exc:
+        sys.exit(f"fkb: cannot read {path}: {exc}")
+
+    raw_root = data.get("workspace_root")
+    root = Path(raw_root).expanduser() if raw_root else None
+    bundles = data.get("bundles") or {}
+    if not bundles:
+        sys.exit(f"fkb: {path} declares no bundles")
+    return [Bundle(name, entry or {}, root) for name, entry in bundles.items()]
+
+
+def cmd_list(_: argparse.Namespace) -> int:
+    """Print each bundle under the manifest's own field names.
+
+    Inventing labels here would give the same policy two vocabularies, and an
+    agent reading `open` has no way back to the line that produced it. `floor` is
+    the one row naming no manifest field, because it is discovered in the bundle
+    rather than declared about it.
+    """
+    for bundle in load_bundles():
+        missing = "" if bundle.path.is_dir() else "  (MISSING)"
+        print(f"{bundle.name}{missing}")
+        print(f"  path              {bundle.path}")
+        print(f"  referenceable_by  {bundle.citation}")
+        print(f"  writable          {'true' if bundle.writable else 'false'}")
+        print(f"  publish           {bundle.publish or 'null'}")
+        print(f"  floor             {bundle.floor or 'not declared'}")
+    return 0
+
+
+def cmd_lint(args: argparse.Namespace) -> int:
+    bundles = load_bundles()
+    if args.bundle:
+        by_name = {b.name: b for b in bundles}
+        if args.bundle not in by_name:
+            sys.exit(f"fkb: no bundle named `{args.bundle}` (have: {', '.join(by_name)})")
+        bundles = [by_name[args.bundle]]
+
+    status = 0
+    for bundle in bundles:
+        print(f"{bundle.name} ({bundle.path})")
+        if not bundle.path.is_dir():
+            print("  ERROR  the manifest points at a path that does not exist")
+            status = 1
+            continue
+        findings = bundle_lint.lint(bundle.path, floor=bundle.floor, coverage=args.coverage)
+        for line in findings.reported:
+            print(f"  warn   {line}")
+        for line in findings.blocking:
+            print(f"  ERROR  {line}")
+        if findings.blocking:
+            print(f"  {len(findings.blocking)} blocking finding(s)")
+            status = 1
+        else:
+            suffix = f" ({len(findings.reported)} warning(s))" if findings.reported else ""
+            print(f"  ok{suffix}")
+    return status
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(prog="fkb", description=__doc__.splitlines()[0])
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    listing = sub.add_parser("list", help="bundles, paths, tiers and publish URLs")
+    listing.set_defaults(func=cmd_list)
+
+    linting = sub.add_parser("lint", help="check a bundle against OKF and its declared floor")
+    linting.add_argument("bundle", nargs="?", help="one bundle by name; omit for all of them")
+    linting.add_argument("--coverage", action="store_true", help="also require an index link per concept")
+    linting.set_defaults(func=cmd_lint)
+
+    args = parser.parse_args()
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
