@@ -56,12 +56,32 @@ do not write a concept into a directory you found by looking around.
      - **In doubt, take the most private bundle you may write to.** Moving a concept later
        costs one commit; disclosing it costs whatever it disclosed.
 
-4. **Where in the bundle?** Read the bundle's own `index.md` and its directory names first,
-   and follow what is already there. A bundle's structure is its own; this skill does not
-   impose one. If nothing fits, put the file at the bundle root rather than inventing a
-   directory for a single page.
+4. **Where in the bundle?**
 
-   Filenames are lowercase with underscores unless the bundle plainly does otherwise.
+   **Read the structure first.** Look at the bundle's top-level directories and its
+   `index.md` to see how concepts are grouped. Many bundles use `people/`, `principles/`,
+   `decisions/`, or similar; follow what is already there.
+
+   **Pick a directory:**
+   - If one clearly fits (a person concept → `people/`, a principle → `principles/`), use it.
+   - If several could fit, pick the most specific and note the ambiguity.
+   - If none fits, **ask** whether to create a new directory or place it at the root. Do not
+     invent a directory for a single page.
+
+   **Choose tags from what exists.** Before picking tags, read three or four concepts in the
+   same area and note which tags they use. Prefer an existing tag that is close enough over
+   inventing a new one. If nothing fits:
+   - Propose one or two candidate tags and ask which to use, or whether to file without tags
+     and let a person decide.
+   - Record the incident in the journal if you had to guess or leave them empty.
+
+   **Filenames** are lowercase with underscores unless the bundle plainly does otherwise.
+   The filename should match the concept's `title` closely enough that a person can find it
+   by name.
+
+   **Where to link it.** Add the new concept to the `index.md` entry that matches its
+   directory or section. If the index has no fitting section, ask whether to add one or
+   place it under a general heading.
 
 5. **Write the file** with the ordinary write tool.
 
