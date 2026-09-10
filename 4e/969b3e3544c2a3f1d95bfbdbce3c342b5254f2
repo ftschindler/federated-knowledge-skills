@@ -1,0 +1,19 @@
+JOURNAL.md
+  s_62fc1f804ef7d6::t_d0269045bdc3eb 122-138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "4e969b3e3544c2a3f1d95bfbdbce3c342b5254f2",
+  "prompts": {},
+  "sessions": {
+    "s_62fc1f804ef7d6": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f75b848f6ffeGDqe2625rjlaGV",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    }
+  }
+}
