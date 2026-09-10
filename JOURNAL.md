@@ -119,6 +119,23 @@ Did we not want to provide the fkb cli with a `--json` option so agents can read
   discoverable only by deleting something, which is the least frequent operation and the one the
   skill does not cover at all. Settled it in `DESIGN.md` §9.9 as prose-only, with a `check_log`
   warning and an appendix B deviation, both unbuilt.
+- **2026-09-10** renaming a concept - changed one `title` in frontmatter and stopped, because
+  that is what "rename" felt like. Three other things had to move with it and nothing said so.
+  The **filename** still read `building_a_pkb_that_is_mine_forever_readable_and_visual.md`
+  under a title of "Building my visual PKB", which is a slug that no longer describes its
+  concept and that a `grep` for the new title does not find. Nine **inbound links** across
+  seven files still carried the old title as their link text, so the bundle rendered a page
+  under one name and referred to it by another everywhere else, and only the frontmatter knew
+  which was current. The **index entry** was one of the nine. Nothing caught any of it:
+  `mkdocs build --strict` and `linkspector` both passed the whole time, because every link
+  still resolved - the target existed, it was only misnamed, and a stale link *text* is
+  invisible to a link checker by construction. Found by grepping the old title by hand a day
+  later, on a hunch. So the rule is: a rename is a title, a filename, and every inbound link's
+  text and target, done as one edit. `fkb` has no rename operation, and this is the failure it
+  should own, because it is entirely mechanical and entirely unenforceable after the fact -
+  once the old title is gone from frontmatter there is nothing left to grep the stale link
+  texts against. Historical `log.md` entries are the exception and keep the old name, which is
+  the append-only rule of the entry above working as intended.
 - **2026-09-10** deletion - dropped two concepts outright
   (`linux/kde_plasma_phantom_pointer_...`, and two `meta/` pages). Deleting a concept means
   editing at least three other files: the inbound link in a sibling concept, the `index.md`
