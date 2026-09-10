@@ -1,0 +1,38 @@
+DESIGN.md
+  s_62fc1f804ef7d6::t_be201da8d5cb43 930-931
+JOURNAL.md
+  s_62fc1f804ef7d6::t_df4ba78ba3ee1e 85-109,123-128
+  s_2c93387ca5c28a::t_cf451e96fb0b52 60-84
+  h_0f8f9341a40674 49-59
+  s_62fc1f804ef7d6::t_681b0d125c6a30 110-121
+  s_62fc1f804ef7d6::t_19d682a7c09226 122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "aa6258d9df8406229e1474d9eef42541339c982f",
+  "prompts": {},
+  "humans": {
+    "h_0f8f9341a40674": {
+      "author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    }
+  },
+  "sessions": {
+    "s_2c93387ca5c28a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f75b848f6ffeGDqe2625rjlaGV",
+        "model": "unknown"
+      },
+      "human_author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    },
+    "s_62fc1f804ef7d6": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f75b848f6ffeGDqe2625rjlaGV",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    }
+  }
+}
