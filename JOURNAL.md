@@ -143,3 +143,26 @@ Did we not want to provide the fkb cli with a `--json` option so agents can read
   it is a record that the thing happened. Degraded that line to plain text instead. The skill
   files concepts and has no notion of removing one, so nothing suggested the log needed handling
   differently from the index.
+- **2026-09-11** onboarding a new unpublished private bundle - `~/knowledge/private` was a
+  `git clone` of `~/knowledge/ftschindler` minus the publishing stack, so it inherited a
+  `.pre-commit-config.yaml` written for a bundle rooted at `docs/` and an already-stale copy
+  of `.scripts/check_no_horizontal_rules.py`, whilst inheriting none of the prose that makes
+  the rules knowable: no `about/editing_conventions.md`, no `.github/copilot-instructions.md`.
+  Setting it up meant diffing the two repositories by hand, then reading
+  `skills/fkb/scripts/bundle_lint.py` in the pinned checker to answer the one question that
+  decided the whole layout: `bundle.rglob("*.md")` descends into dot-directories, so with
+  `--bundle-root .` there is no place to put a non-concept Markdown file at all. `about/` is
+  not an option in a root-rooted bundle, and `exclude:` cannot rescue `.github/` either,
+  because `okf-bundle` runs `pass_filenames: false, always_run: true`. Resolved by conforming:
+  `editing_conventions.md` and a three-line pointer `AGENTS.md`, both carrying floor
+  frontmatter, both listed under a `## Meta` heading in `index.md`, plus `AGENTS\.md` added to
+  the `lowercase-no-whitespace-filenames` exclude. `prek run --all-files` and
+  `prek run --hook-stage manual --all-files okf-bundle` both pass. None of that was written
+  down anywhere; it was re-derived from the checker's source. The skill has no notion of
+  creating a bundle, only of filing into one that exists, so a new private tier starts by
+  cloning a public one and silently keeps every assumption the publishing stack had made. A
+  `references/getting_started.md` covering exactly this - root-rooted versus `docs/`-rooted
+  and what each implies, the floor file, which hooks to keep when nothing publishes, where
+  conventions and agent instructions can legally live, and the two commands that prove it -
+  would have replaced the clone-and-diff entirely, and `SKILL.md` should read it on request
+  rather than carrying it inline.
