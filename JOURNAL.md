@@ -119,7 +119,87 @@ Did we not want to provide the fkb cli with a `--json` option so agents can read
   discoverable only by deleting something, which is the least frequent operation and the one the
   skill does not cover at all. Settled it in `DESIGN.md` §9.9 as prose-only, with a `check_log`
   warning and an appendix B deviation, both unbuilt.
-- **2026-09-10** renaming a concept - changed one `title` in frontmatter and stopped, because
+- **2026-09-10** registering a bundle - asked to add a public read-only vault. `fkb` has `list`
+  and `lint` and no `add`, and `SKILL.md` line 26 says not to create or guess a manifest, so the
+  only route was hand-editing `~/.config/fkb/workspace.yaml`: added `stjbrown-agent-knowledge`
+  with `path: ./stjbrown-agent-knowledge/knowledge`, `referenceable_by: "*"`, `writable: false`.
+  Three things nothing told me to do. The **OKF root is not the repo root** - the clone has ten
+  `index.md` files, and only `knowledge/index.md` is the top-most one; `skills/kb/example-bundle/`
+  is a decoy that would have registered a sample as the bundle. The **checkout was in the wrong
+  place**, at `~/.agents/knowledge/`, under a `workspace_root` of `~/knowledge`; checked
+  `git check-ignore` before moving it, since `~/.agents` is itself a repo. And a **second, stale
+  manifest** existed at `~/.config/federated-knowledge/workspace.okf.yaml`, listing this same
+  bundle at a path that no longer resolved; `fkb list` cannot see it and so cannot report the
+  divergence. The user deleted it. Registration is mechanical enough to be a command and was
+  three judgement calls instead.
+- **2026-09-10** lint on a bundle I may not write to - `fkb lint stjbrown-agent-knowledge`
+  returned `ok (105 warning(s))`, all of them `okf_version: "0.1"` vintage: `timestamp` and
+  `# Citations` per concept, checked against v0.2. Correct, and unactionable: the bundle is
+  `writable: false`, so every one of the 105 is somebody else's to fix, and `lint` has no notion
+  of that. Read them all to confirm none was a real defect, then left them. `--coverage` was not
+  run for the same reason. A foreign bundle wants either a version-aware check or a quiet mode,
+  or its warnings will be scrolled past every time and the one that matters will go with them.
+- **2026-09-10** `publish`, undefined and got wrong - registered the bundle above with
+  `publish: https://github.com/stjbrown/agent-knowledge`, the repo's landing page, as if the
+  field named where the bundle lives. The user corrected it: `publish` is a **prefix**, so a
+  concept at `<path>/foo/bar.md` is reachable at `<publish>foo/bar.md`. Mine resolved
+  `concepts/memex.md` to `https://github.com/stjbrown/agent-knowledge/concepts/memex.md`, a 404.
+  Corrected to `https://github.com/stjbrown/agent-knowledge/blob/main/knowledge/` (checked: 200),
+  which for a bundle with no deployed site means the prefix has to carry the forge's
+  `blob/<branch>/` and the OKF subdir, and must end in a slash to concatenate. Nothing states any
+  of this: `grep -n publish references/SPEC.md` returns nothing at all, `SKILL.md` never mentions
+  the field, and the only description anywhere is `fkb list`'s own help string, "publish URLs".
+  The existing entries do not settle it either and cannot be copied from - `public` is
+  `https://ftschindler.github.io/knowledge` with no trailing slash, and it is a MkDocs site where
+  `foo/bar.md` publishes as `foo/bar/`, so the concatenation rule does not hold there at all.
+  Two bundles, two incompatible readings of one field, and no error is possible: `lint` never
+  fetches a URL, so a `publish` that resolves to nothing is indistinguishable from a correct one.
+- **2026-09-10** which bundle, never asked - the request was "add a public non-writable OKF vault
+  to my federated knowledge base" and named no repository. I wrote a plan whose step 2 was "get
+  the vault on disk", noted in it that a remote-only vault meant stopping, and then never asked
+  for a URL. I had asked one blocking question - which of the two manifests was authoritative -
+  and the user answered it by deleting `~/.config/federated-knowledge/`; I treated that one
+  answer as closing both gaps. Filled the second by `ls ~/.agents/knowledge`, found
+  `stjbrown-agent-knowledge` as the only public read-only bundle present, and registered it.
+  Right, as it happens: it was in the deleted manifest. But "only candidate on disk" was
+  inference, not instruction, and a new third-party vault would have looked identical from here.
+  Nothing in the skill could have caught this, because registration is not a skill operation at
+  all - `SKILL.md` covers filing a concept into a bundle that already exists, and the one guard
+  it does have (line 26, do not guess a path) fires on a *missing* manifest, not on a missing
+  argument. If `fkb add` is ever built, the bundle's identity is the argument it must refuse to
+  default, and the failure to imitate is a plan that names a step it has no input for and runs it
+  anyway.
+
+### 2026-09-13
+
+- **2026-09-13** tone, unconditioned - wrote ten concepts into the `public` bundle across a
+  session and never once opened an existing page to see how they were written. The skill's step
+  4 says to read the structure first, and reading the structure gets you `okf-floor.yaml`, the
+  directories and the index: the bundle's *schema* and none of its *voice*. Where the new pages
+  matched the house register it was a side effect of research - `explorations/running_this_...md`
+  came out right because six neighbouring pages were already in context for their content. Where
+  nothing was in context, `tools/agent_wiki.md` and the genre notes, the default register showed
+  up instead and Felix corrected it by hand. The fix is one line in the skill and it is cheap:
+  **before writing, read two existing concepts from the target directory**, which the directory
+  index now names. A rule describes a voice; the pages are one, and prose matches nearby prose
+  more reliably than it satisfies an adjective. Written up in the bundle's
+  `about/editing_conventions.md` under "Read before you write".
+- **2026-09-13** tone, self-referential - the same session generated genre notes for 67 pages in
+  one pass, each with a two-sentence gloss drawn from the directory indexes. Those indexes had
+  been written an hour earlier, in the same session, by the same agent. So the style reference
+  for 67 files was the agent's own recent output rather than the bundle, and any drift in the
+  first artefact propagated to every page without a second opinion. Nothing flagged it; the
+  result reads consistently, which is exactly the failure mode - internally consistent and
+  possibly off-register as a whole. A bulk operation wants its reference pinned to pages that
+  predate the session, and the skill has no notion of a bulk operation at all (see the
+  2026-09-09 bulk import entry, which hit the same gap on a different axis).
+- **2026-09-13** log format, applied - the `2026-09-10` entry settled `log.md` entries as prose
+  with no links, and `DESIGN.md` §9.9 records it. Three sessions later the rule held without
+  effort: the 2026-09-11 and 2026-09-13 entries were written as plain text first time, including
+  across a restructure that renamed three files and moved them between directories. No log line
+  needed touching during the moves, which is the property the rule was chosen for. Worth one line
+  as positive evidence, since this file otherwise only records friction.
+
   that is what "rename" felt like. Three other things had to move with it and nothing said so.
   The **filename** still read `building_a_pkb_that_is_mine_forever_readable_and_visual.md`
   under a title of "Building my visual PKB", which is a slug that no longer describes its
@@ -166,3 +246,12 @@ Did we not want to provide the fkb cli with a `--json` option so agents can read
   conventions and agent instructions can legally live, and the two commands that prove it -
   would have replaced the clone-and-diff entirely, and `SKILL.md` should read it on request
   rather than carrying it inline.
+
+- **2026-09-11** structure - filing a Finding in the `public` bundle, step 4 told me to read the
+  bundle's directories and `index.md`. The directory listing was misleading: there is no
+  `findings/`, and the two existing Findings sit in `tools/` and `linux/` beside concepts of
+  other types, so the section is assembled by the index rather than by directory. I placed
+  `tools/dependabot_declines_transitive_security_updates_in_uv_lock.md` next to
+  `tools/awiki_title_extraction_breaks_on_frontmatter_led_source_files.md` only after reading
+  the whole index. Step 4 leads with directories and mentions `index.md` second; for a bundle
+  that groups by subject and sections by type, that order costs a read.
