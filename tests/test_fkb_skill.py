@@ -42,7 +42,7 @@ def _seed_bundle(agent: DisposableAgent) -> Path:
     bundle.mkdir(parents=True)
     (bundle / "index.md").write_text(INDEX, encoding="utf-8")
     (bundle / "log.md").write_text(LOG, encoding="utf-8")
-    (bundle / "okf-floor.yaml").write_text(FLOOR, encoding="utf-8")
+    (bundle / "fkb.yaml").write_text(FLOOR, encoding="utf-8")
 
     config = agent.home / ".config" / "fkb"
     config.mkdir(parents=True, exist_ok=True)
@@ -54,7 +54,7 @@ def _seed_bundle(agent: DisposableAgent) -> Path:
 
 
 def _lint(bundle: Path) -> subprocess.CompletedProcess[str]:
-    args = ["--bundle-root", str(bundle), "--floor", str(bundle / "okf-floor.yaml")]
+    args = ["--bundle-root", str(bundle), "--floor", str(bundle / "fkb.yaml")]
     if importlib.util.find_spec("yaml") is None:
         command = ["uv", "run", "--script", str(BUNDLE_LINT), *args]
     else:
