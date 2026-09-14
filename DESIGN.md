@@ -33,7 +33,7 @@ would have told us.
 | # | Question | Settled by |
 | --- | --- | --- |
 | 9.1 | How `fkb search` ranks once bundles outgrow lexical matching | T4, from journal evidence |
-| 9.2 | The floor's exact content, and the config file's name | T1 |
+| 9.2 | The floor's exact content, and the config file's name | T1, renamed in T2 |
 | 9.3 | Whether markdown raw sources become `references/` concepts or stay outside the bundle | T1 |
 | 9.4 | How non-knowledge pages in a bundle satisfy OKF §11 | T1 |
 | 9.5 | How a bundle lints standalone, without knowing it is federated | T6 |
@@ -540,7 +540,8 @@ neighbours costs no extra call.
 This half of house style is **derived**, which is why it is the half in the CLI: it cannot
 drift, needs no declaration, and works on read-only upstreams that will never adopt our
 conventions. The *declared* half - casing rules, prohibitions, intent - lives in the bundle
-beside its floor declaration (§9.2), never in the manifest (§9.6).
+beside its floor declaration, which §9.2's `conventions:` key points at, never in the
+manifest (§9.6).
 
 The scan is the one `lint` already performs over frontmatter.
 
@@ -658,7 +659,7 @@ build, keep fresh, and reason about per bundle.
 the web instead. Record the query when it happens; a handful of real misses is what should
 justify an index, not a projection.
 
-### 9.2 Where a bundle declares its floor - a YAML file at the bundle root
+### 9.2 Where a bundle declares its floor - `fkb.yaml` at the bundle root
 
 **Settled: a small YAML file, not the bundle-root `index.md`.** The vendored validator
 warns on any root-index key outside `okf_version` and its own `upkeep`:
@@ -672,16 +673,97 @@ Putting our floor there means our own linter warning about our own config on eve
 silencing it would mean editing the vendored file (§8). A YAML file also parses without a
 markdown-frontmatter reader, which the standalone hook (§9.5) wants.
 
-Still open: nothing. The file is `okf-floor.yaml` at the bundle root, and it carries a flat
-`required:` list of the five fields §6.5 argues for - `type`, `title`, `description`,
-`status`, `generated`. `tags` is deliberately absent, which keeps §9.6's question open: add
-one line to require it, the day the vocabulary is decided.
+The file is `fkb.yaml` at the bundle root. It carries a flat `required:` list of the five
+fields §6.5 argues for - `type`, `title`, `description`, `status`, `generated` - and an
+optional `conventions:` path, below. `tags` is deliberately absent from `required:`, which
+keeps §9.6's question open: add one line to require it, the day the vocabulary is decided.
 
 **That list is the whole of what a bundle demands beyond the format's own hard rules.** The
 standalone hook reads this file and nothing else, so a field it does not name is reported
 and never enforced (§9.5). The file is therefore the bundle's declaration and the hook's
 configuration at once, which is why the hook takes it as an explicit argument rather than
 discovering it.
+
+#### Why not `okf-floor.yaml`
+
+It was called that through T1, and the name was wrong twice over.
+
+**`okf-` claims the wrong provenance.** The specification does not define this file:
+`grep -n floor references/SPEC.md` returns nothing, and the paragraph above says plainly
+that the floor is ours. The prefix invites the inference that any OKF bundle carries one,
+and a third-party OKF bundle registered in this workspace carries none at all. An agent
+reasoning from the name reasons correctly and concludes something false.
+
+**`floor` names one of the file's two jobs.** It already holds a declaration *and* a hook
+configuration, and with `conventions:` it holds a pointer as well. A name naming the first
+of three stops describing the file the moment it grows, which is the state it was already
+in.
+
+The name that is left has to answer: who requires it to be *this* string? Not the bundle,
+and not the hook, which is handed an explicit path and would accept any filename. Only
+`fkb` does, because only `fkb` discovers the file rather than being told where it is. So
+contents and filename have different owners, and that is ordinary rather than awkward:
+
+| | owned by | meaningful without `fkb`? |
+| --- | --- | --- |
+| contents - `required:`, `conventions:` | the bundle | yes, the hook enforces them standalone |
+| filename and location | `fkb`'s discovery contract | no, only within a federation |
+
+`.editorconfig` and `package.json` hold project-owned content under an ecosystem-owned
+filename and nobody finds them mis-named. Naming the file for the tool that has to find it
+is the honest form, so `fkb.yaml` it is, and the name is a federation-level decision rather
+than a per-bundle one.
+
+**What the name does not buy.** A bundle is not required to adopt it. The hook goes on
+taking an explicit path (§9.5), so a bundle may call the file anything, pin the hook, and
+be fully checked with no `fkb` installed anywhere. What the canonical name buys is
+*discovery*: `fkb lint` finds the file by convention because it has the manifest and does
+not need telling. Adopting the filename is how a bundle opts into being found, and the cost
+sits there rather than on the bundle that never federates.
+
+#### `conventions:` - where the bundle's house rules live
+
+**Settled: one optional key holding a path to the bundle's house rules.**
+
+```yaml
+required: [type, title, description, status, generated]
+conventions: ../about/editing_conventions.md
+```
+
+The floor says what a concept must *carry*. It says nothing about how a concept is
+*written*, and §9.6 records what that costs: an agent reads the floor, the directories and
+the index, which is the bundle's schema and none of its voice. The rules exist in every
+bundle that has been worked in; they are simply in a different place each time. Across the
+four bundles in this workspace they sit at `docs/about/editing_conventions.md`, at the
+repository root beside `AGENTS.md`, in an `about/` directory outside the OKF root entirely,
+and nowhere at all.
+
+So the skill cannot carry a path, and each bundle must state its own. The value is resolved
+relative to the file that declares it and **may escape the bundle root**, which is the point:
+§9.6 notes that the public bundle deliberately keeps its conventions outside the bundle,
+where the people editing the site can find them, and that a tool given only the manifest's
+`path` therefore cannot see the file. A pointer inside the bundle to a file outside it costs
+no second copy, no restructuring, and no drift, and it is strictly cheaper than the three
+options §9.6 had.
+
+**Declaration, not enforcement.** The value is prose for an agent to read. Nothing parses
+it, and `lint` checks only that a declared path resolves, because a pointer to a file that
+does not exist is a defect the bundle can fix and a silent one otherwise.
+
+**Everything degrades, and absence is never an error.** The three rows are all present in
+this workspace today, and the third must stay filable:
+
+| the bundle has | the skill does |
+| --- | --- |
+| `fkb.yaml` with `conventions:` | read it, then two concepts from the target directory |
+| `fkb.yaml`, no `conventions:` | derive the vocabulary (§9.6), read two concepts |
+| no `fkb.yaml` at all | conformance only (§6.6), derive, read two concepts |
+
+**Not in the manifest, for the same reason as house style.** A bundle must be
+self-describing to someone who has never heard of the federation (§9.5). A bundle whose
+conventions are locatable only through one machine's manifest is not, and a manifest
+pointer would be a second answer to a question the bundle already answers, free to be wrong
+the moment the bundle is edited elsewhere.
 
 ### 9.3 Markdown raw sources live beside the bundle, not inside it
 
@@ -804,29 +886,36 @@ Distinct styles across bundles create a real cost: the skill must decide *where*
    an upstream that will never adopt our conventions - which is exactly the case a
    declaration cannot reach.
 3. **Declare what derivation cannot see** - casing rules, prohibitions, intent - in the
-   bundle, beside its floor declaration (§9.2). One file, one standalone-parseable answer.
+   bundle, pointed at by `conventions:` in its `fkb.yaml` (§9.2). One key, one answer, and
+   the page may live wherever the bundle already keeps it.
 
 > **Not in the manifest.** §4 admits machine-local facts and federation policy, and house
 > style is neither. It belongs to the bundle, must travel with the repo, and must work when
 > nobody knows the federation exists (§9.5). A manifest pointer would be a second home for
 > something the bundle owns, drifting the moment the bundle is edited on another machine.
 
-**Where the first bundle actually put it, and the problem that creates.** Option 3 says
+**Where the first bundle actually put it, and how that is resolved.** Option 3 says
 "beside its floor declaration", which means inside the bundle. `ftschindler/knowledge` put
 its house style in `about/editing_conventions.md` instead, outside the bundle, because the
 rules are read by people editing the site as much as by anything else and a second copy
 would drift.
 
-That is defensible and it costs something specific: the manifest's `path` points at the
-bundle root, so a tool given only that path cannot see the file. It travels with the
+That is defensible and it cost something specific: the manifest's `path` points at the
+bundle root, so a tool given only that path could not see the file. It travelled with the
 repository but not with the bundle.
 
-Nothing depends on this yet, because nothing reads house style programmatically.
-[T5](IMPLEMENTATION.md#t5---finish-the-skill) is where it bites, since the skill ships a
-`references/house-style.md` and must not simply restate what the bundle already says.
-**Decide it there**, with three answers available: move the page into the bundle as a
-concept, split the bundle-authoring rules from the site-editing ones, or let the skill
-teach the general rules and leave each bundle's specifics to be read from the repository.
+**Settled by `conventions:` in §9.2**, which is a fourth option none of the three above
+reached: the bundle declares *where* its rules are, and the path may escape the bundle
+root. The page stays where humans edit it, no copy is made, and the skill dereferences a
+pointer instead of guessing a path. This matters more than one bundle's layout, because
+across the four bundles in this workspace the file sits in four different places and one of
+them does not exist, so any hardcoded path in the skill is right once and wrong three
+times.
+
+What remains for [T5](IMPLEMENTATION.md#t5---finish-the-skill) is narrower than it was: the
+skill ships a `references/house-style.md` and must not restate what a bundle already says.
+The split to draw there is that the skill teaches what is true of writing concepts in
+general, and `conventions:` answers what is true of writing them *here*.
 
 ### 9.7 What we may assume is installed
 

@@ -67,7 +67,8 @@ What it settled, and where the shape came from:
   top-level URLs. Pages describing the site live in `about/` and raw sources will live in
   `raw/`, both siblings at the repository root. A build hook publishes `about/` and moves
   the bundle index off the site root.
-- The floor declaration is `docs/okf-floor.yaml`, a flat `required:` list of five fields.
+- The bundle declaration is `docs/fkb.yaml`, a flat `required:` list of five fields, plus
+  the optional `conventions:` pointer at the bundle's house rules (DESIGN §9.2).
 - The whole running-linux stack was taken, Obsidian vault config included, so the bundle is
   editable by a person in an editor, in Obsidian or on GitHub as readily as by an agent.
 
@@ -99,7 +100,7 @@ the floor declaration written, publishing working, and a handful of concepts in 
   ([§9.3](DESIGN.md#93-markdown-raw-sources-live-beside-the-bundle-not-inside-it)).
   Deciding does not mean moving anything yet.
 - Write the floor declaration file
-  ([§9.2](DESIGN.md#92-where-a-bundle-declares-its-floor---a-yaml-file-at-the-bundle-root)).
+  ([§9.2](DESIGN.md#92-where-a-bundle-declares-its-floor---fkbyaml-at-the-bundle-root)).
   Nothing reads it until [T4](#t4---finish-the-cli).
 - Write `index.md`, `log.md`, and three or four real concepts by hand.
 
@@ -107,7 +108,7 @@ the floor declaration written, publishing working, and a handful of concepts in 
 is live.
 
 **Settles.**
-[§9.2](DESIGN.md#92-where-a-bundle-declares-its-floor---a-yaml-file-at-the-bundle-root),
+[§9.2](DESIGN.md#92-where-a-bundle-declares-its-floor---fkbyaml-at-the-bundle-root),
 [§9.3](DESIGN.md#93-markdown-raw-sources-live-beside-the-bundle-not-inside-it),
 [§9.4](DESIGN.md#94-non-knowledge-pages-sit-outside-the-bundle-root), and
 [§9.6](DESIGN.md#96-how-knowledge-is-structured-inside-a-bundle) for this bundle.
@@ -300,7 +301,7 @@ cover it under the existing `python_scripts` marker.
 Two properties are worth carrying forward, because neither is obvious from the code:
 
 - **Only the floor decides.** Two layers may fail a run and no others: the format's hard
-  rules, and the fields `okf-floor.yaml` declares. Everything OKF marks as recommended is
+  rules, and the fields `fkb.yaml` declares. Everything OKF marks as recommended is
   reported and left alone, so a field the floor does not name is never enforced.
 - **Blocking scope is what makes it bearable per commit.** The vendored validator accepts a
   bundle, never a file list, so the whole bundle is checked and only findings in the files
