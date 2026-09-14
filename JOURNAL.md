@@ -45,18 +45,23 @@ Each of these is a decision the `kb-ingest` skill makes automatically. This desi
 filing, so the journal decides whether integration mechanics belong in T5 or stay with a
 person.
 
+## Proposals raised while journaling
+
+Not incidents, and they break the first rule of this file: both are wishes, neither names a
+path or a query. They are kept here rather than deleted because they were raised in the course
+of the work and have nowhere else to live yet. Both belong in DESIGN's open questions, and
+should be moved there rather than answered here.
+
+- **Live sharing across machines.** The main branch in the writable bundles is the one that is
+  PR-gated and gets published. There could be a second branch, say `staging`, checked out in
+  the writable bundles, with the skill advising commit, `git pull --rebase` and `git push` on
+  it automatically. Knowledge is then shared live across machines, and a weekly or daily GitHub
+  workflow raises the PR that integrates `staging` into main.
+- **`--json` output on the CLI**, so an agent parses structured output rather than prose.
+
 ## Incidents
 
 ### 2026-09-09
-
-We need a way to seamlessly share the knowledge across machines live. Taking a step back:
-the main branch in the writable bundles is the one that is PR-gated and gets published.
-We could therefore have another branch, say `staging`, that's checked out in the writable
-bundles. The skill could then advise to commit + `git pull --rebase` + `git push` on the
-staging branch automatically. That way, the knowledge is shared live across users, and we
-manually do a PR to integrate that into main via a weekly/daily GH workflow trigger.
-
-Did we not want to provide the fkb cli with a `--json` option so agents can read the structured output better?
 
 - **2026-09-09** house style - the skill sends you to `okf-floor.yaml` for what a concept must
   carry, and that file is honest about the frontmatter. It says nothing about the bundle repo's
@@ -169,37 +174,7 @@ Did we not want to provide the fkb cli with a `--json` option so agents can read
   argument. If `fkb add` is ever built, the bundle's identity is the argument it must refuse to
   default, and the failure to imitate is a plan that names a step it has no input for and runs it
   anyway.
-
-### 2026-09-13
-
-- **2026-09-13** tone, unconditioned - wrote ten concepts into the `public` bundle across a
-  session and never once opened an existing page to see how they were written. The skill's step
-  4 says to read the structure first, and reading the structure gets you `okf-floor.yaml`, the
-  directories and the index: the bundle's *schema* and none of its *voice*. Where the new pages
-  matched the house register it was a side effect of research - `explorations/running_this_...md`
-  came out right because six neighbouring pages were already in context for their content. Where
-  nothing was in context, `tools/agent_wiki.md` and the genre notes, the default register showed
-  up instead and Felix corrected it by hand. The fix is one line in the skill and it is cheap:
-  **before writing, read two existing concepts from the target directory**, which the directory
-  index now names. A rule describes a voice; the pages are one, and prose matches nearby prose
-  more reliably than it satisfies an adjective. Written up in the bundle's
-  `about/editing_conventions.md` under "Read before you write".
-- **2026-09-13** tone, self-referential - the same session generated genre notes for 67 pages in
-  one pass, each with a two-sentence gloss drawn from the directory indexes. Those indexes had
-  been written an hour earlier, in the same session, by the same agent. So the style reference
-  for 67 files was the agent's own recent output rather than the bundle, and any drift in the
-  first artefact propagated to every page without a second opinion. Nothing flagged it; the
-  result reads consistently, which is exactly the failure mode - internally consistent and
-  possibly off-register as a whole. A bulk operation wants its reference pinned to pages that
-  predate the session, and the skill has no notion of a bulk operation at all (see the
-  2026-09-09 bulk import entry, which hit the same gap on a different axis).
-- **2026-09-13** log format, applied - the `2026-09-10` entry settled `log.md` entries as prose
-  with no links, and `DESIGN.md` §9.9 records it. Three sessions later the rule held without
-  effort: the 2026-09-11 and 2026-09-13 entries were written as plain text first time, including
-  across a restructure that renamed three files and moved them between directories. No log line
-  needed touching during the moves, which is the property the rule was chosen for. Worth one line
-  as positive evidence, since this file otherwise only records friction.
-
+- **2026-09-10** renaming a concept - changed one `title` in frontmatter and stopped, because
   that is what "rename" felt like. Three other things had to move with it and nothing said so.
   The **filename** still read `building_a_pkb_that_is_mine_forever_readable_and_visual.md`
   under a title of "Building my visual PKB", which is a slug that no longer describes its
@@ -223,6 +198,9 @@ Did we not want to provide the fkb cli with a `--json` option so agents can read
   it is a record that the thing happened. Degraded that line to plain text instead. The skill
   files concepts and has no notion of removing one, so nothing suggested the log needed handling
   differently from the index.
+
+### 2026-09-11
+
 - **2026-09-11** onboarding a new unpublished private bundle - `~/knowledge/private` was a
   `git clone` of `~/knowledge/ftschindler` minus the publishing stack, so it inherited a
   `.pre-commit-config.yaml` written for a bundle rooted at `docs/` and an already-stale copy
@@ -255,3 +233,151 @@ Did we not want to provide the fkb cli with a `--json` option so agents can read
   `tools/awiki_title_extraction_breaks_on_frontmatter_led_source_files.md` only after reading
   the whole index. Step 4 leads with directories and mentions `index.md` second; for a bundle
   that groups by subject and sections by type, that order costs a read.
+
+### 2026-09-13
+
+- **2026-09-13** tone, unconditioned - wrote ten concepts into the `public` bundle across a
+  session and never once opened an existing page to see how they were written. The skill's step
+  4 says to read the structure first, and reading the structure gets you `okf-floor.yaml`, the
+  directories and the index: the bundle's *schema* and none of its *voice*. Where the new pages
+  matched the house register it was a side effect of research - `explorations/running_this_...md`
+  came out right because six neighbouring pages were already in context for their content. Where
+  nothing was in context, `tools/agent_wiki.md` and the genre notes, the default register showed
+  up instead and Felix corrected it by hand. The fix is one line in the skill and it is cheap:
+  **before writing, read two existing concepts from the target directory**, which the directory
+  index now names. A rule describes a voice; the pages are one, and prose matches nearby prose
+  more reliably than it satisfies an adjective. Written up in the bundle's
+  `about/editing_conventions.md` under "Read before you write".
+- **2026-09-13** tone, self-referential - the same session generated genre notes for 67 pages in
+  one pass, each with a two-sentence gloss drawn from the directory indexes. Those indexes had
+  been written an hour earlier, in the same session, by the same agent. So the style reference
+  for 67 files was the agent's own recent output rather than the bundle, and any drift in the
+  first artefact propagated to every page without a second opinion. Nothing flagged it; the
+  result reads consistently, which is exactly the failure mode - internally consistent and
+  possibly off-register as a whole. A bulk operation wants its reference pinned to pages that
+  predate the session, and the skill has no notion of a bulk operation at all (see the
+  2026-09-09 bulk import entry, which hit the same gap on a different axis).
+- **2026-09-13** log format, applied - the `2026-09-10` entry settled `log.md` entries as prose
+  with no links, and `DESIGN.md` §9.9 records it. Three sessions later the rule held without
+  effort: the 2026-09-11 and 2026-09-13 entries were written as plain text first time, including
+  across a restructure that renamed three files and moved them between directories. No log line
+  needed touching during the moves, which is the property the rule was chosen for. Worth one line
+  as positive evidence, since this file otherwise only records friction.
+
+### 2026-09-14
+
+Backfilled after the fact, on 2026-09-14, having noticed that this file had recorded nothing
+since the morning of 2026-09-13 while the `public` bundle went from 66 concepts to 76 and had
+its whole taxonomy rebuilt. The gap is the subject of the third entry below.
+
+- **2026-09-14** tag vocabulary - the agent-wiki subject had been split across two spellings,
+  `awiki` on four pages and `agent-wiki` on three, for several weeks. Searching either spelling
+  returned one half and gave no indication the other existed, which makes a misspelt tag a
+  silent retrieval failure rather than a cosmetic one, because tags carry the subject axis per
+  `knowledge_management/split_orthogonal_classification_axes_across_folders_and_tags.md`.
+  Nothing caught it: not the bundle's hooks, not `mkdocs build --strict`, not `fkb lint`. It was
+  found by reading a sentence that happened to mention the tag, and canonicalised by hand across
+  four files in `ccf9812`. The workaround is that there is no workaround: a `grep` for one
+  spelling cannot tell you that a second exists, and the only reliable check is a declared
+  vocabulary with a hook that fails on a tag outside it. awiki had exactly that (`tag add`,
+  `tag suggest`, `tag fix`, and a `lint --strict` gate) and it is one of the capabilities lost
+  in the move off that tool. This is the first concrete evidence for `fkb resolve`'s vocabulary
+  reporting, which T2 withheld. It also raises a question only this layer can answer: a tag
+  split *across* bundles is the same failure one level up, and a per-bundle vocabulary cannot
+  see it, so whether the vocabulary is a bundle artifact or a federation one is a design
+  question and not a bundle one. Either way it has to be optional: no bundle in the manifest
+  declares a vocabulary today, and a bundle that declares none must still be filable into.
+- **2026-09-14** navigation reachability - `c912bf5` made the `docs/.pages` nav list explicit to
+  fix section ordering, which replaced a `...` wildcard that turned out to be the only thing
+  pulling the `about/` pages into the site navigation. All of them silently left the nav:
+  editing conventions, the dev environment, Obsidian, the tech stack, and the tags page added
+  the day before. Nothing failed; the pages still built, still rendered, and every link to them
+  still resolved. They were simply unreachable by browsing, found by a person noticing a gap in
+  the nav bar days later, and restored in `2cd39a5` with a comment recording that the wildcard
+  is load-bearing. `fkb lint` checks that every concept is reachable from an index, which covers
+  `docs/` only; there is no equivalent for the built site, so a page can be published and
+  unreachable, which is the same defect the reachability rule exists to prevent, one layer out.
+- **2026-09-14** where an incident gets filed - the three findings of this session were written
+  up as issues on the bundle's own repository (`ftschindler/knowledge` numbers 8, 9 and 10) and
+  not here, and `TODO.md` was rewritten with a routing rule that makes this deliberate: repo and
+  site to issues, single-page debt to `status: draft`. The rule is right for the bundle and
+  wrong for this file, because two of those three issues are evidence about `fkb` rather than
+  about the bundle: the tag vocabulary is the case for `resolve`, and nav reachability is a
+  claim about what `fkb lint` does not cover. So the evidence base this journal exists to
+  collect is now split across two trackers with nothing routing between them, and the split runs
+  along exactly the axes T2 withheld commands to measure. Nothing in `SKILL.md` mentions the
+  journal as a destination once a repository with an issue tracker is in reach, and an issue is
+  the more natural place to put something when the bundle is the thing in front of you. The
+  workaround was to read the three issues back and write the two relevant ones into this file by
+  hand, which only happened because someone went looking.
+- **2026-09-14** per-directory indexes, and what step 4 should read - the bundle moved from one
+  `index.md` to eleven. The top-level index is now four lines of orientation and a list of
+  eleven section links, and each directory carries its own `index.md` which *defines the
+  category* and then lists its pages: `findings/index.md` states what a Finding is, its four
+  conventions (the title names the symptom in the words you would have searched for, the
+  filename leads with the date found, the list runs newest first, a finding about a tool carries
+  `stale_after`) and links to the knowledge-management concepts carrying the reasoning. Genre
+  definitions moved out of per-page genre notes into those indexes in `6c73c8f` and `c912bf5`,
+  and `findings/` became a real directory in `7853326`. This answers the 2026-09-11 structure
+  entry directly: the complaint there was that the directory listing was misleading and the
+  whole index had to be read to place one page, and that cost disappears if step 4 reads the
+  *target directory's* index rather than the bundle's. It also answers most of the 2026-09-13
+  tone entry, since that index names the neighbouring pages to read before writing. Two things
+  follow that nothing currently enforces. A directory index is now a normative artifact, and no
+  lint knows it exists, so a directory can gain concepts that its own index never lists and a
+  new directory can appear with no definition at all. And `okf-floor.yaml` is no longer the
+  whole schema story, which matters because an agent that reads `SKILL.md`, the floor and the
+  top-level index still never opens a single concept. All of which is a fact about *this*
+  bundle, and the entry below is the reason that distinction has to be carried forward rather
+  than collapsed into a rule.
+- **2026-09-14** one bundle's conventions are not the skill's rules - the entry above, and the
+  house style and tone entries before it, were all written from the `public` bundle, and every
+  one of them ends in a sentence of the form "the skill should read X". That generalises a
+  single bundle's conventions into a rule for all of them, and the manifest on this machine
+  already contains four bundles that agree on almost nothing. Checked all four rather than
+  assuming. **Where concepts start** differs: two are rooted at `docs/`, one at the repository
+  root, one in `knowledge/`. **The floor** is not universal: the read-only third-party bundle
+  has no `okf-floor.yaml` anywhere, so the skill's central instruction, satisfy the bundle's
+  floor rather than carrying your own list of fields, has no referent there at all and nothing
+  says what an agent should do instead. **The prose conventions** are in a different place in
+  every bundle that has them, at `docs/about/editing_conventions.md`, at the repository root
+  beside `AGENTS.md`, in an `about/` directory that sits outside the OKF root entirely, and
+  absent in the fourth. **Indexes** differ in kind, not just in count: eleven category-defining
+  ones in the bundle above, two in the flat private bundle, six in the third-party one that
+  index by subject rather than by genre. And one bundle carries a **stale duplicate floor in a
+  build output directory**, which is the same shape of trap as the `example-bundle/` decoy in
+  the 2026-09-10 registering entry: a naive walk that looks for the floor finds two and has no
+  basis for choosing. There is no workaround yet because nothing has failed yet; all four were
+  handled by a person who knew each one. The correction this makes to the rest of this file is
+  that the fixes proposed in those entries have a generic form and a specific one, and only the
+  generic form belongs in `SKILL.md`: **read the conventions the bundle declares, wherever it
+  declares them, and read two neighbouring concepts before writing**, rather than "read
+  `about/editing_conventions.md`" or "read the target directory's index". Which implies the
+  thing none of these bundles has: a declared place for a bundle to say where its own
+  conventions live, next to the floor that already says what a concept must carry, so that the
+  skill dereferences a pointer instead of guessing a path. A bundle that declares nothing must
+  still be filable into, and the third-party one is the proof that this case is not theoretical.
+- **2026-09-14** the read path was never exercised - worth recording as a property of the
+  window rather than as an incident, because it changes how the rest of this file should be
+  read. Every session so far has been onboarding: importing an existing vault, restructuring it,
+  and filing new concepts into it. Nothing in five sessions asked the bundle a question it might
+  already have answered. So the absence of any `search` entry in this file is a gap in coverage
+  and not a finding about `search`, and T4 cannot decide the command either way from what is
+  here. The scheduling made this inevitable: T3's migration runs alongside T2's observation
+  window by design, and a migration is all writes. Retrieval pressure only starts once the
+  bundle is the thing being consulted rather than the thing being built.
+- **2026-09-14** the work account - filing the issues above required `gh`, which was authed as
+  an employer-issued account holding only `READ` on the target repository; creating an issue
+  would have failed, or would have succeeded under the wrong identity had permissions differed.
+  Checked first, switched to the personal account, filed, and switched back. The incident worth
+  recording is not the switch but what this file would have done with it: the rules at the top
+  say to name the artifacts and record the actual command, and following them literally would
+  have written an employer-identifying account name into a public repository. The rule that
+  needs stating, in `SKILL.md` and at the top of this file, is that an artifact is a path, a
+  query or a command, and an identity is not one. Nothing currently says so, and the exposure is
+  wider than an account name: the manifest itself now registers a bundle whose name and
+  `publish` URL are an employer's, so any entry that pastes `fkb list` output, or quotes the
+  manifest to make a point about bundle shapes, discloses it. Both of those are things the
+  entries above genuinely wanted to do. Names of bundles and their URLs are as redactable as
+  identities, and a journal kept in a public repository about a federation containing a private
+  work bundle needs that said once, at the top, rather than remembered each time.
