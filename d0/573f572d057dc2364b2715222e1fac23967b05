@@ -1,0 +1,23 @@
+tests/test_python_scripts.py
+  s_1b2fbbf5d8ec16::t_f0565df9123ff6 110-112,114-120
+.scripts/check_markdown_style.py
+  s_1b2fbbf5d8ec16::t_483b5801bd55f8 25-27
+  s_1b2fbbf5d8ec16::t_7d7aff02149f80 54-56
+  s_1b2fbbf5d8ec16::t_bcf2d11d2d78e2 7-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "d0573f572d057dc2364b2715222e1fac23967b05",
+  "prompts": {},
+  "sessions": {
+    "s_1b2fbbf5d8ec16": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f7a1547a6ffea4wI1Xn38DugMr",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    }
+  }
+}
