@@ -1,0 +1,36 @@
+skills/fkb/scripts/bundle_lint.py
+  s_83755afd9a77fc::t_904476c96efaa5 138,142
+  s_83755afd9a77fc::t_1971fa54c1e984 106-107,121-137,139-141
+tests/test_fkb_skill.py
+  s_83755afd9a77fc::t_78511a47e0df4c 45,57
+.pre-commit-hooks.yaml
+  s_83755afd9a77fc::t_8eaa3edd46da34 8,14,16
+tests/test_fkb_cli.py
+  s_83755afd9a77fc::t_25d8fa0d46de1f 51,55-56
+  s_83755afd9a77fc::t_fa1e790abd8eca 178-213,215-245
+  s_83755afd9a77fc::t_6893ae4a453fc7 246
+  s_83755afd9a77fc::t_b7a9eecdbda752 214
+  s_83755afd9a77fc::t_78511a47e0df4c 169
+skills/fkb/SKILL.md
+  s_83755afd9a77fc::t_d1b8136c8b9ace 88-100
+skills/fkb/scripts/fkb
+  s_83755afd9a77fc::t_eab74ddbf4c816 31
+  s_83755afd9a77fc::t_57d5edca9dbcbd 143-146,155-161
+  s_83755afd9a77fc::t_496cc89179520b 80-87,90-115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "d1cce652ce522e09b393cc3b2427f9909daae464",
+  "prompts": {},
+  "sessions": {
+    "s_83755afd9a77fc": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f60b4e285ffeh53AoKRoZjHs9V",
+        "model": "claude-opus-5"
+      },
+      "human_author": "x <x@example.com>"
+    }
+  }
+}
