@@ -1,0 +1,25 @@
+JOURNAL.md
+  s_83755afd9a77fc::t_32c7b66013c3d4 377-383
+  s_83755afd9a77fc::t_061bb2eccb31ec 177
+  s_83755afd9a77fc::t_01df30f97b1cec 330-359
+  s_83755afd9a77fc::t_ee804d120e0dfe 201-203,236-266
+  s_83755afd9a77fc::t_85558b50152d37 288-289
+  s_83755afd9a77fc::t_7e9d43370131b6 267-287,290-329,360-376
+  s_83755afd9a77fc::t_ef56c44aa9eecb 48,50-53,55-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "619e4704d564e8130678e83dd9a7577bd72f0f76",
+  "prompts": {},
+  "sessions": {
+    "s_83755afd9a77fc": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f60b4e285ffeh53AoKRoZjHs9V",
+        "model": "claude-opus-5"
+      },
+      "human_author": "x <x@example.com>"
+    }
+  }
+}
