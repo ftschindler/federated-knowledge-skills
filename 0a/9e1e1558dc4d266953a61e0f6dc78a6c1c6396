@@ -1,0 +1,24 @@
+skills/fkb/references/house-style.md
+  s_f0554b21f31ec0::t_95bb033af2982a 140-142,145-146
+tests/test_fkb_cli.py
+  s_f0554b21f31ec0::t_44fb824c153dbf 589-591
+  s_f0554b21f31ec0::t_248e96fb588b63 550-564,568-588,592-599,601-606
+skills/fkb/SKILL.md
+  s_f0554b21f31ec0::t_f632a11d342407 144-152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "0a9e1e1558dc4d266953a61e0f6dc78a6c1c6396",
+  "prompts": {},
+  "sessions": {
+    "s_f0554b21f31ec0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f5c079d29ffenm12tcSKfCh9Lt",
+        "model": "claude-opus-5"
+      },
+      "human_author": "x <x@example.com>"
+    }
+  }
+}
