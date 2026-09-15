@@ -371,10 +371,29 @@ short and almost entirely control flow, well under 500 lines.
     ├── APACHE-2.0.txt           # vendored — licence for SPEC.md
     ├── MIT-okf-skills.txt       # vendored — licence for the validator and template
     ├── concept-template.md      # vendored, lightly adapted
-    ├── getting-started.md      # ours — onboarding (§6.7)
-    ├── house-style.md          # ours
-    └── federation.md           # ours
+    ├── getting-started.md       # ours — onboarding (§6.7)
+    ├── bundle-infrastructure.md # ours — the shape a bundle grows into
+    ├── house-style.md           # ours
+    ├── federation.md            # ours
+    ├── semantic-lint.md         # ours — the audit checklist (§6.5)
+    └── agents-block.md          # ours — the block, and how to check for it (§5.4)
 ```
+
+Three of those were not in the original list, and each is a lookup that would otherwise have
+sat in the body. `semantic-lint.md` is the checklist §6.5 places in "`SKILL.md` prose": the
+trigger stays in the body and the checklist moves here, because §6.1's rule is that a table
+an agent consults belongs in `references/`. `agents-block.md` carries the §5.4 text plus the
+instruction to look for it in whatever user-level file the *harness* loads, which is
+knowledge the agent has and this repository cannot. `bundle-infrastructure.md` describes the
+layers a bundle grows - hooks, conventions, a site, a publish gate - as a shape rather than
+as files, and sends the reader to a working example instead of reproducing one.
+
+> **That last one is a deliberate refusal to write something down.** Infrastructure is the
+> fastest-rotting thing here: name a site generator and a hook revision and the page is wrong
+> within a year while still reading as authoritative. Onboarding already clones a bundle that
+> has all of it, so the durable half is the list of questions to read that checkout for, plus
+> the one thing a scan cannot tell you - which of its files are about *its owner* rather than
+> about being a bundle.
 
 Shipping the CLI inside the skill as `scripts/` means one `npx skills add …` installs both,
 and there is no separate step to forget. The manifest lives outside, in

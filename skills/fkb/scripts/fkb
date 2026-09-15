@@ -280,7 +280,22 @@ def cmd_init(args: argparse.Namespace) -> int:
     live on this machine, which has nothing to do with what is in any of them.
     It refuses to overwrite, because a manifest is hand-editable and the one on
     disk is the only record of policy that was decided rather than defaulted.
+
+    The root is asked for rather than defaulted. It is the one decision here that
+    is genuinely the person's: a workspace under `~/knowledge` is somewhere they
+    will open in an editor, one under `~/.agents/knowledge` keeps their home
+    tidy, and neither is a better answer to a question nobody asked them. A
+    default would have picked, once, silently, and been lived with.
     """
+    if not args.workspace_root:
+        print("fkb init needs a workspace root: where bundles are checked out on this machine.")
+        print("\nTwo that people pick, for different reasons:")
+        print("  fkb init --workspace-root ~/knowledge          # you will open these in an editor")
+        print("  fkb init --workspace-root ~/.agents/knowledge  # keep them out of your home directory")
+        print("\nAny path works. Relative bundle paths in the manifest resolve under it,")
+        print("and a bundle that already lives elsewhere is registered where it lies.")
+        return 1
+
     path = workspace.manifest_path()
     if path.exists():
         sys.exit(
@@ -399,7 +414,6 @@ def main() -> int:
     init = sub.add_parser("init", help="create the workspace manifest, once per machine")
     init.add_argument(
         "--workspace-root",
-        default="~/knowledge",
         help="where bundles are checked out; relative paths in the manifest resolve under it",
     )
     init.set_defaults(func=cmd_init)
