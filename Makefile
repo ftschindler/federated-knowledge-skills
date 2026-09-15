@@ -16,12 +16,16 @@ guard-%:
 		exit 1; \
 	}
 
-## Run all tests (support scripts, and the disposable agent)
-test: test_python_scripts test_agent
+## Run all tests (support scripts, real bundles, and the disposable agent)
+test: test_python_scripts test_federation test_agent
 
 ## Test the support scripts under .scripts/ (fast, deterministic, no network)
 test_python_scripts: | guard-uvx
-	uvx --with pytest pytest -v -m python_scripts
+	uvx --with pytest $(shell uv run .scripts/extract-deps.py skills) pytest -v -m python_scripts
+
+## Test `fkb` against real published bundles (needs network + git)
+test_federation: | guard-git guard-uvx
+	uvx --with pytest $(shell uv run .scripts/extract-deps.py skills) pytest -v -m federation
 
 ## Test the disposable agent by actually driving one (slow, needs network)
 test_agent: | guard-node guard-npm guard-npx guard-uvx

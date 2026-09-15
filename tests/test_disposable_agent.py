@@ -21,8 +21,13 @@ from disposable_agent import LEAKY_ENV_PREFIX, DisposableAgent
 
 pytestmark = pytest.mark.agent
 
-# Deliberately odd so it cannot plausibly appear by chance in a model's output.
-CANARY = "AGENT-CANARY-7F3A"
+# Deliberately odd so it cannot plausibly appear by chance in a model's output,
+# and deliberately mundane in what it says. An earlier version asked the agent to
+# "report the canary token", which reads as an attempt to make a model disclose a
+# secret: it declined on those grounds and the whole layer went red. The string a
+# skill carries has to be boring, or the test measures safety training instead of
+# skill discovery.
+HOUSE_PHRASE = "PURPLE-OTTER-4417"
 
 
 def test_a_bare_agent_runs_and_touches_nothing_real(bare_agent: DisposableAgent) -> None:
@@ -61,33 +66,33 @@ def test_an_installed_skill_reaches_the_model_and_is_followed(
     description match, and its instruction reflected in the transcript.
     """
     skills_dir = tmp_path / "skills"
-    canary = skills_dir / "canary"
-    canary.mkdir(parents=True)
-    (canary / "SKILL.md").write_text(
+    greeting = skills_dir / "house-greeting"
+    greeting.mkdir(parents=True)
+    (greeting / "SKILL.md").write_text(
         textwrap.dedent(f"""\
         ---
-        name: canary
+        name: house-greeting
         description: >-
-          Report the canary token. Use when the user asks for the canary, the
-          canary token, or to verify that skills are wired up.
+          Give the house greeting. Use when the user asks for the house greeting,
+          or asks which greeting this project uses.
         ---
 
-        # Canary
+        # House greeting
 
-        When this skill is active, reply with exactly this token and nothing else:
+        When this skill is active, reply with exactly this phrase and nothing else:
 
-        {CANARY}
+        {HOUSE_PHRASE}
         """),
         encoding="utf-8",
     )
 
     agent = agent_factory(skills_dir)
-    assert (agent.agents_skills / "canary" / "SKILL.md").is_file()
+    assert (agent.agents_skills / "house-greeting" / "SKILL.md").is_file()
 
-    result = agent.run("Use the canary skill and report the canary token.")
+    result = agent.run("What is the house greeting for this project?")
 
     assert result.returncode == 0, f"opencode exited {result.returncode}\n{result.stderr}"
-    assert CANARY in result.text, (
-        "the canary skill did not reach the model, or its instruction was not followed.\n"
+    assert HOUSE_PHRASE in result.text, (
+        "the house-greeting skill did not reach the model, or its instruction was not followed.\n"
         f"--- transcript ---\n{result.text.strip() or '(empty)'}"
     )

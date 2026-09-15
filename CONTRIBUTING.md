@@ -36,7 +36,7 @@ for ii in $(cd skills && ls -d *); do ln -s "${PWD}/skills/${ii}" ~/.agents/skil
 
 ### Running the tests
 
-Two layers, both run by:
+Three layers, all run by:
 
 ```bash
 make test
@@ -49,6 +49,24 @@ Fast and deterministic, no network:
 ```bash
 make test_python_scripts
 ```
+
+Most of these run `fkb` inside a [fake home](#a-fake-home): a throwaway directory that `HOME`
+and every `XDG_*` variable point into, with the skill installed in it. Nothing they do can
+reach the workspace you actually use.
+
+#### Real published bundles
+
+Needs the network and `git`, and no LLM:
+
+```bash
+make test_federation
+```
+
+These clone two real bundles and run the CLI against them. They exist for the one thing a
+fixture cannot honestly provide - the shape of a repository nobody here controls - and they
+can therefore fail without anyone changing anything here. That is not a false alarm: a
+bundle that moved is a true statement about the federation, and the belief in this code is
+what needs correcting.
 
 #### The disposable agent
 
@@ -64,10 +82,14 @@ These tests
 - send it a message (the non-deterministic part),
 - assert deterministically on the transcript it returns and the files it leaves.
 
-While the repo has no skills of its own, this layer installs a canary skill authored by the
-test and checks that the agent discovers and follows it. That keeps every moving part
-exercised: the opencode install, the permission grant, skill discovery, activation and
-transcript parsing.
+This layer installs a throwaway skill authored by the test and checks that the agent
+discovers and follows it. That keeps every moving part exercised: the opencode install, the
+permission grant, skill discovery, activation and transcript parsing.
+
+What that skill says is deliberately dull. It asks for a house greeting and gets a nonsense
+phrase back. An earlier version asked the model to "report the canary token", which reads as
+an attempt to make it disclose a secret; it declined on exactly those grounds and the layer
+went red. A test of skill discovery must not look like a test of anything else.
 
 #### A disposable agent
 
@@ -97,6 +119,18 @@ make agent                                    # this repo's skills, if any
 ```
 
 On a test failure the agent is preserved and the command to enter it is printed.
+
+### A fake home
+
+`tests/fake_home.py` builds the smaller sibling of the disposable agent: a directory with the
+skill installed into it and every path variable redirected inside, but no opencode and no
+LLM. Tests that only need to run a command take it.
+
+It exists because `fkb` finds its manifest at `$XDG_CONFIG_HOME/fkb/workspace.yaml` and falls
+back to `~/.config` when that is unset. Both roads lead somewhere real on your machine, and
+one of them is your live federation, so redirecting only `XDG_CONFIG_HOME` would leave a bug
+one missing variable away from rewriting the manifest you use. Redirecting `HOME` as well
+makes that unreachable, and turns the fallback into something a test can exercise on purpose.
 
 ### Before you push
 

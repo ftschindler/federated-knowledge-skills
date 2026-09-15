@@ -5,135 +5,36 @@
 # ///
 """fkb - the federated knowledge bundles a machine can see.
 
-Two commands, deliberately. `list` answers "which bundles exist and what may I
-do with each", which is the question that has to be answered before anything is
-written. `lint` answers "does this bundle hold up", by calling the same checker
-a bundle's own pre-commit hook calls.
+`list` answers "which bundles exist and what may I do with each", which has to be
+answered before anything is written. `lint` answers "does this bundle hold up",
+by calling the same checker a bundle's own pre-commit hook calls. `url` answers
+"how do I link to a concept over there", which is the one question neither bundle
+can answer alone. `resolve` answers "what does this bundle actually do", as
+opposed to what its manifest entry declares.
 
-Everything else is withheld on purpose while the journal records what is
-actually missing, so that what gets built next is answering an incident rather
-than a guess.
+`search` is still withheld while the journal records whether the read path needs
+it, so that what gets built next answers an incident rather than a guess.
 """
 
 from __future__ import annotations
 
 import argparse
-import os
+import json
+import re
 import sys
+import textwrap
+from collections import Counter
+from datetime import date
 from pathlib import Path
 
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import arrival
 import bundle_lint
-
-CONFIG_FILE = "fkb.yaml"
-
-
-def manifest_path() -> Path:
-    config = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
-    return Path(config) / "fkb" / "workspace.yaml"
-
-
-class Bundle:
-    """One bundle as this machine sees it, with the manifest's cautious defaults.
-
-    Omitting `referenceable_by` means nothing may cite the bundle; omitting
-    `writable` means no agent may author into it. Both fail closed, so a bundle
-    that was added carelessly discloses nothing until someone opens it on
-    purpose.
-    """
-
-    def __init__(self, name: str, entry: dict, workspace_root: Path | None) -> None:
-        self.name = name
-        raw = entry.get("path")
-        if not raw:
-            sys.exit(f"fkb: bundle `{name}` declares no path")
-        path = Path(raw).expanduser()
-        if not path.is_absolute():
-            if workspace_root is None:
-                sys.exit(f"fkb: bundle `{name}` has a relative path but no workspace_root is set")
-            path = workspace_root / path
-        self.path = path
-        self.referenceable_by = entry.get("referenceable_by", [])
-        self.writable = bool(entry.get("writable", False))
-        self.publish = entry.get("publish")
-
-    @property
-    def citation(self) -> str:
-        """`referenceable_by` as the manifest holds it, with a reading of what it means.
-
-        The value is printed verbatim so what `list` shows can be found in the
-        file it came from. The gloss is there because `[]` looks like an omission
-        and is in fact the whole point: a bundle nothing may cite cannot surface
-        through a link from one that publishes.
-        """
-        if self.referenceable_by == "*":
-            return '"*"  (any bundle may cite this one)'
-        if not self.referenceable_by:
-            return "[]   (sealed: no bundle may cite this one)"
-        listed = ", ".join(self.referenceable_by)
-        return f"[{listed}]  (only these may cite this one)"
-
-    @property
-    def config(self) -> Path | None:
-        """The bundle's own declaration, found by convention rather than told.
-
-        Only `fkb` needs the filename to be this exact string: the standalone
-        hook is handed an explicit path and would accept any name (DESIGN §9.2).
-        A bundle that does not carry the file is held to conformance alone.
-        """
-        candidate = self.path / CONFIG_FILE
-        return candidate if candidate.is_file() else None
-
-    @property
-    def floor(self) -> Path | None:
-        """The floor declaration, which is the config file when there is one."""
-        return self.config
-
-    @property
-    def conventions(self) -> Path | None:
-        """The bundle's house rules, if it declares where they are.
-
-        Resolved against the declaring file and permitted to escape the bundle
-        root, because a bundle may keep its conventions beside the site rather
-        than inside the knowledge (DESIGN §9.2). Returned whether or not it
-        resolves: reporting a broken pointer is the point, and `lint` is what
-        calls it a defect.
-        """
-        config = self.config
-        if config is None:
-            return None
-        try:
-            declared = yaml.safe_load(config.read_text(encoding="utf-8")) or {}
-        except (OSError, yaml.YAMLError):
-            return None
-        relative = declared.get("conventions") if isinstance(declared, dict) else None
-        if not isinstance(relative, str) or not relative.strip():
-            return None
-        return (config.parent / relative.strip()).resolve()
-
-
-def load_bundles() -> list[Bundle]:
-    path = manifest_path()
-    if not path.is_file():
-        sys.exit(
-            f"fkb: no workspace manifest at {path}.\n"
-            "Write one by hand: `workspace_root:` and a `bundles:` mapping, "
-            "each with at least a `path`."
-        )
-    try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    except yaml.YAMLError as exc:
-        sys.exit(f"fkb: cannot read {path}: {exc}")
-
-    raw_root = data.get("workspace_root")
-    root = Path(raw_root).expanduser() if raw_root else None
-    bundles = data.get("bundles") or {}
-    if not bundles:
-        sys.exit(f"fkb: {path} declares no bundles")
-    return [Bundle(name, entry or {}, root) for name, entry in bundles.items()]
+import workspace
+from workspace import Bundle, load_bundles
 
 
 def cmd_list(_: argparse.Namespace) -> int:
@@ -145,13 +46,26 @@ def cmd_list(_: argparse.Namespace) -> int:
     discovered in the bundle rather than declared about it, and the other is
     declared by the bundle itself.
     """
-    for bundle in load_bundles():
+    bundles = load_bundles(allow_empty=True)
+    if not bundles:
+        print("No bundles yet.")
+        print(f"The workspace exists at {workspace.manifest_path()} and holds nothing.")
+        print("\nBring one in with `fkb add <name>`, by one of three routes:")
+        print("  --clone <remote>  a bundle in a git repo somewhere")
+        print("  --path <dir>      a checkout already on this machine")
+        print("  --new             a bundle that does not exist yet")
+        return 0
+    for bundle in bundles:
         missing = "" if bundle.path.is_dir() else "  (MISSING)"
         print(f"{bundle.name}{missing}")
         print(f"  path              {bundle.path}")
         print(f"  referenceable_by  {bundle.citation}")
         print(f"  writable          {'true' if bundle.writable else 'false'}")
-        print(f"  publish           {bundle.publish or 'null'}")
+        if bundle.publish is None:
+            print("  publish           null (no published location: nothing may link here)")
+        else:
+            print(f"  publish.url       {bundle.publish.url}")
+            print(f"  publish.style     {bundle.publish.style}")
         print(f"  config            {bundle.config or 'not declared'}")
         conventions = bundle.conventions
         if conventions is None:
@@ -162,22 +76,80 @@ def cmd_list(_: argparse.Namespace) -> int:
     return 0
 
 
+ABSOLUTE_LINK = re.compile(r"\[[^\]]*\]\((https?://[^)\s]+)\)")
+
+
+def check_references(bundle: Bundle, others: list[Bundle], findings: bundle_lint.Findings) -> None:
+    """Apply the reference rule to the absolute links a bundle already carries.
+
+    `fkb url` refuses a forbidden link when an agent asks for one, which covers
+    the links this federation writes. This covers the rest: a link pasted by
+    hand, one that predates the policy, and one that became a violation because
+    `referenceable_by` was tightened afterwards. Same rule, at the two points
+    where it can be broken.
+
+    Only URLs that match a known bundle's publish prefix are considered. An
+    ordinary external link resembles nothing here and is left alone, which is
+    also why §4 requires prefixes not to nest: the attribution below has to have
+    one answer.
+
+    Every markdown file counts, not only concepts. The rest of lint reads
+    concepts because that is what OKF constrains, but disclosure does not care
+    which file did it: an index that links into a sealed bundle has leaked it as
+    surely as a concept would, and in this federation the indexes are where the
+    cross-bundle links actually are.
+    """
+    for concept in sorted(p for p in bundle.path.rglob("*.md") if p.is_file()):
+        rel = concept.relative_to(bundle.path).as_posix()
+        for url in ABSOLUTE_LINK.findall(concept.read_text(encoding="utf-8")):
+            for target in others:
+                if target.publish is None:
+                    continue
+                candidates = target.publish.to_paths(url)
+                if candidates is None:
+                    continue
+                if not target.may_be_cited_by(bundle.name):
+                    findings.add(
+                        rel,
+                        f"reference rule: links into `{target.name}`, which does not list "
+                        f"`{bundle.name}` in `referenceable_by`",
+                        blocks=True,
+                    )
+                elif not any((target.path / c).is_file() for c in candidates):
+                    findings.add(
+                        rel,
+                        f"cross-bundle link into `{target.name}` resolves to no concept there ({url})",
+                        blocks=False,
+                    )
+                break
+
+
 def cmd_lint(args: argparse.Namespace) -> int:
     bundles = load_bundles()
+    selected = bundles
     if args.bundle:
         by_name = {b.name: b for b in bundles}
         if args.bundle not in by_name:
             sys.exit(f"fkb: no bundle named `{args.bundle}` (have: {', '.join(by_name)})")
-        bundles = [by_name[args.bundle]]
+        selected = [by_name[args.bundle]]
 
     status = 0
-    for bundle in bundles:
+    for bundle in selected:
         print(f"{bundle.name} ({bundle.path})")
         if not bundle.path.is_dir():
             print("  ERROR  the manifest points at a path that does not exist")
             status = 1
             continue
         findings = bundle_lint.lint(bundle.path, floor=bundle.floor, coverage=args.coverage)
+        check_references(bundle, [b for b in bundles if b.name != bundle.name], findings)
+
+        # An upstream we cannot edit is not a failure state, and a lint that
+        # fails on what nobody here can fix is a lint you learn to ignore - along
+        # with the one finding in it that mattered.
+        if not bundle.writable:
+            findings.reported.extend(findings.blocking)
+            findings.blocking = []
+
         for line in findings.reported:
             print(f"  warn   {line}")
         for line in findings.blocking:
@@ -187,8 +159,213 @@ def cmd_lint(args: argparse.Namespace) -> int:
             status = 1
         else:
             suffix = f" ({len(findings.reported)} warning(s))" if findings.reported else ""
-            print(f"  ok{suffix}")
+            print(f"  ok{suffix}" + ("  [read-only: nothing here can block]" if not bundle.writable else ""))
     return status
+
+
+def cmd_url(args: argparse.Namespace) -> int:
+    """Print the URL under which one concept in one bundle can be cited from another.
+
+    The command exists rather than `resolve` returning a prefix because the
+    alternative hands every caller the prefix and the style and asks it to do the
+    concatenation. Two callers doing that is two readings of one field, which is
+    a mistake this design has already made once.
+
+    Refusing is as much the point as the URL. An agent that gets a string back
+    has been told the link is permitted, so the check and the formatting cannot
+    come apart, and a forbidden link fails where it is asked for rather than
+    surviving in a file until lint sees it.
+    """
+    by_name = {b.name: b for b in load_bundles()}
+    target = by_name.get(args.bundle)
+    if target is None:
+        sys.exit(f"fkb: no bundle named `{args.bundle}` (have: {', '.join(by_name)})")
+    if args.citing not in by_name:
+        sys.exit(f"fkb: no bundle named `{args.citing}` (have: {', '.join(by_name)})")
+
+    if not target.may_be_cited_by(args.citing):
+        sys.exit(
+            f"fkb: `{args.citing}` may not cite `{args.bundle}`.\n"
+            f"`{args.bundle}` lists who may point at it, and `{args.citing}` is not among "
+            "them. This is a policy refusal, not a formatting one: if the link is meant to "
+            f"exist, `referenceable_by` in `{args.bundle}`'s manifest entry is what decides it."
+        )
+    if target.publish is None:
+        sys.exit(
+            f"fkb: `{args.bundle}` has no published location, so there is no URL to cite.\n"
+            "A relative path would be a fact about this machine and would not survive "
+            "publication or a clone. Give the bundle a `publish:` entry - it may name where "
+            "the bundle *will* live, since nothing here fetches it - or do not link to it."
+        )
+
+    relative = args.path.lstrip("/")
+    if not (target.path / relative).is_file():
+        sys.exit(
+            f"fkb: `{relative}` is not a file in `{args.bundle}` ({target.path}).\n"
+            "Checking this costs a stat now and is impossible later: once the link is a URL "
+            "in a committed file, only fetching the site can tell you the concept is there."
+        )
+
+    print(target.publish.to_url(relative))
+    return 0
+
+
+def cmd_resolve(args: argparse.Namespace) -> int:
+    """One bundle as JSON: what it is allowed to do, and what it actually does.
+
+    The vocabulary half is derived rather than declared, so it cannot drift from
+    the files and works on a read-only upstream that will never adopt anyone's
+    conventions. Counts are reported with it because a bare list of tags says
+    only that a string exists: the tail is where one subject spelled two ways
+    shows up, and a tail needs counting to be visible. Noticing that two entries
+    name one subject is semantic work and belongs to the skill; this command owes
+    it a legible input.
+    """
+    by_name = {b.name: b for b in load_bundles()}
+    bundle = by_name.get(args.bundle)
+    if bundle is None:
+        sys.exit(f"fkb: no bundle named `{args.bundle}` (have: {', '.join(by_name)})")
+    if not bundle.path.is_dir():
+        sys.exit(f"fkb: `{args.bundle}` points at {bundle.path}, which does not exist")
+
+    tags: Counter[str] = Counter()
+    types: Counter[str] = Counter()
+    for concept in bundle_lint.concept_files(bundle.path):
+        meta = bundle_lint.frontmatter(concept)
+        declared = meta.get("tags")
+        if isinstance(declared, str):
+            declared = [declared]
+        for tag in declared or []:
+            if isinstance(tag, str) and tag.strip():
+                tags[tag.strip()] += 1
+        kind = meta.get("type")
+        if isinstance(kind, str) and kind.strip():
+            types[kind.strip()] += 1
+
+    report = {
+        "name": bundle.name,
+        "path": str(bundle.path),
+        "referenceable_by": bundle.referenceable_by,
+        "writable": bundle.writable,
+        "publish": None if bundle.publish is None else {"url": bundle.publish.url, "style": bundle.publish.style},
+        "conventions": None if bundle.conventions is None else str(bundle.conventions),
+        "directories": sorted(p.name for p in bundle.path.iterdir() if p.is_dir() and not p.name.startswith(".")),
+        # Ordered by frequency, because that is the axis a split shows on, and
+        # alphabetically within a count so the output is stable to diff.
+        "tags": dict(sorted(tags.items(), key=lambda kv: (-kv[1], kv[0]))),
+        "types": dict(sorted(types.items(), key=lambda kv: (-kv[1], kv[0]))),
+    }
+    print(json.dumps(report, indent=2))
+    return 0
+
+
+def _citers(declared: str | None) -> list[str] | str:
+    """Read `--referenceable-by` as the manifest holds it, defaulting to sealed.
+
+    `*` stays the string it is in YAML, so what `list` prints can be found in the
+    file it came from. Anything absent means nobody, which is the cautious
+    default a bundle added carelessly should get.
+    """
+    if declared == "*":
+        return "*"
+    if not declared:
+        return []
+    return [name.strip() for name in declared.split(",") if name.strip()]
+
+
+def cmd_init(args: argparse.Namespace) -> int:
+    """Create the workspace manifest, once per machine.
+
+    Separate from `add` because it answers a different question: where bundles
+    live on this machine, which has nothing to do with what is in any of them.
+    It refuses to overwrite, because a manifest is hand-editable and the one on
+    disk is the only record of policy that was decided rather than defaulted.
+    """
+    path = workspace.manifest_path()
+    if path.exists():
+        sys.exit(
+            f"fkb: {path} already exists. Bundles go in it with `fkb add`; "
+            "edit the file directly to change policy."
+        )
+    root = Path(args.workspace_root).expanduser()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "# The federation, as this machine sees it.\n"
+        "#\n"
+        "# `path` is where a bundle's concepts start, which is not always the\n"
+        "# repository root: a bundle that publishes usually keeps them under\n"
+        "# `docs/`. Relative paths resolve under `workspace_root`.\n"
+        f"workspace_root: {root}\n"
+        "\n"
+        "bundles: {}\n",
+        encoding="utf-8",
+    )
+    print(f"wrote {path}")
+    print(f"  workspace_root  {root}")
+    print("\nAdd a bundle with `fkb add`.")
+    return 0
+
+
+def cmd_add(args: argparse.Namespace) -> int:
+    """Register one bundle, by whichever of the three routes it arrived on.
+
+    The bundle's identity is the one argument this refuses to default. Asked to
+    add "a public read-only vault" with no repository named, the right move is to
+    stop; inferring it from the only candidate on disk was right once and would
+    have been wrong the moment a second one existed.
+    """
+    path = workspace.manifest_path()
+    if not path.is_file():
+        sys.exit(f"fkb: no workspace manifest at {path}. Run `fkb init` first.")
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    bundles = data.get("bundles") or {}
+    if args.name in bundles:
+        sys.exit(f"fkb: `{args.name}` is already in the manifest; edit {path} to change it")
+    raw_root = data.get("workspace_root")
+    root = Path(raw_root).expanduser() if raw_root else None
+
+    if args.clone:
+        if root is None:
+            sys.exit("fkb: cloning needs a `workspace_root` in the manifest to clone into")
+        checkout = arrival.clone(args.clone, root)
+        bundle_root = Path(args.path) if args.path else arrival.find_bundle_root(checkout)
+    elif args.new:
+        if root is None:
+            sys.exit("fkb: creating a bundle needs a `workspace_root` in the manifest")
+        bundle_root = arrival.scaffold(root / args.name, args.name, date.today().isoformat())
+    else:
+        bundle_root = Path(args.path).expanduser().resolve()
+        if not bundle_root.is_dir():
+            sys.exit(f"fkb: {bundle_root} is not a directory")
+        if not (bundle_root / "index.md").is_file():
+            bundle_root = arrival.find_bundle_root(bundle_root)
+
+    entry: dict = {
+        "path": str(bundle_root),
+        "referenceable_by": _citers(args.referenceable_by),
+        "writable": bool(args.writable),
+    }
+
+    if args.publish_sample:
+        if not args.publish_sample_path:
+            sys.exit("fkb: `--publish-sample` needs `--publish-sample-path`, the concept it is the page for")
+        derived = arrival.derive_publish(args.publish_sample, args.publish_sample_path)
+        entry["publish"] = {"url": derived.url, "style": derived.style}
+    elif args.publish_url:
+        if not args.publish_style:
+            sys.exit(f"fkb: `--publish-url` needs `--publish-style` ({', '.join(workspace.Publish.STYLES)})")
+        checked = workspace.Publish(args.name, {"url": args.publish_url, "style": args.publish_style})
+        entry["publish"] = {"url": checked.url, "style": checked.style}
+
+    bundles[args.name] = entry
+    data["bundles"] = bundles
+    path.write_text(yaml.safe_dump(data, sort_keys=False, default_flow_style=False), encoding="utf-8")
+
+    # Printed back because what entered the federation should be visible before
+    # it is used, and because `add` had to ask for policy it could not infer.
+    print(f"registered `{args.name}` in {path}:")
+    print(textwrap.indent(yaml.safe_dump({args.name: entry}, sort_keys=False).rstrip(), "  "))
+    return 0
 
 
 def main() -> int:
@@ -202,6 +379,58 @@ def main() -> int:
     linting.add_argument("bundle", nargs="?", help="one bundle by name; omit for all of them")
     linting.add_argument("--coverage", action="store_true", help="also require an index link per concept")
     linting.set_defaults(func=cmd_lint)
+
+    url = sub.add_parser("url", help="how to cite one concept in another bundle")
+    url.add_argument("bundle", help="the bundle being cited")
+    url.add_argument("path", help="the concept's path beneath that bundle's root")
+    url.add_argument(
+        "--from",
+        dest="citing",
+        required=True,
+        metavar="BUNDLE",
+        help="the bundle doing the citing; required, because it is what the reference rule asks about",
+    )
+    url.set_defaults(func=cmd_url)
+
+    resolve = sub.add_parser("resolve", help="one bundle as JSON: policy plus observed vocabulary")
+    resolve.add_argument("bundle")
+    resolve.set_defaults(func=cmd_resolve)
+
+    init = sub.add_parser("init", help="create the workspace manifest, once per machine")
+    init.add_argument(
+        "--workspace-root",
+        default="~/knowledge",
+        help="where bundles are checked out; relative paths in the manifest resolve under it",
+    )
+    init.set_defaults(func=cmd_init)
+
+    add = sub.add_parser("add", help="bring a bundle into the workspace, once per bundle")
+    add.add_argument("name", help="what this bundle is called in the manifest")
+    arrival_route = add.add_mutually_exclusive_group(required=True)
+    arrival_route.add_argument("--clone", metavar="REMOTE", help="clone a remote repo under workspace_root")
+    arrival_route.add_argument("--path", help="register a checkout that is already on disk")
+    arrival_route.add_argument(
+        "--new", action="store_true", help="scaffold a bundle that does not exist yet"
+    )
+    add.add_argument(
+        "--referenceable-by",
+        metavar="NAMES",
+        help="comma-separated bundle names, or `*`; omit to seal the bundle so nothing may cite it",
+    )
+    add.add_argument("--writable", action="store_true", help="allow agents to author into this bundle")
+    add.add_argument("--publish-url", help="the prefix its concepts hang under")
+    add.add_argument("--publish-style", choices=workspace.Publish.STYLES)
+    add.add_argument(
+        "--publish-sample",
+        metavar="URL",
+        help="the address of one concept you can already open; both halves of `publish` are derived from it",
+    )
+    add.add_argument(
+        "--publish-sample-path",
+        metavar="PATH",
+        help="that concept's path beneath the bundle root",
+    )
+    add.set_defaults(func=cmd_add)
 
     args = parser.parse_args()
     return args.func(args)

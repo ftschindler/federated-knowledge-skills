@@ -15,9 +15,9 @@ This is the implementation plan. It assumes nothing from this repository except
 - [x] **[T1](#t1---prepare-the-bundle-empty)** - Prepare the bundle, empty
 - [x] **[T2](#t2---minimum-capture-and-a-friction-journal)** - Minimum capture, and a friction journal
 - [x] **[T3](#t3---migrate-the-60-public-concepts)** - Migrate the ~60 public concepts
-- [ ] **[T4](#t4---finish-the-cli)** - Finish the CLI
+- [x] **[T4](#t4---finish-the-cli)** - Finish the CLI
 - [ ] **[T5](#t5---finish-the-skill)** - Finish the skill
-- [ ] **[T6](#t6---ship-the-standalone-pre-commit-hook)** - Ship the standalone pre-commit hook, *built early, half verifiable*
+- [x] **[T6](#t6---ship-the-standalone-pre-commit-hook)** - Ship the standalone pre-commit hook, *built early, verified in T4*
 - [ ] **[T7](#t7---second-bundle-then-retire-the-old-architecture)** - Second bundle, then retire the old architecture
 - [ ] **[T8](#t8---iterate-on-the-cli-and-the-skill)** - Iterate on the CLI and the skill, *open-ended, keeps discovering*
 
@@ -236,20 +236,34 @@ internal links resolve, and the unresolved-link list is empty or consciously acc
 
 **Specified by DESIGN.md.** Manifest schema and resolution
 ([§4](DESIGN.md#4-bundles-and-the-manifest)), the reference rule
-([§4](DESIGN.md#4-bundles-and-the-manifest)), what `resolve` reports
-([§7](DESIGN.md#7-the-cli)), `lint`'s warning-versus-error behaviour
+([§4](DESIGN.md#4-bundles-and-the-manifest)), `publish` and the transform it names
+([§4](DESIGN.md#publish-is-how-one-bundle-links-to-another)), what `resolve` reports and what
+`url` refuses ([§7](DESIGN.md#7-the-cli)), `lint`'s warning-versus-error behaviour
 ([§6.6](DESIGN.md#66-what-fkb-lint-does-across-bundles)).
 
 **Steps.**
 
 - Read `JOURNAL.md` first. A command with no entries against it does not get built.
+- Migrate the manifest to `publish: {url, style}` and implement `fkb url <bundle> <path>`
+  ([§4](DESIGN.md#4-bundles-and-the-manifest), [§7](DESIGN.md#7-the-cli)). The journal earned
+  this twice over: `publish` was registered as a repo landing page and resolved to a 404,
+  and the field is described nowhere but its own `--help` string. Settled before the work
+  started, because it is a schema change three of the four commands below depend on.
 - Implement the federation checks in `lint`: the reference rule, cross-bundle links, and
   demotion to warnings for non-writable bundles
-  ([§6.6](DESIGN.md#66-what-fkb-lint-does-across-bundles)).
-- Implement `resolve`'s vocabulary reporting ([§7](DESIGN.md#7-the-cli)). The journal earned
-  it: two spellings of one subject tag sat in the public bundle for weeks, invisible to the
-  hooks, to `mkdocs build --strict` and to `fkb lint`, and were found only because a sentence
-  happened to mention the tag.
+  ([§6.6](DESIGN.md#66-what-fkb-lint-does-across-bundles)). Cross-bundle links means reading
+  the `publish` transform backwards, so the non-prefixing constraint on the manifest is
+  checked here too.
+- Implement `resolve`'s vocabulary reporting ([§7](DESIGN.md#fkb-resolve-reports-what-a-bundle-does-not-only-what-it-declares)).
+  The journal earned it: two spellings of one subject tag sat in the public bundle for
+  weeks, invisible to the hooks, to `mkdocs build --strict` and to `fkb lint`, and were
+  found only because a sentence happened to mention the tag. Report counts alongside the
+  values; the tail is where a split shows, and a bare list has no tail. Detecting the split
+  itself is semantic lint's job in [T5](#t5---finish-the-skill)
+  ([§6.5](DESIGN.md#65-two-lints-one-of-them-code)), so what this step owes that task is an
+  input it can read. Deterministic lint takes nothing from this: the singleton-tag warning
+  that was specified alongside it was measured away once `resolve` could count, at 29
+  singletons in the public bundle's 76 tags ([§6.5](DESIGN.md#65-two-lints-one-of-them-code)).
 - Implement `fkb init` and `fkb add` with its three arrival paths ([§7](DESIGN.md#7-the-cli)).
   Until now the workspace was hand-written;
   [T7](#t7---second-bundle-then-retire-the-old-architecture) introduces a second bundle and a
@@ -263,10 +277,19 @@ the journal carries no entry against `search`, and the rule above would refuse i
 technicality rather than on evidence. Withholding it costs nothing now that there is a bundle
 worth querying, and it is the last command whose shape is still a guess.
 
+Also `rename`, which the 2026-09-10 journal entry earns and which moves to
+[T8](#t8---iterate-on-the-cli-and-the-skill) with it. The evidence is real, but it is a
+single incident on the write path, and this task builds the commands the first window
+argued for rather than every command it mentioned.
+
 **Done when.** Every built command runs against the migrated bundle and at least one read-only
 upstream, and the tests drive the installed copy rather than the source tree.
 
-**Settles.** [§9.7](DESIGN.md#97-what-we-may-assume-is-installed).
+**Settles.** [§9.7](DESIGN.md#97-what-we-may-assume-is-installed) for everything built here:
+the CLI is pure Python over `uv` and assumes nothing further, so a bundle and this machine
+need the same one tool they already needed. The half of that section that asks about
+`ripgrep` cannot be settled here, because it is a question about `search`, and moves to
+[T8](#t8---iterate-on-the-cli-and-the-skill) with it.
 [§9.1](DESIGN.md#91-ranking-once-rg-stops-being-enough) stays open and moves with `search`.
 
 ## T5 - Finish the skill
@@ -301,7 +324,7 @@ reads a bundle's style, it does not impose one.
 
 ## T6 - Ship the standalone pre-commit hook
 
-**Built during [T1](#t1---prepare-the-bundle-empty), and half verifiable until
+**Built during [T1](#t1---prepare-the-bundle-empty), and verified in
 [T4](#t4---finish-the-cli).** `skills/fkb/scripts/bundle_lint.py` ships behind two hook ids
 in `.pre-commit-hooks.yaml`, and `ftschindler/knowledge` pins them by revision. Nine tests
 cover it under the existing `python_scripts` marker.
@@ -320,9 +343,11 @@ Two properties are worth carrying forward, because neither is obvious from the c
 `okf-bundle` adds index coverage and nothing else, and sits on pre-commit's manual stage so
 it stays off the commit path; the bundle's governance workflow invokes it by name.
 
-**What remains.** The second half of "done when" cannot be checked yet: `fkb lint` does not
-exist, so the claim that both entry points report the same finding on the same file is
-unverified. Confirm it in [T4](#t4---finish-the-cli), when the CLI calls this module.
+**Done.** The second half of "done when" was unverifiable while `fkb lint` did not exist.
+It now does, and `test_cli_and_hook_report_the_same_finding` runs both entry points over one
+broken concept and compares what each says about it, so the constraint below is checked
+rather than asserted. A companion test keeps the other property honest: the hook accepts a
+floor declaration under any filename, because only `fkb` needs to *discover* the file.
 
 **Goal.** A bundle enforces its own conformance and floor without `fkb` present.
 
@@ -385,8 +410,26 @@ the first window could not reach.
 - Implement `search` when the journal earns it, in pure Python unless
   [§9.7](DESIGN.md#97-what-we-may-assume-is-installed) says otherwise. Output must be
   bundle-qualified, and a published bundle's hits must render as URLs.
+- Watch for a **vocabulary split across bundles**, which [T4](#t4---finish-the-cli) declined
+  to address. `resolve` reports one bundle's tags, so one subject spelled two ways in two
+  bundles is invisible to it. The failure it would cause is a federated search returning
+  half its hits, which is why it waits for the command that could suffer it. A second
+  incident, this time spanning bundles, is what would move the vocabulary up a level; the
+  question until then is open and the coupling is not worth paying for in advance.
 - Fold back into `SKILL.md` and the CLI whatever else the window turns up, one change per
   incident.
+
+**Carried here from [T4](#t4---finish-the-cli): `fkb rename`.** The 2026-09-10 entry is a
+complete incident and argues for a command - a rename is a title, a filename, and every
+inbound link's text and target, done as one edit - but it is a *write*-path finding, and
+[T4](#t4---finish-the-cli)'s step list is what the first window earned. It waits here rather
+than being smuggled in, for one reason worth stating: the operation is unenforceable after
+the fact. Once the old title is gone from frontmatter there is nothing left to grep the
+stale link texts against, so neither a hook nor a lint can ever find what a rename left
+behind. `mkdocs build --strict` and `linkspector` both passed over nine misnamed links,
+because a stale link *text* is invisible to a link checker by construction. If a second
+incident lands in this window, build it; if none does, the first one still stands and the
+absence needs writing down rather than assuming.
 
 **Done when.** Nothing, in the sense the other tasks mean it. The check is that `search`
 either exists with journal entries behind it, or is still absent for a reason written down.

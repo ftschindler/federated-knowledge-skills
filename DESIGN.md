@@ -32,7 +32,7 @@ would have told us.
 
 | # | Question | Settled by |
 | --- | --- | --- |
-| 9.1 | How `fkb search` ranks once bundles outgrow lexical matching | T4, from journal evidence |
+| 9.1 | How `fkb search` ranks once bundles outgrow lexical matching | T8, with `search` itself |
 | 9.2 | The floor's exact content, and the config file's name | T1, renamed in T2 |
 | 9.3 | Whether markdown raw sources become `references/` concepts or stay outside the bundle | T1 |
 | 9.4 | How non-knowledge pages in a bundle satisfy OKF §11 | T1 |
@@ -86,10 +86,63 @@ fields per bundle.
 | `path` | where the bundle is checked out locally | (required) |
 | `referenceable_by` | who may point *at* me | `[]` (no one) |
 | `writable` | may an agent author into me here | `false` |
-| `publish` | my published URL base, if any | `null` |
+| `publish` | where my concepts are reachable from outside, if anywhere | `null` |
 
 Both security-relevant defaults fail closed, so a new bundle discloses nothing until you
 open it deliberately.
+
+### `publish` is how one bundle links to another
+
+Bundles do not know about each other, which makes a cross-bundle link the one thing neither
+side can write on its own. A relative path is a fact about one disk and does not survive
+either publication or a clone elsewhere, so the link has to be an absolute URL, and only
+`fkb` can produce it: it is the sole component that sees both bundles at once.
+
+So `publish` is not a note about hosting. It is **the function that turns a concept's local
+path in bundle B into a URL that works from anywhere**, and it carries two things, because
+a prefix alone underdetermines the answer:
+
+```yaml
+publish:
+  url: https://ftschindler.github.io/knowledge/
+  style: directory
+```
+
+`url` is a prefix, normalised to a trailing slash when read so the manifest cannot get that
+half wrong. `style` names the transform applied to the path beneath it:
+
+| `style` | `foo/bar.md` becomes | `foo/index.md` becomes | who publishes this way |
+| --- | --- | --- | --- |
+| `directory` | `foo/bar/` | `foo/` | MkDocs by default, Hugo, Docusaurus |
+| `html` | `foo/bar.html` | `foo/index.html` | MkDocs with `use_directory_urls: false`, Sphinx |
+| `raw` | `foo/bar.md` | `foo/index.md` | forge blob URLs, any plain file server |
+
+The two keys nest so that `style` cannot exist without `url`: the invalid state is
+unrepresentable rather than caught by a check. Absence of the whole key means the bundle has
+no published home.
+
+> The enum is closed, and lives in `fkb` rather than in the manifest as a template string.
+> It is a list of *transforms* and not of tools, which is why it is three entries long and
+> has been that shape for a decade; a generator we have not met is near-certain to be
+> `directory`. A template would never need extending, but it puts a mini-language in a
+> hand-edited file with no feedback, cannot express the `index.md` case without a second
+> placeholder, and makes the reverse direction below a parsing problem instead of a suffix
+> strip. Meeting a fourth URL shape is a commit, and wants a journal entry behind it like
+> anything else here.
+
+**`url` is a promise, not an observation.** Nothing fetches it, so it may be declared before
+the site exists - which is what makes two unpublished bundles able to interlink: declare
+where each *will* live, then link. The cost is that a wrong promise is baked silently into
+every inbound link, and only an opt-in fetch ever catches it.
+
+**Two refusals, both hard.** `fkb` will not invent a URL where it cannot produce a true one.
+Citing a bundle that does not list the citer is a policy violation; citing a bundle with no
+`publish` is a bundle with no published location. Different messages, because the fixes
+differ, but neither degrades to a relative path.
+
+**Prefixes must be mutually non-prefixing.** Lint reads links in the other direction - given
+an absolute URL in a concept, which bundle is that? - and two bundles under one site root
+make the question unanswerable. The manifest is checked for this when it is loaded.
 
 **The reference rule.** A concept in bundle **A** may reference a concept in bundle **B**
 iff `A = B` or `A ∈ B.referenceable_by`. `referenceable_by` is inbound-only, which is the
@@ -117,9 +170,13 @@ bundles:
     path: ./public/docs
     referenceable_by: "*"
     writable: true
-    publish: https://example.com/kb
+    publish:
+      url: https://example.com/kb/
+      style: directory
 
-  # Two unranked peers: each names the other. Symmetric, order-free.
+  # Two unranked peers: each names the other. Symmetric, order-free. Neither is
+  # published yet, and `team` has already declared where it will be, so `peer`
+  # can link into it today.
   peer:
     path: ./peer/docs
     referenceable_by: [team]
@@ -128,19 +185,26 @@ bundles:
     path: ./team/docs
     referenceable_by: [peer]
     writable: true
+    publish:
+      url: https://team.example/kb/
+      style: directory
 
-  # Sealed. Nothing may point at it, so its content cannot surface elsewhere.
+  # Sealed. Nothing may point at it, so its content cannot surface elsewhere,
+  # and with no `publish` there is no URL to surface through either.
   private:
     path: ./private/docs
     referenceable_by: []
     writable: true
 
-  # Someone else's bundle: read and cite freely, never author into.
+  # Someone else's bundle: read and cite freely, never author into. No deployed
+  # site, so the prefix reaches into the forge and concepts keep their `.md`.
   upstream:
     path: /home/felix/src/their-kb/docs
     referenceable_by: "*"
     writable: false
-    publish: https://them.example/kb
+    publish:
+      url: https://github.com/them/their-kb/blob/main/docs/
+      style: raw
 ```
 
 An absolute `path` ignores `workspace_root` and stays where it is, which is how a checkout
@@ -149,6 +213,11 @@ path must be absolute.
 
 Both defaults are the cautious ones: omit `referenceable_by` and nothing may cite the
 bundle; omit `writable` and no agent may author into it.
+
+`peer` is the case worth reading twice. It may cite `team` and has nowhere to publish
+itself, which is fine: `publish` describes how *others* reach a bundle, so a bundle needs
+one to be linked *to* and needs nothing to link *out*. `private` shows the same asymmetry at
+its limit - it may link into `public` while nothing can ever link back.
 
 ### Where policy is enforced
 
@@ -395,7 +464,26 @@ Two consequences worth stating in the skill body:
 | | Lives in | Checks |
 | --- | --- | --- |
 | **Deterministic** | `bundle_lint.py`, called by the CLI and by the standalone hook (§9.5) | OKF §11 conformance, **the bundle's declared floor**, actor shapes, index coverage, links resolve *as a warning*, `stale_after` passed, the reference rule |
-| **Semantic** | `SKILL.md` prose | contradictions between pages, claims superseded by newer sources, orphans, concepts mentioned but lacking a page, gaps |
+| **Semantic** | `SKILL.md` prose | contradictions between pages, claims superseded by newer sources, orphans, concepts mentioned but lacking a page, gaps, **one subject tagged two ways** |
+
+**A tag vocabulary splits semantically, so it is caught semantically.** One subject carried
+by two spellings is a silent retrieval failure: searching either returns half the pages and
+gives no sign the other half exists. The case that happened was `awiki` on four pages and
+`agent-wiki` on three, and it is worth stating why it sits in the right-hand column. The two
+strings are five edits apart and no normalisation of case, hyphens or plurals collides them,
+because an abbreviation is lexically distant from what it abbreviates and identical in
+meaning. Deterministic lint can enforce a closed set of tags; it cannot discover that two
+strings outside any set denote one thing. Reading the tag list of §7's `resolve` output and
+noticing that two entries name one subject is the operation §6.6 calls the payoff of the
+whole pattern, and this is an instance of it.
+
+> **A singleton-tag warning was specified here and then measured away.** The idea was that
+> a tag used by exactly one concept is where typos and one-off inventions live, and it cost
+> almost nothing. Running the finished `resolve` over the public bundle answered it: 29 of
+> 76 tags are used once. A check that fires on 38% of a healthy bundle is not a signal, it
+> is a second warning stream to learn to ignore, and the tail it would flag is the same tail
+> `resolve` already prints for a reader who can tell an abbreviation from a typo. Recorded
+> rather than dropped silently, because it looks like an obvious win until someone counts.
 
 **A broken internal link is never an error.** OKF §6.1 requires consumers to tolerate one -
 it "may simply represent not-yet-written knowledge" - so lint reports it and continues.
@@ -455,6 +543,19 @@ is held to OKF conformance, which every bundle can meet.
 cannot edit is not a failure state, and a lint that fails on what you cannot fix is a lint
 you learn to ignore.
 
+**The reference rule is checked by reading `publish` backwards.** A cross-bundle link is an
+absolute URL in a concept body (§4), so lint matches each one against every bundle's
+declared prefix, recovers the local path by undoing that bundle's `style`, and applies the
+rule to the pair. This is the direction that makes §4's non-prefixing constraint load
+bearing: two bundles under one site root leave a URL belonging to both, and a leak check
+that cannot name the target cannot run.
+
+It catches what `fkb url` cannot. `url` refuses a forbidden link at the moment an agent asks
+for one, which covers links this federation wrote; lint covers the rest - a link pasted by
+hand, one that predates the policy, and one that became a violation because
+`referenceable_by` was tightened afterwards. The same rule, at the two points where it can
+be broken.
+
 Semantic lint is the operation a retrieval system structurally cannot perform, and it is
 the payoff of the whole pattern rather than a formality. It is also the second reason the
 skill exists.
@@ -494,7 +595,7 @@ run.
 
 ## 7. The CLI
 
-Five commands, and we stay suspicious of the sixth. Single-file PEP 723 Python, run through
+Six commands, and we stay suspicious of the seventh. Single-file PEP 723 Python, run through
 `uv`.
 
 ```text
@@ -502,12 +603,44 @@ fkb list                    # bundles, paths, tiers, publish URLs
 fkb search <query>          # ripgrep across bundles, bundle-qualified hits
 fkb lint [bundle]           # vendored OKF validator plus the bundle's floor
 fkb resolve <bundle>        # one bundle as JSON: policy plus observed vocabulary
+fkb url <bundle> <path> --from <bundle>   # one concept's cross-bundle URL, or a refusal
 fkb init                    # create the workspace manifest — once per machine
 fkb add <what>              # bring a bundle into the workspace — once per bundle
 ```
 
 `can-reference` folds into `lint`, being a check rather than a workflow. Clone, pull, commit
 and file creation get no command, since git and the editor already do them clearly.
+
+### `fkb url` is the whole of cross-bundle linking
+
+An agent filing into **A**, told to cite a concept in **B**, needs one call that returns a
+string it can paste. That is this command, and the reason it is a command rather than a
+field in `resolve`'s JSON is that the alternative hands every caller the prefix and the
+style and asks it to do the concatenation itself. Two callers doing that is two readings of
+one field, which is the failure this design already had once.
+
+It applies §4's transform, and it refuses rather than approximating:
+
+| situation | what happens |
+| --- | --- |
+| `A ∈ B.referenceable_by`, `B` publishes | the URL, on stdout, nothing else |
+| `A ∉ B.referenceable_by` | refuses: a policy violation, named as one |
+| `B` declares no `publish` | refuses: `B` has no published location |
+| `path` names no file in `B` | refuses: linking at a concept that is not there |
+
+Refusal is the point of the command as much as the URL is. An agent that gets a string back
+has been told the link is permitted, so the check and the formatting cannot come apart - and
+a forbidden link fails at the moment it is asked for, rather than surviving in a file until
+lint sees it.
+
+`--from` is required and has no default. The reference rule is a question about a pair of
+bundles, and the citing half is the one the command cannot see: an agent knows which bundle
+it is filing into, and nothing on disk does. Defaulting it would mean answering a policy
+question by assumption, which is the failure this whole command exists to prevent.
+
+> The last row is cheap here and impossible later. `fkb` has the target bundle on disk, so
+> it can confirm the concept exists before it is cited; once the link is a URL in a committed
+> file, only fetching the site can tell you the same thing.
 
 ### Setup is two steps, because they answer different questions
 
@@ -526,6 +659,14 @@ Each asks for the policy it cannot infer - `referenceable_by`, `writable`, `publ
 ends by printing the manifest line it wrote, so what entered the federation is visible
 before it is used.
 
+> `publish` is the one it must ask carefully, because both halves have a plausible wrong
+> answer: a repo's landing page rather than the prefix its concepts hang under, and a
+> `style` guessed from the fact that the checkout contains an `mkdocs.yml`. Ask for the URL
+> of one concept the person can already open, and derive both halves from it against the
+> local path - that turns two abstract questions into one the person can answer by pasting
+> from a browser, and it is the only point in the lifecycle where a promise can be checked
+> against something real.
+>
 > Finding the bundle root matters more than it sounds. A repo is often infrastructure at the
 > top with the bundle in `docs/`, so `add` inspects the checkout for the shallowest
 > `index.md` and asks when the answer is ambiguous rather than guessing.
@@ -533,15 +674,36 @@ before it is used.
 ### `fkb resolve` reports what a bundle *does*, not only what it declares
 
 Alongside the manifest fields, `resolve` returns the vocabulary in use: the `tags` and
-`type` values that appear across the bundle, and its top-level directories. The skill
-already calls `resolve` before writing (§6.3 step 3), so choosing a tag that matches its
-neighbours costs no extra call.
+`type` values that appear across the bundle, **each with the number of concepts carrying
+it**, and its top-level directories. The skill already calls `resolve` before writing (§6.3
+step 3), so choosing a tag that matches its neighbours costs no extra call.
+
+The counts are not decoration. A bare list of tags says only that a string exists; a list
+with frequencies is the difference between forty equal-looking options and a shape in which
+`awiki: 4` and `agent-wiki: 3`, sitting under `linux: 22`, read as one subject spelled two
+ways. Splits live in the tail, and a tail is only visible once something is counted.
 
 This half of house style is **derived**, which is why it is the half in the CLI: it cannot
 drift, needs no declaration, and works on read-only upstreams that will never adopt our
 conventions. The *declared* half - casing rules, prohibitions, intent - lives in the bundle
 beside its floor declaration, which §9.2's `conventions:` key points at, never in the
 manifest (§9.6).
+
+**Vocabulary is derived per bundle, and is never declared.** The alternative is a vocabulary
+file with a hook that fails on any tag outside it, which is a stronger check and is what the
+tool this design replaces had. We decline it for three reasons: it is a second declaration
+free to drift from the files it describes, which is the failure the derived half exists to
+avoid; it cannot apply to a read-only upstream, so it would hold for half the federation;
+and a bundle that declares none must still be filable into, which makes it optional, and an
+optional gate is not a gate. What is knowingly given up is recorded in §9.10 rather than
+left to be rediscovered.
+
+**Vocabulary is also per bundle rather than federation-wide.** The same subject spelled two
+ways in two bundles is the same failure one level up, and there is no evidence of it: the
+journal raises it as a question and records no incident. It degrades exactly one thing,
+federated search, which does not exist yet and is itself waiting on evidence. Coupling
+independent repos to a shared vocabulary is also the one piece of coupling that would make
+an upstream non-compliant by construction. It moves to T8 with `search`.
 
 The scan is the one `lint` already performs over frontmatter.
 
@@ -1027,6 +1189,15 @@ Two consequences for the tooling:
 - **The bundle root holds concepts and nothing else.** Site pages live in `about/` and raw
   sources in `raw/`, both siblings of `docs/` at the repository root (§9.3, §9.4).
 - **`uv` is assumed by a bundle too**, because the hook it pins runs through it (§9.7).
+- **`publish` is a `{url, style}` promise**, not an observation, and it is what makes a
+  cross-bundle link possible at all. `fkb url` produces the link or refuses; lint reads the
+  transform backwards to police links it did not write (§4, §7, §6.6).
+- **A bundle's vocabulary is derived and never declared**, and belongs to the bundle rather
+  than to the federation (§7). A declared vocabulary with a hook that fails outside it is
+  rejected, knowingly: it is what the tool this design replaces had, and losing it is the
+  price of a federation whose members include bundles we do not own. Splitting one subject
+  across two spellings is given to semantic lint instead, because no string comparison
+  detects an abbreviation (§6.5).
 
 ## 10. The way forward
 
