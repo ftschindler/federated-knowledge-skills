@@ -137,12 +137,13 @@ tag that is close enough over a new one that is exact: a tag used once retrieves
 and a second spelling of an existing subject is a silent retrieval failure, because searching
 either spelling returns half the pages and gives no hint the other half exists.
 
-If nothing fits, propose one or two and ask, or file without tags and say so. Do not invent
-a tag silently.
+If nothing fits, file without tags and say so, or name the one you coined and why. Do not
+invent a tag silently, and do not stop filing to ask which of two candidates to use - a tag
+is cheap to change and a note that was never written is not.
 
 **Directories** follow what is there. If one fits, use it. If several could, take the most
-specific and say which you chose. If none fits, ask rather than creating a directory for a
-single page.
+specific. If none fits, use the bundle root and say so rather than creating a directory for
+a single page.
 
 ## Where a concept is not the right shape
 

@@ -547,22 +547,60 @@ def test_the_cli_runs_from_any_working_directory(tmp_path: Path) -> None:
     assert "kb" in result.stdout
 
 
-def test_skill_md_prescribes_no_shell_syntax() -> None:
+def _prose_files() -> list[Path]:
+    """Every page of this skill an agent reads and may type commands out of.
+
+    The vendored specification and the concept template are excluded: neither is
+    ours to rewrite, and neither prints a command.
+    """
+    pages = [INSTALLED / "SKILL.md"]
+    pages += sorted(
+        p for p in (INSTALLED / "references").glob("*.md") if p.name not in {"SPEC.md", "concept-template.md"}
+    )
+    return pages
+
+
+@pytest.mark.parametrize("page", _prose_files(), ids=lambda p: p.name)
+def test_the_skill_prescribes_no_shell_syntax(page: Path) -> None:
     """The commands the skill prints must be commands, not shell sentences.
 
     A skill is read by an agent that then types what it says into whatever shell
-    it has. `&&`, `cd`, `~` and a `bash`-tagged fence are all instructions to use
-    a POSIX shell, and the agent obliges - on Windows, where `&&` is not valid in
-    the default PowerShell and `~` does not expand, that is the failure a user
-    reported. Prose is the thing that regressed, so prose is what this checks.
-    """
-    text = (INSTALLED / "SKILL.md").read_text(encoding="utf-8")
-    fences = [line.strip() for line in text.splitlines() if line.startswith("```") and len(line.strip()) > 3]
-    assert "```bash" not in fences, f"a shell-tagged fence tells the agent to use that shell: {fences}"
+    it has. `&&`, `cd`, `~`, a trailing backslash and a `bash`-tagged fence are
+    all instructions to use a POSIX shell, and the agent obliges - on Windows,
+    where `&&` is not valid in the default PowerShell and `~` does not expand,
+    that is the failure a user reported. Prose is the thing that regressed, so
+    prose is what this checks.
 
-    commands = [line for line in text.splitlines() if line.startswith("uv run")]
-    assert commands, "the commands block moved; this test needs to follow it"
-    for line in commands:
-        assert "&&" not in line, f"`&&` is not valid in every shell the skill runs in: {line}"
-        assert "~" not in line, f"`~` is expanded by the shell, not by every shell: {line}"
-        assert not line.startswith("cd "), f"the CLI needs no working directory: {line}"
+    Every page is checked, not only `SKILL.md`. The references carry more
+    commands than the body does by now, since onboarding is almost entirely
+    commands, and they are read by the same agent typing into the same shell.
+    While this covered the body alone, six reference pages were written with
+    `bash` fences and backslash continuations and nothing said a word.
+    """
+    text = page.read_text(encoding="utf-8")
+    fences = [line.strip() for line in text.splitlines() if line.strip().startswith("```") and len(line.strip()) > 3]
+    assert "```bash" not in fences, f"{page.name}: a shell-tagged fence tells the agent to use that shell: {fences}"
+
+    for line in (line.strip() for line in text.splitlines()):
+        if not line.startswith("uv run"):
+            continue
+        assert "&&" not in line, f"{page.name}: `&&` is not valid in every shell: {line}"
+        assert "~" not in line, f"{page.name}: `~` is expanded by the shell, not by every shell: {line}"
+        assert not line.endswith("\\"), (
+            f"{page.name}: a trailing backslash continues a line only in a POSIX shell: {line}"
+        )
+        assert not line.startswith("cd "), f"{page.name}: the CLI needs no working directory: {line}"
+
+
+def test_the_body_still_prints_the_commands() -> None:
+    """The check above passes trivially on a page that prints nothing.
+
+    `SKILL.md` is the one page that must always carry them, so the command block
+    moving or being reworded is worth failing over rather than silently skipping.
+    """
+    commands = [
+        line.strip()
+        for line in (INSTALLED / "SKILL.md").read_text(encoding="utf-8").splitlines()
+        if line.strip().startswith("uv run")
+    ]
+    assert commands, "the commands block moved; the shell-syntax test needs to follow it"

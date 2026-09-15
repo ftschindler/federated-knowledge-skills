@@ -141,8 +141,15 @@ the one that carries this person's own decisions.
 4. **Where in the bundle?**
 
    Look at the top-level directories and pick the one that fits. If several could, take the
-   most specific and say which you chose. If none fits, **ask** whether to create one or
-   place it at the root; do not invent a directory for a single page.
+   most specific. If none fits, **put it at the bundle root** and say that is what you did;
+   do not invent a directory for a single page, and do not stop to ask. A bundle with no
+   directories yet is the ordinary case for a first note, not an ambiguity.
+
+   > **Filing does not pause to confirm a default it already holds.** Stating the answer and
+   > then asking for it anyway - "I'd default to root for a single note; where should it
+   > go?" - ends the turn in a session that has no one to reply, and the note does not get
+   > written. Say what you chose, in one clause, and keep going. Ask only about things that
+   > are genuinely the person's to decide: which bundle, and how private it is.
 
    Then **read the target directory's own `index.md`** if it has one. That is where a bundle
    defines what the category is and how its pages are written, and it names the neighbours
