@@ -13,12 +13,13 @@ This is the implementation plan. It assumes nothing from this repository except
 ## Status
 
 - [x] **[T1](#t1---prepare-the-bundle-empty)** - Prepare the bundle, empty
-- [ ] **[T2](#t2---minimum-capture-and-a-friction-journal)** - Minimum capture, and a friction journal
-- [ ] **[T3](#t3---migrate-the-60-public-concepts)** - Migrate the ~60 public concepts
+- [x] **[T2](#t2---minimum-capture-and-a-friction-journal)** - Minimum capture, and a friction journal
+- [x] **[T3](#t3---migrate-the-60-public-concepts)** - Migrate the ~60 public concepts
 - [ ] **[T4](#t4---finish-the-cli)** - Finish the CLI
 - [ ] **[T5](#t5---finish-the-skill)** - Finish the skill
 - [ ] **[T6](#t6---ship-the-standalone-pre-commit-hook)** - Ship the standalone pre-commit hook, *built early, half verifiable*
 - [ ] **[T7](#t7---second-bundle-then-retire-the-old-architecture)** - Second bundle, then retire the old architecture
+- [ ] **[T8](#t8---iterate-on-the-cli-and-the-skill)** - Iterate on the CLI and the skill, *open-ended, keeps discovering*
 
 ## How to use it
 
@@ -245,21 +246,28 @@ internal links resolve, and the unresolved-link list is empty or consciously acc
 - Implement the federation checks in `lint`: the reference rule, cross-bundle links, and
   demotion to warnings for non-writable bundles
   ([§6.6](DESIGN.md#66-what-fkb-lint-does-across-bundles)).
-- Implement `search` if the journal earned it, in pure Python unless
-  [§9.7](DESIGN.md#97-what-we-may-assume-is-installed) says otherwise. Output must be
-  bundle-qualified, and a published bundle's hits must render as URLs.
-- Add `resolve`'s vocabulary reporting if the journal shows style mismatches
-  ([§7](DESIGN.md#7-the-cli)).
+- Implement `resolve`'s vocabulary reporting ([§7](DESIGN.md#7-the-cli)). The journal earned
+  it: two spellings of one subject tag sat in the public bundle for weeks, invisible to the
+  hooks, to `mkdocs build --strict` and to `fkb lint`, and were found only because a sentence
+  happened to mention the tag.
 - Implement `fkb init` and `fkb add` with its three arrival paths ([§7](DESIGN.md#7-the-cli)).
   Until now the workspace was hand-written;
   [T7](#t7---second-bundle-then-retire-the-old-architecture) introduces a second bundle and a
   real user, so setup stops being a one-off.
 
+**Leave alone.** `search`, which moves to [T8](#t8---iterate-on-the-cli-and-the-skill). The
+observation window it was withheld for never exercised the read path: [T3](#t3---migrate-the-60-public-concepts)
+ran alongside [T2](#t2---minimum-capture-and-a-friction-journal) by design, a migration is all
+writes, and nothing in six days asked the bundle a question it might already have answered. So
+the journal carries no entry against `search`, and the rule above would refuse it on a
+technicality rather than on evidence. Withholding it costs nothing now that there is a bundle
+worth querying, and it is the last command whose shape is still a guess.
+
 **Done when.** Every built command runs against the migrated bundle and at least one read-only
 upstream, and the tests drive the installed copy rather than the source tree.
 
-**Settles.** [§9.7](DESIGN.md#97-what-we-may-assume-is-installed), and
-[§9.1](DESIGN.md#91-ranking-once-rg-stops-being-enough) to the extent the journal decided it.
+**Settles.** [§9.7](DESIGN.md#97-what-we-may-assume-is-installed).
+[§9.1](DESIGN.md#91-ranking-once-rg-stops-being-enough) stays open and moves with `search`.
 
 ## T5 - Finish the skill
 
@@ -340,11 +348,55 @@ and `fkb lint` reports the same finding on the same file.
 - Populate the manifest with both bundles plus at least one read-only upstream.
 - Exercise the reference rule: confirm a private-to-public link is refused and a
   public-to-public link is allowed.
-- Fold `JOURNAL.md` into a decisions record and delete it.
+- Fold the entries that decided [T4](#t4---finish-the-cli) into a decisions record. The file
+  itself stays: [T8](#t8---iterate-on-the-cli-and-the-skill) runs a second window against it,
+  so distil what has been spent and leave the file open rather than deleting it.
 - Update `README.md` to describe what now exists rather than what is planned.
 
 **Done when.** The repository contains the design, this plan, the CLI, the skill, the hook and
 their tests, and nothing describing the previous architecture except DESIGN.md appendix A.
+
+## T8 - Iterate on the CLI and the skill
+
+**Goal.** Keep discovering against a knowledge base that is now used rather than built, and
+build what that use earns. Open-ended by construction: it has no completion date, and its
+first output is evidence rather than code.
+
+**Why there is an eighth task.** [T2](#t2---minimum-capture-and-a-friction-journal) withheld
+`search` so that an incident would justify it, and the incident never came - not because the
+command is unnecessary, but because nothing in the window could have produced one. Every
+session was onboarding: importing a vault, restructuring it, filing into it. A migration is
+all writes. The evidence `search` needs comes from consulting a bundle, which only starts
+being possible once there is one worth consulting, and that is true from
+[T3](#t3---migrate-the-60-public-concepts) onward rather than during it.
+
+So the bargain that made T2 work is re-struck rather than abandoned, on the half of the CLI
+the first window could not reach.
+
+**Steps.**
+
+- Keep the journal running, under the rules at the top of `JOURNAL.md`. This time the
+  incidents that matter are retrieval ones: a question answered from the web that the bundle
+  already held, an index read end to end because nothing else would find a page, a concept
+  filed twice because the first was not found.
+- Record where an incident is filed. Findings about `fkb` belong in `JOURNAL.md`; findings
+  about a bundle belong in that bundle's tracker. The 2026-09-14 entry exists because the
+  distinction was not drawn and the evidence split in two.
+- Implement `search` when the journal earns it, in pure Python unless
+  [§9.7](DESIGN.md#97-what-we-may-assume-is-installed) says otherwise. Output must be
+  bundle-qualified, and a published bundle's hits must render as URLs.
+- Fold back into `SKILL.md` and the CLI whatever else the window turns up, one change per
+  incident.
+
+**Done when.** Nothing, in the sense the other tasks mean it. The check is that `search`
+either exists with journal entries behind it, or is still absent for a reason written down.
+
+**Settles.** [§9.1](DESIGN.md#91-ranking-once-rg-stops-being-enough), when there is ranking
+pressure to settle it with.
+
+**Leave alone.** Anything the journal has not asked for. The failure mode of an open-ended
+task is building the obvious thing, and the obvious thing is what the first window already
+declined to confirm.
 
 ## Already done
 

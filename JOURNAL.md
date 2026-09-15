@@ -4,8 +4,14 @@ Friction, recorded while filing knowledge with a deliberately incomplete toolset
 `list` and `lint` and nothing else; search, vocabulary reporting and setup commands are
 withheld so that what gets built next answers an incident rather than a guess.
 
-This file is temporary. It is folded into a decisions record and deleted once it has decided
-the CLI's scope.
+This file is temporary, and runs in windows. The first one decided T4's scope and is folded
+into a decisions record at T7; the file stays open for T8's window, which is the retrieval
+half the first one could not reach, and is deleted when that has decided `search`.
+
+**An artifact is a path, a query or a command.** An identity is not one, and neither is the
+name or URL of a bundle that is not public. This file is committed to a public repository and
+the federation it describes contains a private work bundle, so an entry names what was done
+and describes whose it was. Do not paste `fkb list` output or the manifest.
 
 ## How to write an entry
 
