@@ -73,20 +73,22 @@ jobs:
       run: uv run .scripts/run-tests.py federation
 
   agent_tests:
-    name: 🛠 (Agent tests)
-    # Linux only, deliberately. The harness itself is portable (it resolves
-    # `npm` through PATH and looks for `opencode.exe`), but this job is a
-    # quarter of an hour of a non-deterministic LLM run, and a second copy of it
-    # buys flakiness rather than portability signal. The two jobs above are what
-    # exercise the cross-platform code paths.
-    runs-on: ubuntu-latest
+    name: 🛠 (Agent tests, ${{ matrix.os }})
+    # Both, like the other two. This layer is the only one that exercises the
+    # skill the way a person meets it - an agent reading SKILL.md and typing what
+    # it says - so it is the only one that can catch an instruction which only
+    # parses in a POSIX shell. A user hit exactly that, and nothing else here
+    # would have told us. The jobs run in parallel, so the wall clock is one
+    # agent run either way.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     # Two e2e tests: one builds a disposable agent, one additionally talks to it.
     # A run's duration swings with the tool path the model picks, so the cap is
     # generous; anything past it is a problem, not a slow runner.
-    timeout-minutes: 15
-    defaults:
-      run:
-        shell: bash -elo pipefail {0}
+    timeout-minutes: 20
     steps:
 
     - name: Checkout
@@ -101,4 +103,4 @@ jobs:
       uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
 
     - name: Drive a disposable agent
-      run: make test_agent
+      run: uv run .scripts/run-tests.py agent
