@@ -1,0 +1,24 @@
+IMPLEMENTATION.md
+  s_83755afd9a77fc::t_67b5212735ae32 359-400
+  s_83755afd9a77fc::t_107e80f6f57ca0 16-17,22
+  s_83755afd9a77fc::t_e2bcae6f590c0b 351-353
+  s_83755afd9a77fc::t_95b9e72b2247a4 249-252,258-265,269-270
+JOURNAL.md
+  s_83755afd9a77fc::t_860b68bb669ce7 7-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "a869a9047abae162dc771cbd79e003d68ce4784d",
+  "prompts": {},
+  "sessions": {
+    "s_83755afd9a77fc": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f60b4e285ffeh53AoKRoZjHs9V",
+        "model": "claude-opus-5"
+      },
+      "human_author": "x <x@example.com>"
+    }
+  }
+}
