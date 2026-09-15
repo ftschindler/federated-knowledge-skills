@@ -307,6 +307,10 @@ into the full one, including onboarding.
   it.
 - Add `references/house-style.md` and `references/federation.md`.
 - Fold whatever the journal revealed about the filing instructions back into `SKILL.md`.
+- Every command the skill prints has to satisfy [§9.7](DESIGN.md#97-what-we-may-assume-is-installed):
+  one command per line, no `cd`, no `&&`, no `~`, no shell-tagged fence. The commands block
+  grows from two entries to six here, which is six chances to reintroduce the invocation a
+  user already reported; two tests in `tests/test_fkb_cli.py` fail if one does.
 
 **Done when.** Three cold-session tests pass, each starting with no prior context:
 

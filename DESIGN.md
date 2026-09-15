@@ -1097,6 +1097,36 @@ rejects, unless results are provably identical.
 
 Largely an implementation question, recorded here because it bounds what §7 can promise.
 
+**A shell is not assumed, and neither is an operating system.** `uv` is the floor and it is
+the whole floor: everything this repository ships has to work on Linux, macOS and Windows,
+because a skill is installed onto whatever machine the person has and a bundle pins the hook
+from whatever machine its owner has. Four rules follow, and each of them is a mistake already
+made.
+
+- **What the skill prints is a command, not a shell sentence.** `SKILL.md` is read by an
+  agent that types what it says into a shell nobody here chose. So: one command per line, no
+  `cd`, no `&&`, no `~`, no `$(...)`, and no fence tagged with a shell. A command that needs
+  a working directory is a command with a precondition, and the only way to write that
+  precondition down is in somebody's shell syntax. The CLI therefore works from any
+  directory, and paths into the skill are given in full.
+- **The tooling is Python where it would otherwise be shell.** A `$(shell ...)` in a Makefile
+  or a `bash -c` in a hook makes `make` and a POSIX shell prerequisites of running the tests,
+  which is a thing to discover rather than to assume. `make` stays an optional convenience by
+  being a thin wrapper over commands that run without it.
+- **No symlinks in the tree.** Git stores one as a blob holding the target path, and a clone
+  on Windows writes that path out as an ordinary file. Nothing fails loudly; a link becomes a
+  one-line document whose content is a relative path, and every reader downstream reads that
+  string as the document.
+- **Encoding and line endings are named, never inherited.** Text is read and written as
+  UTF-8 explicitly, because the default is the machine's locale. Line endings are LF by
+  `.gitattributes`.
+
+The cost is that these are invisible from the machine that breaks them: each one looks
+correct on Linux and fails somewhere else, so none of them can be left to review. Every test
+layer therefore runs on both Linux and Windows, including the one that drives a real agent -
+which is the only layer that reads `SKILL.md`, and so the only one that can catch an
+instruction that parses in one shell and not another.
+
 ### 9.8 Index files are authored, not generated
 
 **Settled: `fkb` never writes an index.** OKF §8 says an entry SHOULD carry the description
