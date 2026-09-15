@@ -34,6 +34,29 @@ jobs:
     - name: Run support script tests
       run: make test_python_scripts
 
+  federation_tests:
+    name: 🛠 (Federation tests)
+    runs-on: ubuntu-latest
+    # Clones two real published bundles and runs the CLI against them. No LLM,
+    # so this is minutes rather than the agent job's quarter hour, but it does
+    # reach the network and it does depend on repositories this one does not
+    # own: a failure here can mean somebody restructured their bundle, which is
+    # a true statement about the federation and worth being told about.
+    timeout-minutes: 5
+    defaults:
+      run:
+        shell: bash -elo pipefail {0}
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+    - name: Setup uv
+      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+
+    - name: Run the CLI against real bundles
+      run: make test_federation
+
   agent_tests:
     name: 🛠 (Agent tests)
     runs-on: ubuntu-latest

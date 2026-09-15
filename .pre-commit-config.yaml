@@ -146,7 +146,7 @@ repos:
   # core or its helper scripts regress. Guard invariants at commit-time.
   - id: support-script-tests
     name: support script tests
-    entry: uvx --with pytest pytest -q -m python_scripts
+    entry: bash -c 'uvx --with pytest $(uv run .scripts/extract-deps.py skills) pytest -q -m python_scripts'
     language: system
     files: ^(\.scripts/.*\.py|tests/test_.*\.py)$
     pass_filenames: false

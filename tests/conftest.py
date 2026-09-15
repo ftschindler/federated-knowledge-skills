@@ -1,8 +1,11 @@
-"""Shared fixtures for the tests that drive a real agent.
+"""Shared fixtures for the tests that drive a real agent, and for the fake homes.
 
 Tests marked `agent` are true end-to-end tests: they build a disposable agent
 (see tests/disposable_agent.py), install skills into it exactly as a user would,
 send it a message and inspect the transcript and the files it left behind.
+
+Tests that need `fkb` installed but no LLM take `fake_home` instead (see
+tests/fake_home.py): the same redirection of HOME and XDG, without the agent.
 
 On failure the agent is preserved and a copy-pasteable command to enter its world
 is printed, so a run can be inspected by hand.
@@ -14,6 +17,13 @@ from pathlib import Path
 
 import pytest
 from disposable_agent import DisposableAgent, build_disposable_agent
+from fake_home import FakeHome, build_fake_home
+
+
+@pytest.fixture
+def fake_home(tmp_path: Path) -> FakeHome:
+    """A throwaway machine with `fkb` installed and nothing of the developer's in it."""
+    return build_fake_home(tmp_path / "home")
 
 
 @pytest.fixture
