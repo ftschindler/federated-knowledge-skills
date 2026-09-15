@@ -1,0 +1,21 @@
+DESIGN.md
+  s_fa55ac82bc1348::t_5094d7bb142733 1100-1129
+IMPLEMENTATION.md
+  s_fa55ac82bc1348::t_ae75f7f5c42632 310-313
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "dc7866c37f3293e67960febbb9c6af8c85fa2d0a",
+  "prompts": {},
+  "sessions": {
+    "s_fa55ac82bc1348": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f59bcfe8fffeB1v3Nx2CEo6UBu",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    }
+  }
+}
