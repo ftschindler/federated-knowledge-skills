@@ -1,0 +1,42 @@
+skills/fkb/references/federation.md
+  s_f0554b21f31ec0::t_0f380068abe878 1-60,63-95,99-119
+skills/fkb/references/semantic-lint.md
+  s_f0554b21f31ec0::t_4b0343da19836b 1-105
+skills/fkb/scripts/fkb
+  s_f0554b21f31ec0::t_a892513115a422 283-288,290-298
+skills/fkb/references/house-style.md
+  s_f0554b21f31ec0::t_7ac6e4c09da346 1-130,133-160
+tests/test_fkb_skill.py
+  s_f0554b21f31ec0::t_e553e4f6620e37 207,245
+  s_f0554b21f31ec0::t_bf9e7dd1246260 1,3-11,32,52-62,64-66,68-78,80-81,84-90,94-111,121-145,161,178-179,181-188,191-192,194-197,199-206,208-244,246-249
+  s_f0554b21f31ec0::t_454896ea48c4bf 23,44-51,63
+skills/fkb/SKILL.md
+  s_f0554b21f31ec0::t_0d7cb7fa388481 3,6,29-47,53-56,61-62,77-109,125,139-140,143-166,169-170,174-175,179-183,186,188-192,194-198,200-201,203,220-223
+  s_f0554b21f31ec0::t_83d36c31643f06 57-60
+  s_f0554b21f31ec0::t_a088582a71b693 63-64,68-75
+  s_f0554b21f31ec0::t_9edf267f1ba78d 76
+skills/fkb/references/agents-block.md
+  s_f0554b21f31ec0::t_91a2034b04031b 1-59
+skills/fkb/references/getting-started.md
+  s_f0554b21f31ec0::t_dd8619cf7a3ccb 1-40,43-55,58-59,64-69,72-75,83-88,93-111,114-123,126-130,137-141,144-195,198-210,214-225
+  s_f0554b21f31ec0::t_6c3b47b645f3fa 76-82
+  s_f0554b21f31ec0::t_83d36c31643f06 131-136
+skills/fkb/references/bundle-infrastructure.md
+  s_f0554b21f31ec0::t_e0f13ba377aa7a 1-19,22-83,86-98,101-113,116-146,149-153
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "5a8c9716526b64662f9c361a51c0b73ceb7ecbc1",
+  "prompts": {},
+  "sessions": {
+    "s_f0554b21f31ec0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f5c079d29ffenm12tcSKfCh9Lt",
+        "model": "claude-opus-5"
+      },
+      "human_author": "x <x@example.com>"
+    }
+  }
+}
