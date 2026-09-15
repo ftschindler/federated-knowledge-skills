@@ -98,8 +98,14 @@ the one that carries this person's own decisions.
 3. **Read the bundle's `index.md`** when a keyword search comes up empty. An index is
    written by a person and names things a grep cannot match - a page about "supersession"
    may never contain the word you searched.
-4. **Cite what you used.** Give the bundle and the path. If the bundle publishes and the
-   person would want a link, `fkb url` gives the URL.
+4. **Name the file you read.** Every answer that came from a bundle ends with the bundle
+   and the concept's path, like `(notes: principles/pin_actions_by_sha.md)`. This is not a
+   flourish and it is not optional: an answer with no path cannot be checked, corrected or
+   followed up, and the person cannot tell their own knowledge base from something you
+   recalled. Repeating the concept's content back without naming it is the failure mode
+   here, and it reads perfectly well, which is what makes it worth a rule.
+
+   If the bundle publishes and a link would help, `fkb url` turns that path into one.
 5. **If the bundles do not answer it**, say so, then go to the web. Do not pretend the gap
    is not there: what is missing is worth filing afterwards.
 
