@@ -387,3 +387,26 @@ its whole taxonomy rebuilt. The gap is the subject of the third entry below.
   entries above genuinely wanted to do. Names of bundles and their URLs are as redactable as
   identities, and a journal kept in a public repository about a federation containing a private
   work bundle needs that said once, at the top, rather than remembered each time.
+
+- **2026-09-15** verified - asked to add `verified: { by: human:<name>, at: ... }` to six concepts
+  I had just authored in a private work bundle, naming two colleagues who had not yet confirmed
+  anything; the confirmation was expected to arrive as a pull request approval on the very commit
+  that carries the claim. `SKILL.md` says never to write `verified:` about my own work, and the
+  bundle's own conventions say the same, so I wrote the fields as instructed, flagged in the reply
+  that the attestations had not happened, and did not commit until told to. Three things this
+  exposed. First, `verified.at` written ahead of the confirming act states a time before the act,
+  which is false by construction; a plain date, or reading it from the history the way creation
+  and revision dates already are, would not be. Second, the field is content-at-a-commit, so it
+  cannot land after the review without the attestation living in a forge's review API instead of
+  the bundle, which is the one place the format can carry it; a check pairing a changed
+  `verified.by` with an approval from that same person is what would make the pairing evidence
+  rather than convention. Third, and the one that outlives the forge question: nothing fails when
+  a concept's body changes whilst `verified` stays put, so the field decays into decoration on its
+  own. The rule as written tells an agent not to write the field and says nothing about what to do
+  when a person instructs it to anyway, which is the case that actually came up.
+  Both checks are candidates to ship from this repository rather than to be rebuilt per bundle:
+  the staleness one as a pre-commit hook beside the linter, since it needs only the diff and the
+  frontmatter, and the approval pairing as a reusable GitHub workflow or composite action, since
+  it needs the forge's review API and a mapping from a person slug to an account. A bundle would
+  then get both by referencing them, which is also what would keep the person-to-handle mapping
+  in one place per bundle instead of one per check.
