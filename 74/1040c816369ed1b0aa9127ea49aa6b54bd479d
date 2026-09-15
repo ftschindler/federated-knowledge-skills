@@ -1,0 +1,29 @@
+tests/disposable_agent.py
+  s_f0554b21f31ec0::t_eea953d342ccc1 162-164,227-234
+  s_f0554b21f31ec0::t_12d585066e1561 167,239
+  s_f0554b21f31ec0::t_5a79497454179e 45-49,121-128,137-142
+tests/test_fkb_skill.py
+  s_f0554b21f31ec0::t_e574c5b06ec4cf 156-157
+tests/test_disposable_agent.py
+  s_f0554b21f31ec0::t_12d585066e1561 20,48-53
+tests/fake_home.py
+  s_f0554b21f31ec0::t_5a79497454179e 33-34,124
+tests/test_fkb_arrival.py
+  s_f0554b21f31ec0::t_e574c5b06ec4cf 61-78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "741040c816369ed1b0aa9127ea49aa6b54bd479d",
+  "prompts": {},
+  "sessions": {
+    "s_f0554b21f31ec0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f5c079d29ffenm12tcSKfCh9Lt",
+        "model": "claude-opus-5"
+      },
+      "human_author": "x <x@example.com>"
+    }
+  }
+}
