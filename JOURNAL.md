@@ -443,7 +443,12 @@ its whole taxonomy rebuilt. The gap is the subject of the third entry below.
   than what to do when there is nothing there. The failure is not platform-specific and not
   new: it is red on `main` today on Linux, in the same test, with the same assertion. Nothing
   was done instead - the test is left failing rather than relaxed, because what it reports is
-  a gap in the filing instructions and not a flaky harness. Worth pairing with the setup
-  branch being written for T5, which already tells the agent that "get me started" is the
-  decision made and not a question to ask back; the same instinct fires one step later, in
-  filing, and is not yet answered there.
+  a gap in the filing instructions and not a flaky harness. Seen three times across both
+  operating systems, and the third run is the one that says what the gap is: "Since it's the
+  first note, where should it live - at the bundle root, or should I create a directory (e.g.
+  `systems/`)? I'd default to root for a single note." It has the answer, states it, and asks
+  anyway. So the instruction that is missing is not where to put a file, which the agent can
+  work out; it is that filing does not stop to confirm a default it already holds. Worth
+  pairing with the setup branch being written for T5, which already tells the agent that "get
+  me started" is the decision made and not a question to ask back; the same instinct fires one
+  step later, in filing, and is not yet answered there.
