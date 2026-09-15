@@ -16,7 +16,7 @@ This is the implementation plan. It assumes nothing from this repository except
 - [x] **[T2](#t2---minimum-capture-and-a-friction-journal)** - Minimum capture, and a friction journal
 - [x] **[T3](#t3---migrate-the-60-public-concepts)** - Migrate the ~60 public concepts
 - [x] **[T4](#t4---finish-the-cli)** - Finish the CLI
-- [ ] **[T5](#t5---finish-the-skill)** - Finish the skill
+- [x] **[T5](#t5---finish-the-skill)** - Finish the skill
 - [x] **[T6](#t6---ship-the-standalone-pre-commit-hook)** - Ship the standalone pre-commit hook, *built early, verified in T4*
 - [ ] **[T7](#t7---second-bundle-then-retire-the-old-architecture)** - Second bundle, then retire the old architecture
 - [ ] **[T8](#t8---iterate-on-the-cli-and-the-skill)** - Iterate on the CLI and the skill, *open-ended, keeps discovering*
