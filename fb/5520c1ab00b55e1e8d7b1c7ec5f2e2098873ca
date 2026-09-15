@@ -1,0 +1,19 @@
+JOURNAL.md
+  s_f0554b21f31ec0::t_6ef36d2b653ee3 390-412
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "fb5520c1ab00b55e1e8d7b1c7ec5f2e2098873ca",
+  "prompts": {},
+  "sessions": {
+    "s_f0554b21f31ec0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f5c079d29ffenm12tcSKfCh9Lt",
+        "model": "claude-opus-5"
+      },
+      "human_author": "x <x@example.com>"
+    }
+  }
+}
