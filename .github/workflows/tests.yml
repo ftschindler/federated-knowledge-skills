@@ -17,12 +17,17 @@ concurrency:
 
 jobs:
   support_script_tests:
-    name: 🛠 (Support script tests)
-    runs-on: ubuntu-latest
-    timeout-minutes: 2  # something is off if we need more than this
-    defaults:
-      run:
-        shell: bash -elo pipefail {0}
+    name: 🛠 (Support script tests, ${{ matrix.os }})
+    # Both operating systems, because the failures portability costs us are
+    # exactly the ones a single-platform matrix cannot see: a symlink that
+    # clones as a text file, a `file://` URL git reads as a hostname, a `HOME`
+    # redirect that leaves `Path.home()` pointing at the real one.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    timeout-minutes: 5  # something is off if we need more than this
     steps:
 
     - name: Checkout
@@ -31,21 +36,31 @@ jobs:
     - name: Setup uv
       uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
 
+    - name: Refuse a checkout whose symlinks did not survive
+      # A Windows runner clones without `core.symlinks`, so a committed symlink
+      # arrives as a text file holding its target path and everything reading
+      # through it reads that string. The guard runs here as well as in
+      # pre-commit so the job says which failure it is.
+      run: uv run --script .scripts/check_no_symlinks.py
+
     - name: Run support script tests
-      run: make test_python_scripts
+      # `make` is a convenience, not a dependency, and Windows runners have no
+      # GNU make. The target is one line either way.
+      run: uv run .scripts/run-tests.py python_scripts
 
   federation_tests:
-    name: 🛠 (Federation tests)
-    runs-on: ubuntu-latest
+    name: 🛠 (Federation tests, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     # Clones two real published bundles and runs the CLI against them. No LLM,
     # so this is minutes rather than the agent job's quarter hour, but it does
     # reach the network and it does depend on repositories this one does not
     # own: a failure here can mean somebody restructured their bundle, which is
     # a true statement about the federation and worth being told about.
-    timeout-minutes: 5
-    defaults:
-      run:
-        shell: bash -elo pipefail {0}
+    timeout-minutes: 10
     steps:
 
     - name: Checkout
@@ -55,10 +70,15 @@ jobs:
       uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
 
     - name: Run the CLI against real bundles
-      run: make test_federation
+      run: uv run .scripts/run-tests.py federation
 
   agent_tests:
     name: 🛠 (Agent tests)
+    # Linux only, deliberately. The harness itself is portable (it resolves
+    # `npm` through PATH and looks for `opencode.exe`), but this job is a
+    # quarter of an hour of a non-deterministic LLM run, and a second copy of it
+    # buys flakiness rather than portability signal. The two jobs above are what
+    # exercise the cross-platform code paths.
     runs-on: ubuntu-latest
     # Two e2e tests: one builds a disposable agent, one additionally talks to it.
     # A run's duration swings with the tool path the model picks, so the cap is
