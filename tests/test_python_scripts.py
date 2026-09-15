@@ -7,7 +7,9 @@ repo with crafted authors and runs the script against it.
 
 from __future__ import annotations
 
+import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -29,13 +31,18 @@ def _commit(repo: Path, name: str, email: str, msg: str) -> None:
         check=True,
         capture_output=True,
         text=True,
+        # The inherited environment is kept and only the identity overridden.
+        # A hand-built one listing PATH and HOME is enough on Linux and not on
+        # Windows, where git needs SYSTEMROOT to resolve anything at all and
+        # reads USERPROFILE rather than HOME.
         env={
+            **os.environ,
             "GIT_AUTHOR_NAME": name,
             "GIT_AUTHOR_EMAIL": email,
             "GIT_COMMITTER_NAME": name,
             "GIT_COMMITTER_EMAIL": email,
             "HOME": str(repo),
-            "PATH": subprocess.os.environ["PATH"],
+            "USERPROFILE": str(repo),
         },
     )
 
@@ -51,7 +58,7 @@ def _init_repo(tmp_path: Path) -> Path:
 
 def _run_check(repo: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["python3", str(CHECK_MAILMAP)],
+        [sys.executable, str(CHECK_MAILMAP)],
         cwd=repo,
         capture_output=True,
         text=True,
@@ -100,7 +107,7 @@ def _run_markdown_style(tmp_path: Path, body: str) -> subprocess.CompletedProces
     doc = tmp_path / "doc.md"
     doc.write_text(body)
     return subprocess.run(
-        ["python3", str(CHECK_MARKDOWN_STYLE), str(doc)],
+        [sys.executable, str(CHECK_MARKDOWN_STYLE), str(doc)],
         capture_output=True,
         text=True,
         check=False,

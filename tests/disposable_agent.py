@@ -24,8 +24,18 @@ import os
 import shlex
 import shutil
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+
+WINDOWS = sys.platform == "win32"
+
+# npm ships as `npm.cmd` on Windows, and a .cmd is not an executable the OS can
+# spawn directly: `subprocess` would raise FileNotFoundError on a machine where
+# `npm --version` works fine in a terminal. Resolving through PATH asks the same
+# question the shell does, and keeps `shell=True` (and its quoting) out of this.
+NPM = shutil.which("npm") or "npm"
+NPX = shutil.which("npx") or "npx"
 
 # Pinned so the e2e behaviour is reproducible; bump deliberately like our other
 # frozen tool versions.
@@ -128,7 +138,7 @@ class DisposableAgent:
     def install_from_registry(self, repo: str) -> None:
         """Install a published skill set into ~/.agents/skills via skills.sh."""
         subprocess.run(
-            ["npx", "--yes", "skills", "add", repo, "--skill", "*", "-a", "opencode", "-g", "-y", "--copy"],
+            [NPX, "--yes", "skills", "add", repo, "--skill", "*", "-a", "opencode", "-g", "-y", "--copy"],
             check=True,
             env=self.env,
             cwd=self.home,
@@ -167,17 +177,20 @@ class DisposableAgent:
         The redirected env vars are what make opencode see this agent's skills and
         config instead of the developer's real ones.
         """
-        env_pairs = " ".join(
-            f"{k}={shlex.quote(self.env[k])}"
-            for k in (
-                "HOME",
-                "XDG_CONFIG_HOME",
-                "XDG_DATA_HOME",
-                "XDG_CACHE_HOME",
-                "XDG_STATE_HOME",
-            )
-            if k in self.env
+        names = (
+            "HOME",
+            "USERPROFILE",
+            "XDG_CONFIG_HOME",
+            "XDG_DATA_HOME",
+            "XDG_CACHE_HOME",
+            "XDG_STATE_HOME",
         )
+        if WINDOWS:
+            # PowerShell, because `env VAR=... bash` is a POSIX sentence and the
+            # hint is only useful if it can be pasted where it is printed.
+            sets = "; ".join(f'$env:{k}="{self.env[k]}"' for k in names if k in self.env)
+            return f'cd "{self.work}"; {sets}\n# opencode: {self.opencode_bin}'
+        env_pairs = " ".join(f"{k}={shlex.quote(self.env[k])}" for k in names if k in self.env)
         oc = shlex.quote(str(self.opencode_bin))
         return f"cd {shlex.quote(str(self.work))} && env {env_pairs} PATH={shlex.quote(self.env.get('PATH', ''))} bash\n# opencode: {oc}"
 
@@ -210,6 +223,8 @@ def _isolated_env(home: Path) -> dict[str, str]:
     env.update(
         {
             "HOME": str(home),
+            # What `Path.home()` reads on Windows; see tests/fake_home.py.
+            "USERPROFILE": str(home),
             "XDG_CONFIG_HOME": str(home / ".config"),
             "XDG_DATA_HOME": str(home / ".local" / "share"),
             "XDG_CACHE_HOME": str(home / ".cache"),
@@ -256,16 +271,18 @@ def build_disposable_agent(root: Path, *, skills_dir: Path | None = REPO_SKILLS_
     npm_prefix = home / ".npm"
     npm_prefix.mkdir(parents=True, exist_ok=True)
     subprocess.run(
-        ["npm", "install", f"opencode-ai@{OPENCODE_VERSION}", "--prefix", str(npm_prefix)],
+        [NPM, "install", f"opencode-ai@{OPENCODE_VERSION}", "--prefix", str(npm_prefix)],
         check=True,
         env=env,
         capture_output=True,
         text=True,
         timeout=300,
     )
-    # The npm package pulls a per-platform binary; locate the real ELF, not the
-    # .exe symlink shim, and prefer the non-baseline build.
-    candidates = sorted(npm_prefix.glob("node_modules/opencode-*/bin/opencode"))
+    # The npm package pulls a per-platform binary; locate the real executable,
+    # not the shim beside it, and prefer the non-baseline build. On Windows the
+    # binary carries the `.exe` the shebang-less loader needs.
+    pattern = "node_modules/opencode-*/bin/opencode.exe" if WINDOWS else "node_modules/opencode-*/bin/opencode"
+    candidates = sorted(npm_prefix.glob(pattern))
     binaries = [c for c in candidates if c.is_file() and "baseline" not in c.parent.parent.name]
     opencode_bin = binaries[0] if binaries else candidates[0]
 

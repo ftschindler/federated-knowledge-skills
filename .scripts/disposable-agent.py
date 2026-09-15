@@ -20,6 +20,7 @@ printed command.
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import tempfile
@@ -27,7 +28,7 @@ from pathlib import Path
 
 # Import the shared builder from tests/ (single source of truth).
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tests"))
-from disposable_agent import REPO_SKILLS_DIR, build_disposable_agent, have
+from disposable_agent import REPO_SKILLS_DIR, WINDOWS, build_disposable_agent, have
 
 
 def main() -> int:
@@ -63,8 +64,11 @@ def main() -> int:
     if args.keep:
         return 0
 
-    # Spawn an interactive shell with the redirected environment.
-    return subprocess.run(["bash"], cwd=agent.work, env=agent.env, check=False).returncode
+    # Spawn an interactive shell with the redirected environment. `bash` is a
+    # reasonable assumption on a Unix machine and none at all on Windows, where
+    # COMSPEC names the shell that actually exists.
+    shell = [os.environ.get("COMSPEC", "cmd.exe")] if WINDOWS else ["bash"]
+    return subprocess.run(shell, cwd=agent.work, env=agent.env, check=False).returncode
 
 
 if __name__ == "__main__":
