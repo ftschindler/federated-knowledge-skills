@@ -37,7 +37,7 @@ if not mailmap.exists():
     )
     sys.exit(1)
 
-contents = mailmap.read_text()
+contents = mailmap.read_text(encoding="utf-8")
 assert len(contents) > 0
 
 # completely missing from mailmap

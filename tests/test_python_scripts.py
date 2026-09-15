@@ -77,7 +77,7 @@ def test_missing_mailmap_fails(tmp_path: Path) -> None:
 def test_missing_entry_flagged(tmp_path: Path) -> None:
     repo = _init_repo(tmp_path)
     _commit(repo, "Ada Lovelace", "ada@example.com", "c1")
-    (repo / ".mailmap").write_text("Grace Hopper <grace@example.com>\n")
+    (repo / ".mailmap").write_text("Grace Hopper <grace@example.com>\n", encoding="utf-8")
     result = _run_check(repo)
     assert result.returncode == 1
     assert "missing mailmap entry for Ada Lovelace" in result.stdout
@@ -86,7 +86,9 @@ def test_missing_entry_flagged(tmp_path: Path) -> None:
 def test_unsorted_lines_flagged(tmp_path: Path) -> None:
     repo = _init_repo(tmp_path)
     _commit(repo, "Ada Lovelace", "ada@example.com", "c1")
-    (repo / ".mailmap").write_text("Ada Lovelace <ada@example.com>\nAaron Swartz <aaron@example.com>\n")
+    (repo / ".mailmap").write_text(
+        "Ada Lovelace <ada@example.com>\nAaron Swartz <aaron@example.com>\n", encoding="utf-8"
+    )
     result = _run_check(repo)
     assert result.returncode == 1
     assert "not sorted properly" in result.stdout
@@ -95,7 +97,7 @@ def test_unsorted_lines_flagged(tmp_path: Path) -> None:
 def test_clean_mailmap_passes(tmp_path: Path) -> None:
     repo = _init_repo(tmp_path)
     _commit(repo, "Ada Lovelace", "ada@example.com", "c1")
-    (repo / ".mailmap").write_text("Ada Lovelace <ada@example.com>\n")
+    (repo / ".mailmap").write_text("Ada Lovelace <ada@example.com>\n", encoding="utf-8")
     result = _run_check(repo)
     assert result.returncode == 0, result.stdout
 
@@ -105,7 +107,7 @@ CHECK_MARKDOWN_STYLE = REPO_ROOT / ".scripts" / "check_markdown_style.py"
 
 def _run_markdown_style(tmp_path: Path, body: str) -> subprocess.CompletedProcess[str]:
     doc = tmp_path / "doc.md"
-    doc.write_text(body)
+    doc.write_text(body, encoding="utf-8")
     return subprocess.run(
         [sys.executable, str(CHECK_MARKDOWN_STYLE), str(doc)],
         capture_output=True,

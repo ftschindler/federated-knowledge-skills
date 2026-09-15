@@ -29,8 +29,16 @@ EM_DASH = "\u2014"
 
 
 def check(path: Path) -> list[str]:
-    """Return one message per offending line in `path`."""
-    lines = path.read_text(encoding="utf-8").splitlines()
+    """Return one message per offending line in `path`.
+
+    A file this cannot decode is reported rather than raised, the way
+    okf_validate.py already treats one: the hook is handed whatever is staged,
+    and a traceback out of a linter names neither the file nor the problem.
+    """
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except UnicodeDecodeError as exc:
+        return [f"{path}: not valid UTF-8 ({exc}) - this repo's markdown is UTF-8 throughout"]
     frontmatter_close = None
     if lines and lines[0].strip() == "---":
         for number, line in enumerate(lines[1:], start=2):
