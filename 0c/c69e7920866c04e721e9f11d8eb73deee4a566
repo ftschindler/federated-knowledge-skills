@@ -1,0 +1,21 @@
+.scripts/check_no_symlinks.py
+  s_fa55ac82bc1348::t_aa171681ce9c4b 1-66
+.gitignore
+  s_fa55ac82bc1348::t_9743812f57eebc 31-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "0cc69e7920866c04e721e9f11d8eb73deee4a566",
+  "prompts": {},
+  "sessions": {
+    "s_fa55ac82bc1348": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f59bcfe8fffeB1v3Nx2CEo6UBu",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    }
+  }
+}
