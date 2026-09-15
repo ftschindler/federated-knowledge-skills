@@ -176,6 +176,18 @@ repos:
     pass_filenames: false
     always_run: true
 
+  # No symlinks in the tree. A symlink is committed as a mode-120000 blob
+  # holding a path, and a clone on Windows without developer mode writes that
+  # path out as an ordinary text file: the link silently becomes a one-line
+  # document, and whatever read through it reads nonsense. One was in here
+  # (skills/fkb/JOURNAL.md) and this is what stops the next one.
+  - id: no-symlinks
+    name: No symlinks are committed (they do not survive a Windows clone)
+    entry: uv run --script .scripts/check_no_symlinks.py
+    language: system
+    pass_filenames: false
+    always_run: true
+
   # Portable paths: lowercase, no whitespace (with an allowlist).
   - id: lowercase-no-whitespace-filenames
     name: Filenames are lowercase with no whitespace
