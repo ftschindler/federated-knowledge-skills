@@ -28,3 +28,9 @@ Thumbs.db
 
 # OpenCode agent session/continuation state — machine cruft, not repo content
 .omo/
+
+# The journal, when a developer places a copy beside the skill so the skill's
+# own "the journal is running on this machine" branch is reachable while working
+# on it (see CONTRIBUTING.md). It used to be a committed symlink, which a Windows
+# clone turns into a text file holding the path; the copy is local and untracked.
+/skills/*/JOURNAL.md

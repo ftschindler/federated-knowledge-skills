@@ -70,7 +70,9 @@ repos:
   hooks:
   - id: linkspector
     name: Check broken links (linkspector)
-    entry: bash -c 'npx --yes puppeteer browsers install chrome@152.0.7977.64 && linkspector check -c .linkspector.yml'
+    # Two steps behind one entry, in node rather than `bash -c`: the config is
+    # run by contributors on Windows too, where bash is not a given.
+    entry: node .scripts/linkspector.mjs
     language: node
     additional_dependencies: ["@umbrelladocs/linkspector@0.5.6", "puppeteer"]
     pass_filenames: false
@@ -146,7 +148,7 @@ repos:
   # core or its helper scripts regress. Guard invariants at commit-time.
   - id: support-script-tests
     name: support script tests
-    entry: bash -c 'uvx --with pytest $(uv run .scripts/extract-deps.py skills) pytest -q -m python_scripts'
+    entry: uv run .scripts/run-tests.py python_scripts -q
     language: system
     files: ^(\.scripts/.*\.py|tests/test_.*\.py)$
     pass_filenames: false
@@ -172,6 +174,18 @@ repos:
   - id: check-mailmap
     name: Check .mailmap for inconsistencies
     entry: uv run --script .scripts/check_mailmap.py
+    language: system
+    pass_filenames: false
+    always_run: true
+
+  # No symlinks in the tree. A symlink is committed as a mode-120000 blob
+  # holding a path, and a clone on Windows without developer mode writes that
+  # path out as an ordinary text file: the link silently becomes a one-line
+  # document, and whatever read through it reads nonsense. One was in here
+  # (skills/fkb/JOURNAL.md) and this is what stops the next one.
+  - id: no-symlinks
+    name: No symlinks are committed (they do not survive a Windows clone)
+    entry: uv run --script .scripts/check_no_symlinks.py
     language: system
     pass_filenames: false
     always_run: true

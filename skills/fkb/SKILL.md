@@ -15,12 +15,14 @@ There is no search command and no audit workflow yet, on purpose.
 
 ## Commands
 
-Paths are relative to this skill's own directory, not to the working directory you happen
-to be in. Run them from here.
+`SKILLDIR` below is this skill's own directory, the one holding this file. Substitute its
+path. The commands work from whatever directory you are already in, so do not change
+directory first and do not chain two commands together: how that is written differs between
+shells, and the one you are running in is not knowable from here.
 
-```bash
-uv run scripts/fkb list          # which bundles exist, and what each allows
-uv run scripts/fkb lint [name]   # check a bundle, or all of them
+```text
+uv run SKILLDIR/scripts/fkb list          # which bundles exist, and what each allows
+uv run SKILLDIR/scripts/fkb lint [name]   # check a bundle, or all of them
 ```
 
 If `list` reports no manifest, say so and stop. Do not create one, do not guess a path, and
@@ -42,7 +44,7 @@ do not write a concept into a directory you found by looking around.
 
 3. **Which bundle?**
 
-   Run `uv run scripts/fkb list` to see what exists and what each allows. Then:
+   Run `uv run SKILLDIR/scripts/fkb list` to see what exists and what each allows. Then:
 
    - **If the user named one** ("public wiki", "the private bundle"):
      - If exactly one bundle matches that name, use it.
@@ -116,7 +118,7 @@ do not write a concept into a directory you found by looking around.
    own voice: say what the page is for rather than copying its `description`. Then append a
    line to `log.md` under today's date. A concept no index points at is one nobody finds.
 
-7. **Lint it.** Run `uv run scripts/fkb lint <bundle>` and fix what it calls an ERROR.
+7. **Lint it.** Run `uv run SKILLDIR/scripts/fkb lint <bundle>` and fix what it calls an ERROR.
    Warnings are the format's guidance and do not have to be silenced.
 
 8. **Leave the commit to the person**, unless they asked for it. The bundle is a git

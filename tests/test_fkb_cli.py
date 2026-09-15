@@ -88,13 +88,19 @@ def _workspace(tmp_path: Path, bundles: dict[str, str]) -> dict[str, str]:
     return {"XDG_CONFIG_HOME": str(tmp_path / "config")}
 
 
-def _run(script: Path, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
-    # Same reasoning as the bundle_lint tests: the pytest interpreter often has
-    # no pyyaml, in which case uv resolves the script's own inline metadata.
+def _interpreter() -> list[str]:
+    """How to start a PEP 723 script here: the pytest interpreter, or uv.
+
+    Same reasoning as the bundle_lint tests: the pytest interpreter often has no
+    pyyaml, in which case uv resolves the script's own inline metadata.
+    """
     if importlib.util.find_spec("yaml") is None:
-        command = ["uv", "run", "--script", str(script), *args]
-    else:
-        command = [sys.executable, str(script), *args]
+        return ["uv", "run", "--script"]
+    return [sys.executable]
+
+
+def _run(script: Path, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    command = [*_interpreter(), str(script), *args]
     return subprocess.run(command, capture_output=True, text=True, check=False, env={**os.environ, **(env or {})})
 
 
@@ -505,3 +511,58 @@ def test_resolve_counts_the_vocabulary_it_reports(tmp_path: Path) -> None:
     assert list(report["tags"]) == ["linux", "agent-wiki", "awiki"], "counts are not the sort key"
     assert report["types"] == {"note": 3}
     assert report["writable"] is True
+
+
+def test_the_cli_runs_from_any_working_directory(tmp_path: Path) -> None:
+    """The invocation SKILL.md prints has to work where the agent already is.
+
+    SKILL.md used to say the paths were relative to the skill's own directory and
+    to run them from there, which is a true statement about `scripts/fkb` and a
+    requirement nothing needed: the CLI puts its own directory on `sys.path`
+    itself, so it does not care where it was called from. What the requirement
+    did was force the reader to get there first, and the only way to say that in
+    one line is `cd somewhere && uv run ...` - which is a POSIX sentence. A user
+    on Windows reported the skill failing on exactly that, in a shell where `&&`
+    and `~` do not mean what the instruction assumed.
+
+    So the property is that no `cd` is needed, and it is tested from a directory
+    deliberately unrelated to both the skill and the bundle. The agent layer
+    exercises the real thing, but it costs an LLM and samples one path through
+    the prose; this pins the part that must hold every time.
+    """
+    _bundle(tmp_path / "kb", {"alpha.md": _concept("Alpha")})
+    env = _workspace(tmp_path, {"kb": str(tmp_path / "kb")})
+
+    elsewhere = tmp_path / "somewhere" / "else"
+    elsewhere.mkdir(parents=True)
+    result = subprocess.run(
+        [*_interpreter(), str(FKB), "list"],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=elsewhere,
+        env={**os.environ, **env},
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "kb" in result.stdout
+
+
+def test_skill_md_prescribes_no_shell_syntax() -> None:
+    """The commands the skill prints must be commands, not shell sentences.
+
+    A skill is read by an agent that then types what it says into whatever shell
+    it has. `&&`, `cd`, `~` and a `bash`-tagged fence are all instructions to use
+    a POSIX shell, and the agent obliges - on Windows, where `&&` is not valid in
+    the default PowerShell and `~` does not expand, that is the failure a user
+    reported. Prose is the thing that regressed, so prose is what this checks.
+    """
+    text = (INSTALLED / "SKILL.md").read_text(encoding="utf-8")
+    fences = [line.strip() for line in text.splitlines() if line.startswith("```") and len(line.strip()) > 3]
+    assert "```bash" not in fences, f"a shell-tagged fence tells the agent to use that shell: {fences}"
+
+    commands = [line for line in text.splitlines() if line.startswith("uv run")]
+    assert commands, "the commands block moved; this test needs to follow it"
+    for line in commands:
+        assert "&&" not in line, f"`&&` is not valid in every shell the skill runs in: {line}"
+        assert "~" not in line, f"`~` is expanded by the shell, not by every shell: {line}"
+        assert not line.startswith("cd "), f"the CLI needs no working directory: {line}"

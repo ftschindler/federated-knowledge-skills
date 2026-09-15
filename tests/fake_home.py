@@ -5,9 +5,15 @@ to `~/.config` when that variable is unset. Both roads lead somewhere real on a
 developer's machine, and one of them is the live federation, so a test that
 redirects only `XDG_CONFIG_HOME` leaves a bug one missing variable away from
 rewriting the manifest a person actually uses. Everything here exists to make
-that unreachable: `HOME` and every `XDG_*` point inside the given directory, and
-the fallback branch becomes something a test can exercise on purpose rather than
-something it must avoid.
+that unreachable: `HOME`, `USERPROFILE` and every `XDG_*` point inside the given
+directory, and the fallback branch becomes something a test can exercise on
+purpose rather than something it must avoid.
+
+`USERPROFILE` is in that list because the fallback is `Path.home()`, which reads
+`HOME` on Linux and `USERPROFILE` on Windows. Redirecting only `HOME` would make
+the isolation hold on one operating system and silently fail on the other, in
+the one test that deliberately removes `XDG_CONFIG_HOME` to reach the fallback -
+which is to say it would write into the developer's real manifest.
 
 The skill is installed into the house rather than run from the source tree,
 because the source tree is not an arrangement anyone has. A skill is copied into
@@ -56,6 +62,7 @@ class FakeHome:
         home = str(self.root)
         return {
             "HOME": home,
+            "USERPROFILE": home,
             "XDG_CONFIG_HOME": str(self.root / ".config"),
             "XDG_DATA_HOME": str(self.root / ".local" / "share"),
             "XDG_CACHE_HOME": str(self.root / ".cache"),
@@ -97,7 +104,7 @@ class FakeHome:
         # house overrides every variable that could lead out of it. A variable
         # the house deletes is deleted here too, or the fallback test would
         # silently keep reading the developer's own config.
-        merged = {k: v for k, v in os.environ.items() if k not in {"XDG_CONFIG_HOME", "HOME"}}
+        merged = {k: v for k, v in os.environ.items() if k not in {"XDG_CONFIG_HOME", "HOME", "USERPROFILE"}}
         merged.update(chosen)
         if "XDG_CONFIG_HOME" not in chosen:
             merged.pop("XDG_CONFIG_HOME", None)
@@ -125,7 +132,7 @@ def build_fake_home(root: Path) -> FakeHome:
 
 
 def local_remote(path: Path, layout: dict[str, str]) -> str:
-    """A real git repository on disk, to be cloned over `file://`.
+    """A real git repository on disk, to be cloned over a `file:` URL.
 
     Cloning is mostly mechanics - does the checkout land under `workspace_root`,
     is the entry written, is an existing directory refused - and mechanics do not
@@ -153,4 +160,6 @@ def local_remote(path: Path, layout: dict[str, str]) -> str:
         check=True,
         env={**os.environ, **quiet},
     )
-    return f"file://{path}"
+    # `Path.as_uri()` rather than an f-string: a Windows path pasted after
+    # `file://` yields `file://C:\\...`, which git reads as a host named `c`.
+    return path.as_uri()

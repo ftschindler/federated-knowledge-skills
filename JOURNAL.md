@@ -410,3 +410,45 @@ its whole taxonomy rebuilt. The gap is the subject of the third entry below.
   it needs the forge's review API and a mapping from a person slug to an account. A bundle would
   then get both by referencing them, which is also what would keep the person-to-handle mapping
   in one place per bundle instead of one per check.
+
+- **2026-09-15** the shell in the instructions - a user reported the skill failing under
+  opencode on Windows. `SKILL.md` §Commands said "Paths are relative to this skill's own
+  directory, not to the working directory you happen to be in. Run them from here", in a
+  fence tagged `bash`, so an agent that follows it writes
+  `cd ~/.agents/skills/fkb && uv run scripts/fkb list` - and in the shell that is default on
+  that machine `&&` is not valid and `~` does not expand. The requirement was never real:
+  `scripts/fkb` puts its own directory on `sys.path` itself, so `uv run <dir>/scripts/fkb
+  list` has always worked from anywhere, and running `uv run scripts/fkb list` from
+  `/tmp` confirmed it. The instruction recorded how the author happened to invoke the CLI and
+  promoted that to a precondition the reader had to satisfy first, and the only way to satisfy
+  it in one line is a shell sentence. Replaced with a `SKILLDIR/scripts/fkb` form in a `text`
+  fence that says the working directory does not matter and not to chain two commands, and
+  pinned by two tests under the `python_scripts` marker: one runs the CLI with `cwd` set to a
+  directory unrelated to both the skill and the bundle, one reads the installed `SKILL.md` and
+  fails on a `bash` fence, a `cd`, a `~` or an `&&` among the commands it prints. What let it
+  through is that no test read `SKILL.md`: the CLI is exercised everywhere as an argument
+  list, which is not how anybody meets it. The agent layer is the only one that reads the
+  prose and it ran on one operating system, so it could only ever have caught half of what it
+  is for; it now runs on both.
+
+- **2026-09-15** a question is the end of the session - `test_a_cold_session_files_a_conformant_concept`
+  gave an agent a fact to keep and a writable bundle holding only `index.md`, `log.md` and
+  `fkb.yaml`. It read the manifest, chose the bundle correctly, and then answered "It has no
+  directories and no concepts yet, so before I write: place this note at the bundle root (no
+  new directory for a single page), and file it without tags since none exist yet? Or do you
+  want a directory/tag setup to start?" - and wrote nothing. `opencode run` is
+  non-interactive, so the question was the last thing that happened and the bundle stayed
+  empty. Both choices it raised are ones §9.6 already answers by refusing to have an opinion,
+  which means an empty bundle offers nothing to read and the skill says what to read rather
+  than what to do when there is nothing there. The failure is not platform-specific and not
+  new: it is red on `main` today on Linux, in the same test, with the same assertion. Nothing
+  was done instead - the test is left failing rather than relaxed, because what it reports is
+  a gap in the filing instructions and not a flaky harness. Seen three times across both
+  operating systems, and the third run is the one that says what the gap is: "Since it's the
+  first note, where should it live - at the bundle root, or should I create a directory (e.g.
+  `systems/`)? I'd default to root for a single note." It has the answer, states it, and asks
+  anyway. So the instruction that is missing is not where to put a file, which the agent can
+  work out; it is that filing does not stop to confirm a default it already holds. Worth
+  pairing with the setup branch being written for T5, which already tells the agent that "get
+  me started" is the decision made and not a question to ask back; the same instinct fires one
+  step later, in filing, and is not yet answered there.
