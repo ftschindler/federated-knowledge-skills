@@ -1,0 +1,22 @@
+.scripts/run-tests.py
+  s_fa55ac82bc1348::t_5c0daa4dbdd7b6 1-60,62-82
+  s_fa55ac82bc1348::t_62e604922521b6 61
+.scripts/linkspector.mjs
+  s_fa55ac82bc1348::t_7cce7f9ae97491 1-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "4af7b5a2efae0a3b06b6cd347d5177f685a2bc74",
+  "prompts": {},
+  "sessions": {
+    "s_fa55ac82bc1348": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f59bcfe8fffeB1v3Nx2CEo6UBu",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Felix Schindler <107669806+ftschindler@users.noreply.github.com>"
+    }
+  }
+}
