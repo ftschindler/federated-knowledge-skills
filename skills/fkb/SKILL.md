@@ -85,10 +85,19 @@ do not write a concept into a directory you found by looking around.
 
 5. **Write the file** with the ordinary write tool.
 
-   **The bundle decides what a concept must carry.** Read `okf-floor.yaml` at the bundle
-   root and satisfy every field it lists. Do not carry a list of required fields in your
-   head, and do not copy one from another bundle: the floor file is the only statement of
-   what is required, and a second one would be free to drift from it.
+   **The bundle decides what a concept must carry.** Read `fkb.yaml` at the bundle
+   root and satisfy every field its `required:` list names. Do not carry a list of required
+   fields in your head, and do not copy one from another bundle: that file is the only
+   statement of what is required, and a second one would be free to drift from it. A bundle
+   that carries no `fkb.yaml` requires nothing beyond the format itself; write it to the
+   format and do not invent a floor for it.
+
+   **The bundle also decides how a concept is written.** If `fkb.yaml` carries a
+   `conventions:` path, read what it points at before writing: it is the bundle's house
+   rules, and the path is relative to `fkb.yaml` and may lead outside the bundle. Whether or
+   not it does, **read two existing concepts from the directory you are writing into**. The
+   floor and the index give you the bundle's schema and none of its voice, and prose matches
+   nearby prose more reliably than it satisfies an adjective.
 
    For everything beyond the floor, see [the concept template](references/concept-template.md)
    for the palette and [the specification](references/SPEC.md) for the detail. Fill what is

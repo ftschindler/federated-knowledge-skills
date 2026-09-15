@@ -48,11 +48,12 @@ def _concept(title: str, *, omit: str = "") -> str:
     return "---\n" + "\n".join(lines) + f"\n---\n\n# {title}\n"
 
 
-def _bundle(root: Path, files: dict[str, str]) -> Path:
+def _bundle(root: Path, files: dict[str, str], conventions: str | None = None) -> Path:
     root.mkdir(parents=True)
     (root / "index.md").write_text(INDEX + "".join(f"- [{name}]({name})\n" for name in files), encoding="utf-8")
     (root / "log.md").write_text(LOG, encoding="utf-8")
-    (root / "okf-floor.yaml").write_text(FLOOR, encoding="utf-8")
+    declaration = FLOOR if conventions is None else FLOOR + f"conventions: {conventions}\n"
+    (root / "fkb.yaml").write_text(declaration, encoding="utf-8")
     for rel, text in files.items():
         path = root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -165,7 +166,7 @@ def test_cli_and_hook_report_the_same_finding(tmp_path: Path) -> None:
     root = _bundle(tmp_path / "kb", {"alpha.md": _concept("Alpha", omit="status")})
     env = _workspace(tmp_path, {"kb": str(root)})
 
-    hook = _run(BUNDLE_LINT, "--bundle-root", str(root), "--floor", str(root / "okf-floor.yaml"))
+    hook = _run(BUNDLE_LINT, "--bundle-root", str(root), "--floor", str(root / "fkb.yaml"))
     cli = _run(FKB, "lint", env=env)
 
     def findings(text: str) -> set[str]:
@@ -173,4 +174,73 @@ def test_cli_and_hook_report_the_same_finding(tmp_path: Path) -> None:
 
     assert hook.returncode == cli.returncode == 1, hook.stdout + cli.stdout
     assert findings(hook.stdout) == findings(cli.stdout)
+    assert "alpha.md: floor: required field `status` is absent or empty" in hook.stdout
+
+
+def test_conventions_may_point_outside_the_bundle(tmp_path: Path) -> None:
+    """The public bundle keeps its house rules beside the site, not inside the knowledge.
+
+    A pointer that cannot leave the bundle root would force such a bundle to
+    move the page or keep a second copy, which is the drift the key exists to
+    avoid (DESIGN §9.2). `list` has to resolve it and report where it landed.
+    """
+    root = _bundle(tmp_path / "repo" / "docs", {"alpha.md": _concept("Alpha")}, conventions="../about/style.md")
+    house = tmp_path / "repo" / "about" / "style.md"
+    house.parent.mkdir(parents=True)
+    house.write_text("# House rules\n", encoding="utf-8")
+
+    env = _workspace(tmp_path, {"kb": str(root)})
+    listed = _run(FKB, "list", env=env)
+    assert listed.returncode == 0, listed.stdout + listed.stderr
+    assert str(house.resolve()) in listed.stdout
+    assert "MISSING" not in listed.stdout
+
+    assert _run(FKB, "lint", env=env).returncode == 0
+
+
+def test_a_broken_conventions_pointer_warns_and_does_not_block(tmp_path: Path) -> None:
+    """A moved page leaves a pointer at nothing, and the agent silently reads no rules.
+
+    Worth reporting, not worth failing a commit over: the key is optional and
+    the path may leave the bundle, so a bundle vendored without its repository
+    would block for no fault of its own.
+    """
+    root = _bundle(tmp_path / "kb", {"alpha.md": _concept("Alpha")}, conventions="about/gone.md")
+    env = _workspace(tmp_path, {"kb": str(root)})
+
+    result = _run(FKB, "lint", env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "conventions: `about/gone.md` does not resolve to a file" in result.stdout
+    assert "warn   fkb.yaml:" in result.stdout
+
+
+def test_a_bundle_without_the_declaration_is_still_lintable(tmp_path: Path) -> None:
+    """A third-party bundle carries no `fkb.yaml`, and must stay usable anyway.
+
+    Conformance still applies; the floor simply has nothing to say, so a concept
+    missing a field the floor would have required passes (DESIGN §9.2).
+    """
+    root = _bundle(tmp_path / "kb", {"alpha.md": _concept("Alpha", omit="description")})
+    (root / "fkb.yaml").unlink()
+    env = _workspace(tmp_path, {"kb": str(root)})
+
+    result = _run(FKB, "lint", env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "required field `description`" not in result.stdout
+    assert "config            not declared" in _run(FKB, "list", env=env).stdout
+
+
+def test_the_hook_accepts_a_declaration_under_any_name(tmp_path: Path) -> None:
+    """Only `fkb` requires the filename, because only `fkb` discovers it.
+
+    The hook is handed an explicit path, so a bundle may decline the canonical
+    name and still enforce itself with no federation installed. Adopting the
+    name is how a bundle opts into being found, not into being checked.
+    """
+    root = _bundle(tmp_path / "kb", {"alpha.md": _concept("Alpha", omit="status")})
+    renamed = root / "house-floor.yaml"
+    (root / "fkb.yaml").rename(renamed)
+
+    hook = _run(BUNDLE_LINT, "--bundle-root", str(root), "--floor", str(renamed))
+    assert hook.returncode == 1, hook.stdout + hook.stderr
     assert "alpha.md: floor: required field `status` is absent or empty" in hook.stdout

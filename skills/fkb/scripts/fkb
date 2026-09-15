@@ -28,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import bundle_lint
 
-FLOOR_FILE = "okf-floor.yaml"
+CONFIG_FILE = "fkb.yaml"
 
 
 def manifest_path() -> Path:
@@ -77,9 +77,42 @@ class Bundle:
         return f"[{listed}]  (only these may cite this one)"
 
     @property
-    def floor(self) -> Path | None:
-        candidate = self.path / FLOOR_FILE
+    def config(self) -> Path | None:
+        """The bundle's own declaration, found by convention rather than told.
+
+        Only `fkb` needs the filename to be this exact string: the standalone
+        hook is handed an explicit path and would accept any name (DESIGN §9.2).
+        A bundle that does not carry the file is held to conformance alone.
+        """
+        candidate = self.path / CONFIG_FILE
         return candidate if candidate.is_file() else None
+
+    @property
+    def floor(self) -> Path | None:
+        """The floor declaration, which is the config file when there is one."""
+        return self.config
+
+    @property
+    def conventions(self) -> Path | None:
+        """The bundle's house rules, if it declares where they are.
+
+        Resolved against the declaring file and permitted to escape the bundle
+        root, because a bundle may keep its conventions beside the site rather
+        than inside the knowledge (DESIGN §9.2). Returned whether or not it
+        resolves: reporting a broken pointer is the point, and `lint` is what
+        calls it a defect.
+        """
+        config = self.config
+        if config is None:
+            return None
+        try:
+            declared = yaml.safe_load(config.read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError):
+            return None
+        relative = declared.get("conventions") if isinstance(declared, dict) else None
+        if not isinstance(relative, str) or not relative.strip():
+            return None
+        return (config.parent / relative.strip()).resolve()
 
 
 def load_bundles() -> list[Bundle]:
@@ -107,9 +140,10 @@ def cmd_list(_: argparse.Namespace) -> int:
     """Print each bundle under the manifest's own field names.
 
     Inventing labels here would give the same policy two vocabularies, and an
-    agent reading `open` has no way back to the line that produced it. `floor` is
-    the one row naming no manifest field, because it is discovered in the bundle
-    rather than declared about it.
+    agent reading `open` has no way back to the line that produced it. `config`
+    and `conventions` are the two rows naming no manifest field, because one is
+    discovered in the bundle rather than declared about it, and the other is
+    declared by the bundle itself.
     """
     for bundle in load_bundles():
         missing = "" if bundle.path.is_dir() else "  (MISSING)"
@@ -118,7 +152,13 @@ def cmd_list(_: argparse.Namespace) -> int:
         print(f"  referenceable_by  {bundle.citation}")
         print(f"  writable          {'true' if bundle.writable else 'false'}")
         print(f"  publish           {bundle.publish or 'null'}")
-        print(f"  floor             {bundle.floor or 'not declared'}")
+        print(f"  config            {bundle.config or 'not declared'}")
+        conventions = bundle.conventions
+        if conventions is None:
+            print("  conventions       not declared")
+        else:
+            broken = "" if conventions.is_file() else "  (MISSING)"
+            print(f"  conventions       {conventions}{broken}")
     return 0
 
 

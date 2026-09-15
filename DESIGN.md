@@ -33,14 +33,14 @@ would have told us.
 | # | Question | Settled by |
 | --- | --- | --- |
 | 9.1 | How `fkb search` ranks once bundles outgrow lexical matching | T4, from journal evidence |
-| 9.2 | The floor's exact content, and the config file's name | T1 |
+| 9.2 | The floor's exact content, and the config file's name | T1, renamed in T2 |
 | 9.3 | Whether markdown raw sources become `references/` concepts or stay outside the bundle | T1 |
 | 9.4 | How non-knowledge pages in a bundle satisfy OKF §11 | T1 |
 | 9.5 | How a bundle lints standalone, without knowing it is federated | T6 |
 | 9.6 | How knowledge is structured inside a bundle - directories, `tags`, publishing nav | T1, per bundle |
 | 9.7 | Whether we may assume more than `uv` is installed | T4 |
 
-§9.9 records what is settled.
+§9.10 records what is settled.
 
 ## 2. Invariants
 
@@ -540,7 +540,8 @@ neighbours costs no extra call.
 This half of house style is **derived**, which is why it is the half in the CLI: it cannot
 drift, needs no declaration, and works on read-only upstreams that will never adopt our
 conventions. The *declared* half - casing rules, prohibitions, intent - lives in the bundle
-beside its floor declaration (§9.2), never in the manifest (§9.6).
+beside its floor declaration, which §9.2's `conventions:` key points at, never in the
+manifest (§9.6).
 
 The scan is the one `lint` already performs over frontmatter.
 
@@ -658,7 +659,7 @@ build, keep fresh, and reason about per bundle.
 the web instead. Record the query when it happens; a handful of real misses is what should
 justify an index, not a projection.
 
-### 9.2 Where a bundle declares its floor - a YAML file at the bundle root
+### 9.2 Where a bundle declares its floor - `fkb.yaml` at the bundle root
 
 **Settled: a small YAML file, not the bundle-root `index.md`.** The vendored validator
 warns on any root-index key outside `okf_version` and its own `upkeep`:
@@ -672,16 +673,97 @@ Putting our floor there means our own linter warning about our own config on eve
 silencing it would mean editing the vendored file (§8). A YAML file also parses without a
 markdown-frontmatter reader, which the standalone hook (§9.5) wants.
 
-Still open: nothing. The file is `okf-floor.yaml` at the bundle root, and it carries a flat
-`required:` list of the five fields §6.5 argues for - `type`, `title`, `description`,
-`status`, `generated`. `tags` is deliberately absent, which keeps §9.6's question open: add
-one line to require it, the day the vocabulary is decided.
+The file is `fkb.yaml` at the bundle root. It carries a flat `required:` list of the five
+fields §6.5 argues for - `type`, `title`, `description`, `status`, `generated` - and an
+optional `conventions:` path, below. `tags` is deliberately absent from `required:`, which
+keeps §9.6's question open: add one line to require it, the day the vocabulary is decided.
 
 **That list is the whole of what a bundle demands beyond the format's own hard rules.** The
 standalone hook reads this file and nothing else, so a field it does not name is reported
 and never enforced (§9.5). The file is therefore the bundle's declaration and the hook's
 configuration at once, which is why the hook takes it as an explicit argument rather than
 discovering it.
+
+#### Why not `okf-floor.yaml`
+
+It was called that through T1, and the name was wrong twice over.
+
+**`okf-` claims the wrong provenance.** The specification does not define this file:
+`grep -n floor references/SPEC.md` returns nothing, and the paragraph above says plainly
+that the floor is ours. The prefix invites the inference that any OKF bundle carries one,
+and a third-party OKF bundle registered in this workspace carries none at all. An agent
+reasoning from the name reasons correctly and concludes something false.
+
+**`floor` names one of the file's two jobs.** It already holds a declaration *and* a hook
+configuration, and with `conventions:` it holds a pointer as well. A name naming the first
+of three stops describing the file the moment it grows, which is the state it was already
+in.
+
+The name that is left has to answer: who requires it to be *this* string? Not the bundle,
+and not the hook, which is handed an explicit path and would accept any filename. Only
+`fkb` does, because only `fkb` discovers the file rather than being told where it is. So
+contents and filename have different owners, and that is ordinary rather than awkward:
+
+| | owned by | meaningful without `fkb`? |
+| --- | --- | --- |
+| contents - `required:`, `conventions:` | the bundle | yes, the hook enforces them standalone |
+| filename and location | `fkb`'s discovery contract | no, only within a federation |
+
+`.editorconfig` and `package.json` hold project-owned content under an ecosystem-owned
+filename and nobody finds them mis-named. Naming the file for the tool that has to find it
+is the honest form, so `fkb.yaml` it is, and the name is a federation-level decision rather
+than a per-bundle one.
+
+**What the name does not buy.** A bundle is not required to adopt it. The hook goes on
+taking an explicit path (§9.5), so a bundle may call the file anything, pin the hook, and
+be fully checked with no `fkb` installed anywhere. What the canonical name buys is
+*discovery*: `fkb lint` finds the file by convention because it has the manifest and does
+not need telling. Adopting the filename is how a bundle opts into being found, and the cost
+sits there rather than on the bundle that never federates.
+
+#### `conventions:` - where the bundle's house rules live
+
+**Settled: one optional key holding a path to the bundle's house rules.**
+
+```yaml
+required: [type, title, description, status, generated]
+conventions: ../about/editing_conventions.md
+```
+
+The floor says what a concept must *carry*. It says nothing about how a concept is
+*written*, and §9.6 records what that costs: an agent reads the floor, the directories and
+the index, which is the bundle's schema and none of its voice. The rules exist in every
+bundle that has been worked in; they are simply in a different place each time. Across the
+four bundles in this workspace they sit at `docs/about/editing_conventions.md`, at the
+repository root beside `AGENTS.md`, in an `about/` directory outside the OKF root entirely,
+and nowhere at all.
+
+So the skill cannot carry a path, and each bundle must state its own. The value is resolved
+relative to the file that declares it and **may escape the bundle root**, which is the point:
+§9.6 notes that the public bundle deliberately keeps its conventions outside the bundle,
+where the people editing the site can find them, and that a tool given only the manifest's
+`path` therefore cannot see the file. A pointer inside the bundle to a file outside it costs
+no second copy, no restructuring, and no drift, and it is strictly cheaper than the three
+options §9.6 had.
+
+**Declaration, not enforcement.** The value is prose for an agent to read. Nothing parses
+it, and `lint` checks only that a declared path resolves, because a pointer to a file that
+does not exist is a defect the bundle can fix and a silent one otherwise.
+
+**Everything degrades, and absence is never an error.** The three rows are all present in
+this workspace today, and the third must stay filable:
+
+| the bundle has | the skill does |
+| --- | --- |
+| `fkb.yaml` with `conventions:` | read it, then two concepts from the target directory |
+| `fkb.yaml`, no `conventions:` | derive the vocabulary (§9.6), read two concepts |
+| no `fkb.yaml` at all | conformance only (§6.6), derive, read two concepts |
+
+**Not in the manifest, for the same reason as house style.** A bundle must be
+self-describing to someone who has never heard of the federation (§9.5). A bundle whose
+conventions are locatable only through one machine's manifest is not, and a manifest
+pointer would be a second answer to a question the bundle already answers, free to be wrong
+the moment the bundle is edited elsewhere.
 
 ### 9.3 Markdown raw sources live beside the bundle, not inside it
 
@@ -804,29 +886,36 @@ Distinct styles across bundles create a real cost: the skill must decide *where*
    an upstream that will never adopt our conventions - which is exactly the case a
    declaration cannot reach.
 3. **Declare what derivation cannot see** - casing rules, prohibitions, intent - in the
-   bundle, beside its floor declaration (§9.2). One file, one standalone-parseable answer.
+   bundle, pointed at by `conventions:` in its `fkb.yaml` (§9.2). One key, one answer, and
+   the page may live wherever the bundle already keeps it.
 
 > **Not in the manifest.** §4 admits machine-local facts and federation policy, and house
 > style is neither. It belongs to the bundle, must travel with the repo, and must work when
 > nobody knows the federation exists (§9.5). A manifest pointer would be a second home for
 > something the bundle owns, drifting the moment the bundle is edited on another machine.
 
-**Where the first bundle actually put it, and the problem that creates.** Option 3 says
+**Where the first bundle actually put it, and how that is resolved.** Option 3 says
 "beside its floor declaration", which means inside the bundle. `ftschindler/knowledge` put
 its house style in `about/editing_conventions.md` instead, outside the bundle, because the
 rules are read by people editing the site as much as by anything else and a second copy
 would drift.
 
-That is defensible and it costs something specific: the manifest's `path` points at the
-bundle root, so a tool given only that path cannot see the file. It travels with the
+That is defensible and it cost something specific: the manifest's `path` points at the
+bundle root, so a tool given only that path could not see the file. It travelled with the
 repository but not with the bundle.
 
-Nothing depends on this yet, because nothing reads house style programmatically.
-[T5](IMPLEMENTATION.md#t5---finish-the-skill) is where it bites, since the skill ships a
-`references/house-style.md` and must not simply restate what the bundle already says.
-**Decide it there**, with three answers available: move the page into the bundle as a
-concept, split the bundle-authoring rules from the site-editing ones, or let the skill
-teach the general rules and leave each bundle's specifics to be read from the repository.
+**Settled by `conventions:` in §9.2**, which is a fourth option none of the three above
+reached: the bundle declares *where* its rules are, and the path may escape the bundle
+root. The page stays where humans edit it, no copy is made, and the skill dereferences a
+pointer instead of guessing a path. This matters more than one bundle's layout, because
+across the four bundles in this workspace the file sits in four different places and one of
+them does not exist, so any hardcoded path in the skill is right once and wrong three
+times.
+
+What remains for [T5](IMPLEMENTATION.md#t5---finish-the-skill) is narrower than it was: the
+skill ships a `references/house-style.md` and must not restate what a bundle already says.
+The split to draw there is that the skill teaches what is true of writing concepts in
+general, and `conventions:` answers what is true of writing them *here*.
 
 ### 9.7 What we may assume is installed
 
@@ -871,12 +960,51 @@ allows one anywhere and the reference bundle puts one in each folder, which is p
 disclosure working as intended. Ours has no folders yet. **Decide during the first
 migration**, when there are directories to disclose.
 
-> A related, smaller point for the skill rather than the design: appending to `log.md` is a
+### 9.9 Log entries are prose, and carry no links
+
+**Settled: an entry in `log.md` names a concept in plain text; it never links to one.**
+
+OKF §9's own example does the opposite, linking each entry at the concept it reports:
+
+```markdown
+* **Creation**: Established the [Dataplex Playbook](/playbooks/dataplex.md).
+```
+
+That works for as long as nothing is ever deleted or moved. `log.md` is the one file in a
+bundle that is **append-only by nature**: an entry records that something happened on a
+date, and that remains true after the concept it mentions is renamed, moved to another
+directory, promoted to another bundle or dropped. A link, however, does not remain true, and
+there are only bad ways to react to that. Rewriting the old entry falsifies the record.
+Deleting it loses the history. Leaving it dangling breaks a strict site build, and does so
+from a line nobody is editing.
+
+Every other file in a bundle links freely, because every other file describes the present
+tense. `index.md` must link, and its links must resolve, which is exactly why a deleted
+concept has to be removed from the index and *not* from the log. The two reserved files have
+opposite obligations, and that is not obvious enough to leave implicit.
+
+The cost is real and small: a reader of the log cannot click through. They can search, and
+the entry names the title, so a title given in full is worth more here than in a file where
+a link would carry the reader anyway. This is a deviation from §9's example rather than from
+its prose, which requires only date-grouped entries in ISO form (appendix B).
+
+Two consequences for the tooling:
+
+- `check_log` currently validates the absence of frontmatter and the date headings. It should
+  also **warn on a markdown link in a log entry**, since this is a rule an author breaks by
+  doing the obvious thing, and the breakage surfaces later in an unrelated commit.
+- The rule should hold for **historical** entries too. An entry written before this was
+  settled and pointing at a concept since removed is degraded to plain text, not deleted.
+
+> A second point about `log.md`, for the skill rather than the design: appending to it is a
 > find-or-create edit, not a blind append. The newest day goes first, so the agent has to
 > locate today's `## YYYY-MM-DD` heading or insert one at the top. It is the only step of
-> §6.3 that is not a plain write, and it needs saying in the skill body.
+> §6.3 that is not a plain write, and it needs saying in the skill body. Ordering has already
+> been got wrong once in a real bundle, in the direction the file's existing content
+> suggested rather than the direction the rule requires, so the skill saying it is not enough
+> on its own: `check_log` should also verify that the date headings descend.
 
-### 9.9 Settled
+### 9.10 Settled
 
 - **Canonical OKF home** is `GoogleCloudPlatform/open-knowledge-format`. The
   `knowledge-catalog` path in the okf-skills header is stale; pin from the former.
@@ -888,6 +1016,8 @@ migration**, when there are directories to disclose.
   unverified (§6.5).
 - **Indexes are authored, never generated by `fkb`**; deterministic lint may check that
   every concept is covered, never how an entry is worded (§9.8).
+- **Log entries are prose with no links**, because `log.md` is append-only and its subjects
+  move (§9.9).
 - **A bundle lints itself through pinned `pre-commit` hooks** published from this
   repository, wrapping the one implementation `fkb lint` also calls (§9.5).
 - **A broken internal link warns, never fails**; not-yet-written knowledge is a
@@ -939,6 +1069,7 @@ The conclusion this design returns to was reached on 2026-08-27 in
 | awiki | `[[wikilinks]]` | standard markdown links | Our blueprint mandates them, OKF §6.1 specifies them, and Obsidian and MkDocs both support them. |
 | OKF §5 | Every timestamp-valued key is "an ISO 8601 datetime with an explicit UTC offset" | `YYYY-MM-DD` dates for `stale_after`, `sources[].last_modified` and `usage_window` | The vendored validator predates the change and rejects the datetime form under `--strict` (§8). All three fields sit outside the floor, so the simplification costs day precision on staleness. |
 | OKF §6.1 | Absolute, bundle-relative links (leading `/`) are the recommended form; relative links are also supported | Relative links throughout | Only the relative form resolves in an editor, on the GitHub web UI and in a rendered site at once - the reason §5.2 already keeps assets beside their concept. MkDocs rewrites relative links when a page moves and leaves absolute ones untouched, so a moved target breaks silently. |
+| OKF §9 | Its example log entries link at the concept they report | Log entries name a concept in plain text, never a link | `log.md` is append-only: an entry stays true after its subject moves or is deleted, whilst a link does not, and every way of reacting to that either falsifies the record, loses history or breaks a strict build from a line nobody is editing (§9.9). |
 | OKF §8 | An index entry SHOULD carry the description from the linked concept's frontmatter | Entries are written in index voice: shorter than the description, tuned to being scanned in a list | The reference bundle `stjbrown/agent-knowledge` truncates, compresses or rewrites every one of its own, and its index additionally carries a purpose statement, per-section blurbs and an order that follows how the ideas build. Copying the descriptions would duplicate state and produce a worse file (§9.8). |
 
 ## Sources

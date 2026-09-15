@@ -4,9 +4,11 @@
 # ///
 """Forbid two markdown constructs this repo does not use.
 
-- `---` thematic breaks. Headings already separate sections; a rule line adds a
-  second, redundant separator that the rendered page shows as noise. YAML
-  frontmatter delimiters are exempt, as are table delimiter rows (`| --- |`).
+- Thematic breaks. Headings already separate sections; a rule line adds a
+  second, redundant separator that the rendered page shows as noise. All three
+  CommonMark spellings count, since they render to the same `<hr>`: `---`,
+  `***`, `___`, including the spaced forms (`- - -`). YAML frontmatter
+  delimiters are exempt, as are table delimiter rows (`| --- |`).
 - The em dash `—`. Use `-` instead, so prose is typeable on any keyboard and
   greps the same way everywhere.
 
@@ -20,7 +22,9 @@ import sys
 from pathlib import Path
 
 FENCE = re.compile(r"^\s{0,3}(?:```|~~~)")
-THEMATIC_BREAK = re.compile(r"^\s{0,3}-{3,}\s*$")
+# CommonMark thematic break: up to 3 leading spaces, then 3+ of `-`, `*` or `_`,
+# with optional spaces or tabs anywhere between them.
+THEMATIC_BREAK = re.compile(r"^ {0,3}(?:(?:-[ \t]*){3,}|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,})$")
 EM_DASH = "\u2014"
 
 
@@ -47,7 +51,9 @@ def check(path: Path) -> list[str]:
         if number == frontmatter_close:
             continue
         if THEMATIC_BREAK.match(line):
-            problems.append(f"{path}:{number}: `---` separator - delete it, headings already separate sections")
+            problems.append(
+                f"{path}:{number}: `{line.strip()}` separator - delete it, headings already separate sections"
+            )
         if EM_DASH in line:
             problems.append(f"{path}:{number}: em dash `{EM_DASH}` - use `-` instead")
     return problems

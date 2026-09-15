@@ -5,15 +5,15 @@
 # that would require a manifest.
 #
 # Both hooks are the same checker under different blocking policies. Pass
-# `--bundle-root`, and `--floor` when the bundle declares one:
+# `--bundle-root`, and `--floor` when the bundle declares one (any path: the hook is told, never discovers):
 #
 #   - repo: https://github.com/ftschindler/federated-knowledge-skills
 #     rev: <commit>
 #     hooks:
 #     - id: okf-concepts
-#       args: [--bundle-root, docs, --floor, docs/okf-floor.yaml]
+#       args: [--bundle-root, docs, --floor, docs/fkb.yaml]
 #     - id: okf-bundle
-#       args: [--bundle-root, docs, --floor, docs/okf-floor.yaml]
+#       args: [--bundle-root, docs, --floor, docs/fkb.yaml]
 #
 # `okf-concepts` needs no second hook to be strict in CI. Run with --all-files,
 # every file is in scope and every finding blocks, which is what a governance

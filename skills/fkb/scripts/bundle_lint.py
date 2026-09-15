@@ -103,6 +103,8 @@ def check_floor(bundle: Path, floor_file: Path, in_scope: Callable[[Path], bool]
     if not required:
         sys.exit(f"bundle_lint: {floor_file} declares no `required:` fields")
 
+    check_conventions(floor_file, declared, findings)
+
     for path in concept_files(bundle):
         rel = path.relative_to(bundle).as_posix()
         meta = frontmatter(path)
@@ -114,6 +116,30 @@ def check_floor(bundle: Path, floor_file: Path, in_scope: Callable[[Path], bool]
                     f"floor: required field `{name}` is absent or empty",
                     blocks=in_scope(path),
                 )
+
+
+def check_conventions(floor_file: Path, declared: dict, findings: Findings) -> None:
+    """Check that a declared `conventions:` path resolves to a file.
+
+    The value is prose for an agent to read and nothing here parses it. The one
+    thing worth checking is that it exists, because a pointer at a file that was
+    moved or renamed is a defect the bundle can fix and is otherwise silent: the
+    agent simply reads no conventions and never learns that it should have.
+
+    Warns rather than blocks. The key is optional, the path is allowed to leave
+    the bundle root (DESIGN §9.2), and a bundle vendored or cloned without the
+    repository around it would fail a blocking check for no fault of its own.
+    """
+    relative = declared.get("conventions")
+    if relative is None:
+        return
+    rel = floor_file.name
+    if not isinstance(relative, str) or not relative.strip():
+        findings.add(rel, "conventions: declared but empty; remove the key or give it a path", blocks=False)
+        return
+    target = (floor_file.parent / relative.strip()).resolve()
+    if not target.is_file():
+        findings.add(rel, f"conventions: `{relative.strip()}` does not resolve to a file", blocks=False)
 
 
 def check_coverage(bundle: Path, in_scope: Callable[[Path], bool], findings: Findings) -> None:

@@ -107,10 +107,17 @@ def _run_markdown_style(tmp_path: Path, body: str) -> subprocess.CompletedProces
     )
 
 
-def test_thematic_break_flagged(tmp_path: Path) -> None:
-    result = _run_markdown_style(tmp_path, "# T\n\n---\n\n## S\n")
+@pytest.mark.parametrize("rule", ["---", "***", "___", "- - -", "* * *", "_ _ _", "-----"])
+def test_thematic_break_flagged(tmp_path: Path, rule: str) -> None:
+    result = _run_markdown_style(tmp_path, f"# T\n\n{rule}\n\n## S\n")
     assert result.returncode == 1
-    assert "`---` separator" in result.stdout
+    assert f"`{rule}` separator" in result.stdout
+
+
+@pytest.mark.parametrize("line", ["- item", "*emphasis*", "__bold__", "-- two", "**"])
+def test_non_breaks_allowed(tmp_path: Path, line: str) -> None:
+    result = _run_markdown_style(tmp_path, f"# T\n\n{line}\n")
+    assert result.returncode == 0, result.stdout
 
 
 def test_em_dash_flagged(tmp_path: Path) -> None:
