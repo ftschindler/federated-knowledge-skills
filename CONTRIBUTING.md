@@ -82,10 +82,14 @@ These tests
 - send it a message (the non-deterministic part),
 - assert deterministically on the transcript it returns and the files it leaves.
 
-While the repo has no skills of its own, this layer installs a canary skill authored by the
-test and checks that the agent discovers and follows it. That keeps every moving part
-exercised: the opencode install, the permission grant, skill discovery, activation and
-transcript parsing.
+This layer installs a throwaway skill authored by the test and checks that the agent
+discovers and follows it. That keeps every moving part exercised: the opencode install, the
+permission grant, skill discovery, activation and transcript parsing.
+
+What that skill says is deliberately dull. It asks for a house greeting and gets a nonsense
+phrase back. An earlier version asked the model to "report the canary token", which reads as
+an attempt to make it disclose a secret; it declined on exactly those grounds and the layer
+went red. A test of skill discovery must not look like a test of anything else.
 
 #### A disposable agent
 
