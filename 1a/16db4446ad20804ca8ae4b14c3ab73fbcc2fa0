@@ -1,0 +1,32 @@
+DESIGN.md
+  s_f0554b21f31ec0::t_904bc2c7fa2486 677-684,692-706
+  s_f0554b21f31ec0::t_52b96fcb712647 636-640
+  s_f0554b21f31ec0::t_88de4822adb760 173-175,177-179,188-190,192-193,199-200,205-207,217-220
+  s_f0554b21f31ec0::t_eaa2f7dd21e4e5 669
+  s_f0554b21f31ec0::t_4e2cb94e815b1f 662-668
+  s_f0554b21f31ec0::t_cb8836ca652748 606
+  s_f0554b21f31ec0::t_732185c481a303 1192-1194
+  s_f0554b21f31ec0::t_4765cbee867de1 546-558
+  s_f0554b21f31ec0::t_d93d78f2fb8b45 598,614-635,641-643
+  s_f0554b21f31ec0::t_838da5a1337786 89,94-145
+  s_f0554b21f31ec0::t_6f838d732960ec 1195-1200
+  s_f0554b21f31ec0::t_779c2dc717064c 35
+  s_f0554b21f31ec0::t_0f812e8d74c776 467-479
+  s_f0554b21f31ec0::t_1ff3e2e119ad1a 480-486
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "1a16db4446ad20804ca8ae4b14c3ab73fbcc2fa0",
+  "prompts": {},
+  "sessions": {
+    "s_f0554b21f31ec0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f5c079d29ffenm12tcSKfCh9Lt",
+        "model": "claude-opus-5"
+      },
+      "human_author": "x <x@example.com>"
+    }
+  }
+}
