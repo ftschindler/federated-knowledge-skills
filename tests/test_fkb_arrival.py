@@ -58,6 +58,24 @@ def _init(home: FakeHome) -> None:
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+def test_an_installed_skill_carries_no_build_artifacts(fake_home: FakeHome) -> None:
+    """An install is source, and nothing that names the machine it was built on.
+
+    A `.pyc` records the absolute path it was compiled from. Copying one puts the
+    author's checkout into somebody else's skills directory, and in a test home it
+    is worse than untidy: an agent that reads its own skill directory finds a path
+    out of the sandbox and into the repository under test. That is not
+    hypothetical - a cold-session test asking a question seeded in a bundle
+    answered out of the test file instead, citing it by line number.
+    """
+    strays = [
+        p
+        for p in fake_home.skill.rglob("*")
+        if p.suffix == ".pyc" or p.name in {"__pycache__", ".ruff_cache", ".pytest_cache"}
+    ]
+    assert not strays, f"the install carries build artifacts: {strays}"
+
+
 def test_init_writes_a_manifest_add_can_use(fake_home: FakeHome) -> None:
     """Setup is two steps because they answer different questions.
 

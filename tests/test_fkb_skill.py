@@ -153,6 +153,8 @@ def test_a_cold_session_files_a_conformant_concept(agent_factory) -> None:
     """
     agent: DisposableAgent = agent_factory(REPO_SKILLS)
     assert (agent.agents_skills / "fkb" / "SKILL.md").is_file(), "the fkb skill was not installed"
+    compiled = list((agent.agents_skills / "fkb").rglob("*.pyc"))
+    assert not compiled, f"the install carries compiled files naming the developer's checkout: {compiled}"
     bundle = _seed_bundle(agent)
 
     result = agent.run(f"Note this down in the knowledge base: {FACT}.")

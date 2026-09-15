@@ -52,6 +52,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # stage, which `install_skills` tolerates rather than failing on.
 REPO_SKILLS_DIR = REPO_ROOT / "skills"
 
+# Build artifacts that an install must never carry. A `.pyc` names the absolute
+# path it was compiled from, which is a fact about the author's machine and has
+# no business in somebody else's skills directory.
+NOT_PART_OF_A_SKILL = ("__pycache__", "*.pyc", ".ruff_cache", ".pytest_cache")
+
 
 def have(cmd: str) -> bool:
     return shutil.which(cmd) is not None
@@ -123,6 +128,14 @@ class DisposableAgent:
         A skill is any subdirectory holding a SKILL.md, which is what the Agent
         Skills spec makes discoverable. Returns the names installed; a missing or
         empty `source` installs nothing and is not an error.
+
+        Compiled Python is excluded, and not only for tidiness. A `.pyc` embeds
+        the absolute path of the source it was built from, so copying one carries
+        the developer's checkout into a home that is supposed to know nothing
+        about it - and an agent that reads its own skill directory can then walk
+        out of the sandbox into the repository under test. That happened: a test
+        asked a question whose answer was seeded in a bundle, and got an answer
+        about the test file instead.
         """
         self.agents_skills.mkdir(parents=True, exist_ok=True)
         if not source.is_dir():
@@ -131,7 +144,12 @@ class DisposableAgent:
         for skill in sorted(source.iterdir()):
             if not (skill / "SKILL.md").is_file():
                 continue
-            shutil.copytree(skill, self.agents_skills / skill.name, dirs_exist_ok=True)
+            shutil.copytree(
+                skill,
+                self.agents_skills / skill.name,
+                dirs_exist_ok=True,
+                ignore=shutil.ignore_patterns(*NOT_PART_OF_A_SKILL),
+            )
             installed.append(skill.name)
         return installed
 
@@ -151,9 +169,12 @@ class DisposableAgent:
         """Drive `opencode run` non-interactively and capture parsed JSON events."""
         workdir = cwd or self.work
         workdir.mkdir(parents=True, exist_ok=True)
+        # Restored deliberately, pointing where the process actually is: tools
+        # that read `PWD` should see the sandbox rather than nothing at all.
+        env = {**self.env, "PWD": str(workdir)}
         proc = subprocess.Popen(
             [str(self.opencode_bin), "run", "--format", "json", message],
-            env=self.env,
+            env=env,
             cwd=workdir,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
@@ -216,10 +237,19 @@ class DisposableAgent:
 # failure that surfaces is an opaque provider error, nowhere near the cause.
 LEAKY_ENV_PREFIX = "OPENCODE"
 
+# `PWD` and `OLDPWD` are inherited verbatim and name the directory pytest was
+# started from, which is the repository under test. `subprocess` sets the child's
+# working directory but never updates these, so they arrive stale and absolute -
+# a signpost out of the sandbox, in an agent that is granted `external_directory`
+# so it can load its own skills. An agent asked a question whose answer was
+# seeded in a bundle followed that signpost to the test file and answered about
+# the test instead, twice, before this was found.
+LEAKY_ENV_VARS = ("PWD", "OLDPWD")
+
 
 def _isolated_env(home: Path) -> dict[str, str]:
     """The developer's environment, minus anything that reaches back out of `home`."""
-    env = {k: v for k, v in os.environ.items() if not k.startswith(LEAKY_ENV_PREFIX)}
+    env = {k: v for k, v in os.environ.items() if not k.startswith(LEAKY_ENV_PREFIX) and k not in LEAKY_ENV_VARS}
     env.update(
         {
             "HOME": str(home),
