@@ -46,6 +46,35 @@ Two consequences that look asymmetric and are not:
 - A bundle needs a `publish` value to be linked **to**, and needs nothing at all to link
   **out**.
 
+### Adding a bundle is a change to the other entries too
+
+`fkb add` writes one entry: the new bundle's own. That covers exactly half of what a new
+bundle usually needs, and the missing half is silent, because a link that is not permitted
+fails later and elsewhere.
+
+Ask both directions when a bundle arrives:
+
+| Question | Whose entry changes |
+| --- | --- |
+| Who may cite the new bundle? | The **new** one's `referenceable_by` - this is what `add --referenceable-by` sets |
+| Which existing bundles may the new one cite? | **Each of those** bundles' `referenceable_by`, which has to gain the new name |
+
+The second is the one that gets forgotten, and it is forgotten because it is counterintuitive:
+being allowed to *read* somebody's bundle has nothing to do with being allowed to *cite* it.
+An upstream registered with `referenceable_by: "*"` already permits it; one registered
+`[team]` does not, and a fresh bundle citing it gets a refusal from `fkb url` that reads like
+a bug in the new bundle.
+
+`fkb` does not edit those entries for you. They are policy decided per bundle, and quietly
+widening one because a new arrival wanted to link somewhere is the change most worth a
+person's attention. The manifest is a hand-editable file; `fkb list` prints its path.
+
+**Publishing is a different question again.** `publish` says where a bundle's concepts are
+reachable from outside; whether that address is on the open web, behind a company login, or
+in a repository a few colleagues can read is a property of the hosting. A bundle can publish
+and still be citable by almost nobody, and `referenceable_by "*"` on an internal site means
+every bundle here may link to an address most readers cannot open.
+
 ## Citing across bundles
 
 Bundles do not know about each other. Two consequences follow, and the second is the useful
@@ -117,3 +146,15 @@ In order, stopping at the first that answers:
 Check `writable` before writing, not after. A bundle registered read-only on this machine is
 someone else's, and filing into it is the one mistake here that is somebody else's problem to
 discover.
+
+## Where this model is argued
+
+Everything the rule needs is on this page - nothing here defers to a document you do not
+have. But the shape invites two fair objections, and both have answers worth reading rather
+than guessing at: why an inbound allow-list instead of ranked sensitivity levels, and why a
+refusal instead of a link that quietly degrades to a relative path.
+
+The reasoning lives with the code, at
+<https://github.com/ftschindler/federated-knowledge-skills>, along with a journal of what
+went wrong before each rule existed. That is also the place to disagree with it: a policy
+model nobody can argue with is one people route around instead.

@@ -43,7 +43,7 @@ A publishing bundle has all of these. A private one has the first three and noth
 The last three are what separates a public bundle from a private one. Everything above them
 applies to both.
 
-### The two hooks are ours, and are the one thing to copy exactly
+### The two hooks are ours, and their wiring is the one thing not to improvise
 
 Every other layer is somebody's choice. These are published from this skill's own repository
 and a bundle pins them by revision:
@@ -53,10 +53,27 @@ and a bundle pins them by revision:
   rev: <commit>
   hooks:
   - id: okf-concepts
-    args: [--bundle-root, docs, --floor, docs/fkb.yaml]
+    args: [--bundle-root, BUNDLEROOT, --floor, BUNDLEROOT/fkb.yaml]
   - id: okf-bundle
-    args: [--bundle-root, docs, --floor, docs/fkb.yaml]
+    args: [--bundle-root, BUNDLEROOT, --floor, BUNDLEROOT/fkb.yaml]
 ```
+
+The repository, the two ids and the argument names are fixed. `BUNDLEROOT` is not: it is
+where this bundle's concepts start, relative to the repository root, and it follows from the
+shape the bundle ended up with.
+
+| Bundle shape | `BUNDLEROOT` | The floor path beside it |
+| --- | --- | --- |
+| Private, or shared with no site | `.` | `fkb.yaml` |
+| Published | `docs` | `docs/fkb.yaml` |
+
+A publishing bundle keeps its concepts under `docs/` because a site generator wants a
+directory it can treat as its whole input; a bundle with no site has nothing to keep them out
+of the way of, so they sit at the root. **Both values move together.** A `--bundle-root` that
+points at the wrong place fails by checking nothing rather than by complaining, which is the
+single most common way a copied configuration goes wrong - and a `--floor` left behind when
+the root moved means the hook enforces OKF and quietly stops enforcing what the bundle
+declared.
 
 **Look `<commit>` up, do not copy one.** A revision written into a page is stale the week
 after it is written, and a stale pin is invisible: the hooks run, they pass, and they are not
@@ -77,16 +94,14 @@ uvx prek install
 uvx prek run --all-files
 ```
 
+That second command is also how the paths get checked: a run that reports no files is a
+`--bundle-root` pointing somewhere with no concepts in it, not a clean bundle.
+
 `okf-concepts` checks the whole bundle and fails only on findings in the files being
 committed, so an unfinished concept elsewhere never blocks an unrelated commit. With
 `--all-files` everything is in scope, which is how the same hook is strict in CI without a
 second configuration. `okf-bundle` adds index coverage and sits on the manual stage, so it
 stays off the commit path and CI calls it by name.
-
-**Adjust both paths to where the bundle actually starts.** `--bundle-root docs` for a bundle
-under `docs/`, `--bundle-root .` for one at the repository root. Getting this wrong is the
-single most common way a copied configuration fails, and it fails by checking nothing rather
-than by complaining.
 
 **Name the floor file `fkb.yaml`.** The hook accepts any name because it is told the path,
 but `fkb` finds the floor by that name and by no other. A bundle whose floor is called
@@ -94,35 +109,61 @@ something else is enforced by its own hook and *not* by `fkb lint`, which is two
 disagreeing about what the bundle requires - and the disagreement is silent, because the
 looser one is the one that says `ok`.
 
-## Bootstrapping a public bundle
+## Bootstrapping a bundle that publishes
 
-A bundle whose concepts are meant to be read by people who will never clone it.
+A site exists for **readers who will not clone the repository** - someone who wants to read a
+page, not check one out. It says nothing about how the owner works: a published bundle is
+cloned, edited in an editor or a vault, and committed like any other repository, every day.
+The site is an additional output, not a replacement for the checkout.
 
-1. **Create and register it**, publishable rather than sealed:
+**Publishing is not the same as being public.** `publish` says where the concepts are
+reachable from outside the checkout; who can actually reach that address is a property of the
+hosting - an internal site behind a company login, a repository a dozen colleagues can read,
+or the open web. And neither of those is `referenceable_by`, which is this federation's own
+policy about which bundles may point here. Three separate questions, and answering the first
+tells you nothing about the other two.
+
+1. **Ask what it should be called, and do not answer for them.** The private bundle was not a
+   question; this one is. A bundle is found by what the person calls it, so the name is what
+   their own words have to match later - and one created under a name invented here is one
+   they will not think to ask for. If they have no preference, `public` pairs with `private`
+   and both match the words people actually use. If they are not ready to decide, **stop and
+   say what is outstanding**: a bundle that does not exist yet costs nothing, and a bundle
+   under the wrong name costs a rename in the manifest plus every link already pointing into
+   it.
+
+2. **Ask which bundles may cite it.** `'*'` means every bundle on this machine, now and in
+   future, which is right for something on the open web and wrong for a bundle whose readers
+   are one team. Name them instead when the answer is narrower, and remember the value is
+   inbound: it says who may point *here*, not where this bundle may point.
 
    ```text
-   uv run SKILLDIR/scripts/fkb add mykb --new --writable --referenceable-by '*'
+   uv run SKILLDIR/scripts/fkb add NAME --new --writable --referenceable-by '*'
+   uv run SKILLDIR/scripts/fkb add NAME --new --writable --referenceable-by private,team
    ```
 
-2. **Decide where the bundle sits in its repository.** A publishing bundle usually keeps
+   If this bundle also needs to cite existing ones, that is a change to *their* entries and
+   `add` does not make it - see [federation](federation.md).
+
+3. **Decide where the bundle sits in its repository.** A publishing bundle usually keeps
    concepts under `docs/` with build configuration above them, because a site generator wants
    a directory it can treat as its whole input. Move the scaffolded files there if so, and
-   remember that every path in every config follows.
+   remember that every path in every config follows - including the hook arguments above.
 
-3. **Copy the layers from the reference checkout**, adapting as you go. Take the shape, not
+4. **Copy the layers from the reference checkout**, adapting as you go. Take the shape, not
    the contents.
 
-4. **Tell `fkb` where it publishes**, once the site has a URL. The address of a page you can
+5. **Tell `fkb` where it publishes**, once the site has a URL. The address of a page you can
    already open is the safest way to get both halves right:
 
    ```text
-   uv run SKILLDIR/scripts/fkb add mykb --path <bundle root>  --publish-sample https://example.com/kb/topic/a-concept/  --publish-sample-path topic/a_concept.md
+   uv run SKILLDIR/scripts/fkb add NAME --path <bundle root>  --publish-sample https://example.com/kb/topic/a-concept/  --publish-sample-path topic/a_concept.md
    ```
 
    It may also be declared before the site exists, since it is a promise about where the
    bundle will be reachable.
 
-5. **Put non-knowledge pages outside the bundle root.** Every non-reserved markdown file
+6. **Put non-knowledge pages outside the bundle root.** Every non-reserved markdown file
    inside a bundle is a concept and is checked as one, so a colophon or a contributing guide
    belongs in a sibling directory that the site includes and the bundle does not.
 
@@ -164,7 +205,7 @@ directory their tooling generates.
 **Check afterwards**, in this order, because each catches what the previous one cannot:
 
 ```text
-uv run SKILLDIR/scripts/fkb lint mykb     # conformance, and the floor as `fkb` discovers it
+uv run SKILLDIR/scripts/fkb lint NAME     # conformance, and the floor as `fkb` discovers it
 prek run --all-files             # the bundle's own hooks, which are the real gate
 ```
 

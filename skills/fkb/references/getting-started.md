@@ -233,8 +233,18 @@ carelessly discloses nothing until it is opened deliberately.
 `referenceable_by` is inbound: it lists who may cite this bundle, not who it may cite. Two
 bundles that should cite each other name each other. `"*"` means anyone.
 
+That also means **adding a bundle can be a change to the entries already there**. `add` writes
+the new bundle's own line, which settles who may cite *it*; letting it cite an existing bundle
+is a change to *that* bundle's `referenceable_by`, and nothing does it for you. See
+[federation](federation.md).
+
 **`writable` is a property of this machine**, not of the bundle. The same repository can be
 writable on your laptop and read-only on a colleague's.
+
+**Publishing is not being public.** `publish` says where the concepts are reachable from
+outside the checkout; who can reach that address is a property of the hosting, and an internal
+site or a repository a few colleagues can read are both perfectly ordinary answers. Neither
+that nor `referenceable_by` follows from the other.
 
 ### Getting `publish` right
 

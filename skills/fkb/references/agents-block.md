@@ -57,7 +57,7 @@ adapted:
 It is also deliberately short. It loads on every session, including the overwhelming
 majority that never touch a bundle, so its only job is to make the skill reachable.
 
-## Their own words for their own bundles
+## Their own words for bundles
 
 The phrases above are the generic ones. Someone who regularly calls a bundle something the
 manifest does not - "my notes" for the bundle registered as `private`, "work" for the team
