@@ -50,11 +50,15 @@ def cmd_list(_: argparse.Namespace) -> int:
     if not bundles:
         print("No bundles yet.")
         print(f"The workspace exists at {workspace.manifest_path()} and holds nothing.")
-        print("\nBring one in with `fkb add <name>`, by one of three routes:")
+        print(f"\nBring one in with `{workspace.invocation()} add <name>`, by one of three routes:")
         print("  --clone <remote>  a bundle in a git repo somewhere")
         print("  --path <dir>      a checkout already on this machine")
         print("  --new             a bundle that does not exist yet")
         return 0
+    # Named here because where it sits is a fact about the machine - XDG when
+    # that is set, the user config directory otherwise - so no page can state it
+    # and be right everywhere. It is also the file to hand-edit to change policy.
+    print(f"workspace  {workspace.manifest_path()}\n")
     for bundle in bundles:
         missing = "" if bundle.path.is_dir() else "  (MISSING)"
         print(f"{bundle.name}{missing}")
@@ -273,6 +277,31 @@ def _citers(declared: str | None) -> list[str] | str:
     return [name.strip() for name in declared.split(",") if name.strip()]
 
 
+def _proposed_roots() -> list[tuple[Path, str]]:
+    """The workspace roots worth proposing on this machine, and why each.
+
+    Ordered, and the order is the recommendation: the hidden one first, because
+    a knowledge base is reached through an agent far more often than it is opened
+    by hand, and a visible directory in `$HOME` is a cost paid every day by
+    everyone for a case that turns up occasionally. Somebody who does mean to
+    edit the files says so, and the second line is there for them.
+
+    Absolute rather than `~`-prefixed, because the caller may hand what it reads
+    straight back as an argument and a `~` only expands in some shells. This is
+    also the only statement of these defaults: `SKILL.md` used to carry its own
+    copy and now asks for them instead.
+
+    ATTENTION: both are POSIX-shaped on every operating system. `Path.home()`
+    gets the separators right, but "a directory under the agent directory" is a
+    Unix habit and may not be where a Windows user would put either of these.
+    """
+    home = Path.home()
+    return [
+        (home / ".agents" / "knowledge", "recommended: out of the way, reached through an agent"),
+        (home / "knowledge", "you mean to open and edit these files yourself"),
+    ]
+
+
 def cmd_init(args: argparse.Namespace) -> int:
     """Create the workspace manifest, once per machine.
 
@@ -280,11 +309,36 @@ def cmd_init(args: argparse.Namespace) -> int:
     live on this machine, which has nothing to do with what is in any of them.
     It refuses to overwrite, because a manifest is hand-editable and the one on
     disk is the only record of policy that was decided rather than defaulted.
+
+    The root is asked for rather than defaulted, but the proposals are ordered
+    and the first is a recommendation rather than a coin toss. Where bundles live
+    is still the person's call - it is their disk - so the command refuses to
+    pick silently; what it will do is say which answer is usually right.
+
+    `--propose-roots` is a question rather than an action, which is why it prints
+    and exits 0 having written nothing. Overloading the no-argument case with it
+    would have been the same thing for free, but then `fkb init` with a forgotten
+    `--workspace-root` reports success and leaves no manifest.
     """
+    me = workspace.invocation()
+    if args.propose_roots:
+        print("Workspace roots that make sense on this machine, best answer first:")
+        for root, why in _proposed_roots():
+            print(f"  {root}    # {why}")
+        print(f"\nAny path works. Pass one back as `{me} init --workspace-root <dir>`.")
+        print("Relative bundle paths in the manifest resolve under it, and a bundle")
+        print("that already lives elsewhere is registered where it lies.")
+        return 0
+
+    if not args.workspace_root:
+        print("fkb init needs a workspace root: where bundles are checked out on this machine.")
+        print(f"Ask for the ones that make sense here: `{me} init --propose-roots`.")
+        return 1
+
     path = workspace.manifest_path()
     if path.exists():
         sys.exit(
-            f"fkb: {path} already exists. Bundles go in it with `fkb add`; "
+            f"fkb: {path} already exists. Bundles go in it with `{me} add`; "
             "edit the file directly to change policy."
         )
     root = Path(args.workspace_root).expanduser()
@@ -302,7 +356,7 @@ def cmd_init(args: argparse.Namespace) -> int:
     )
     print(f"wrote {path}")
     print(f"  workspace_root  {root}")
-    print("\nAdd a bundle with `fkb add`.")
+    print(f"\nAdd a bundle with `{me} add`.")
     return 0
 
 
@@ -316,7 +370,7 @@ def cmd_add(args: argparse.Namespace) -> int:
     """
     path = workspace.manifest_path()
     if not path.is_file():
-        sys.exit(f"fkb: no workspace manifest at {path}. Run `fkb init` first.")
+        sys.exit(f"fkb: no workspace manifest at {path}. Run `{workspace.invocation()} init` first.")
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     bundles = data.get("bundles") or {}
     if args.name in bundles:
@@ -324,6 +378,8 @@ def cmd_add(args: argparse.Namespace) -> int:
     raw_root = data.get("workspace_root")
     root = Path(raw_root).expanduser() if raw_root else None
 
+    scaffolded = False
+    repository = False
     if args.clone:
         if root is None:
             sys.exit("fkb: cloning needs a `workspace_root` in the manifest to clone into")
@@ -333,6 +389,8 @@ def cmd_add(args: argparse.Namespace) -> int:
         if root is None:
             sys.exit("fkb: creating a bundle needs a `workspace_root` in the manifest")
         bundle_root = arrival.scaffold(root / args.name, args.name, date.today().isoformat())
+        scaffolded = True
+        repository = arrival.git_init(bundle_root)
     else:
         bundle_root = Path(args.path).expanduser().resolve()
         if not bundle_root.is_dir():
@@ -365,6 +423,14 @@ def cmd_add(args: argparse.Namespace) -> int:
     # it is used, and because `add` had to ask for policy it could not infer.
     print(f"registered `{args.name}` in {path}:")
     print(textwrap.indent(yaml.safe_dump({args.name: entry}, sort_keys=False).rstrip(), "  "))
+
+    if scaffolded and repository:
+        print(f"\n`git init` ran in {bundle_root}; nothing is committed yet.")
+        print("Still to do, and neither is this command's to decide: pin the bundle's")
+        print("pre-commit hooks at a revision you look up now, and make the first commit.")
+    elif scaffolded:
+        print(f"\nNo usable git, so {bundle_root} is a plain directory.")
+        print("Every check here runs on a directory; history can be added later.")
     return 0
 
 
@@ -397,10 +463,17 @@ def main() -> int:
     resolve.set_defaults(func=cmd_resolve)
 
     init = sub.add_parser("init", help="create the workspace manifest, once per machine")
-    init.add_argument(
+    # Mutually exclusive so asking and doing cannot be requested at once: the two
+    # answer different questions and only one of them writes anything.
+    init_route = init.add_mutually_exclusive_group()
+    init_route.add_argument(
         "--workspace-root",
-        default="~/knowledge",
         help="where bundles are checked out; relative paths in the manifest resolve under it",
+    )
+    init_route.add_argument(
+        "--propose-roots",
+        action="store_true",
+        help="print the roots that make sense on this machine and exit, writing nothing",
     )
     init.set_defaults(func=cmd_init)
 

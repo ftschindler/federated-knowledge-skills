@@ -16,7 +16,7 @@ This is the implementation plan. It assumes nothing from this repository except
 - [x] **[T2](#t2---minimum-capture-and-a-friction-journal)** - Minimum capture, and a friction journal
 - [x] **[T3](#t3---migrate-the-60-public-concepts)** - Migrate the ~60 public concepts
 - [x] **[T4](#t4---finish-the-cli)** - Finish the CLI
-- [ ] **[T5](#t5---finish-the-skill)** - Finish the skill
+- [x] **[T5](#t5---finish-the-skill)** - Finish the skill
 - [x] **[T6](#t6---ship-the-standalone-pre-commit-hook)** - Ship the standalone pre-commit hook, *built early, verified in T4*
 - [ ] **[T7](#t7---second-bundle-then-retire-the-old-architecture)** - Second bundle, then retire the old architecture
 - [ ] **[T8](#t8---iterate-on-the-cli-and-the-skill)** - Iterate on the CLI and the skill, *open-ended, keeps discovering*
@@ -297,34 +297,69 @@ need the same one tool they already needed. The half of that section that asks a
 **Goal.** Extend the filing-only skill of [T2](#t2---minimum-capture-and-a-friction-journal)
 into the full one, including onboarding.
 
+**What [T4](#t4---finish-the-cli) changed about this task.** It was written when the CLI had
+two commands and a workspace was hand-written YAML, which made onboarding a description of a
+file someone had to author. There are six commands now, four of them unreachable because
+nothing tells an agent they exist, and setup is something a session can carry out. So the
+onboarding branch stops explaining a format and starts running commands, and
+[§6.7](DESIGN.md#67-the-skill-explains-itself)'s acceptance test - a next step the person can
+run, not a summary of the design - becomes something the skill can actually pass.
+
 **Steps.**
 
 - Add the query workflow and the semantic lint checklist
-  ([§6.5](DESIGN.md#65-two-lints-one-of-them-code)).
+  ([§6.5](DESIGN.md#65-two-lints-one-of-them-code)). The query path may not assume `ripgrep`:
+  it tries it and falls back to the agent's own read and glob tools, so the skill needs
+  nothing a bundle does not already need. That constraint is the same question
+  [§9.7](DESIGN.md#97-what-we-may-assume-is-installed) leaves open for `search`, met here by
+  not depending on the answer.
 - Add the "new here?" branch to `SKILL.md` and write `references/getting-started.md`
   ([§6.7](DESIGN.md#67-the-skill-explains-itself)). Take the three arrival paths from the
   previous `README.md` before [T7](#t7---second-bundle-then-retire-the-old-architecture) deletes
-  it.
-- Add `references/house-style.md` and `references/federation.md`.
+  it. **The skill carries onboarding out rather than describing it**: a person who has just
+  installed it and knows nothing gets a working federation, with each step explained as it
+  happens. It offers a choice of workspace root, `~/knowledge` when they mean to hand-edit
+  and `~/.agents/knowledge` when they would rather not clutter `$HOME`, and recommends the
+  two public bundles - `stjbrown/agent-knowledge` for what an LLM wiki is, and
+  `ftschindler/knowledge` for knowledge-management and engineering practice. Registering
+  those two also demonstrates both `publish` transforms, since one is a forge and one is a
+  site.
+- Teach the commands [T4](#t4---finish-the-cli) built. `fkb url` is the one that changes what
+  an agent can do rather than how it does it: a cross-bundle link is absolute, comes from
+  that command, and is never hand-written or relative.
+- Check for the AGENTS.md block ([§5.4](DESIGN.md#54-the-schema)) and propose it when it is
+  missing, shipping its text in `references/`. The skill does not carry a list of paths: it
+  asks the agent to look in the user-level instructions file its own harness loads, which is
+  a thing the agent knows and this repository cannot.
+- Add `references/house-style.md` and `references/federation.md`. House style states the
+  generic procedure only - read what the bundle declares, wherever it declares it, and read
+  two neighbouring concepts before writing - never one bundle's rules, because the four
+  bundles on the machine that produced the journal agree on almost nothing.
 - Fold whatever the journal revealed about the filing instructions back into `SKILL.md`.
 - Every command the skill prints has to satisfy [§9.7](DESIGN.md#97-what-we-may-assume-is-installed):
   one command per line, no `cd`, no `&&`, no `~`, no shell-tagged fence. The commands block
   grows from two entries to six here, which is six chances to reintroduce the invocation a
   user already reported; two tests in `tests/test_fkb_cli.py` fail if one does.
 
-**Done when.** Three cold-session tests pass, each starting with no prior context:
+**Done when.** Four cold-session tests pass, each starting with no prior context:
 
 1. Given a question, the agent finds the skill, reads a concept and cites it.
 2. Given "note this down", it files a conformant concept that passes `fkb lint` uncorrected.
 3. Given "what is this and how do I start?" on a machine with **no workspace configured**, it
-   explains what a bundle is and gives a first command that runs
+   explains what a bundle is and leaves a workspace behind that works
    ([§6.7](DESIGN.md#67-the-skill-explains-itself)).
+4. Given two bundles and a reason to cite across them, the link it writes is the absolute URL
+   `fkb url` produces, not a relative path.
 
 The third test is the one that fails quietly. A plausible summary of the design is not a pass;
-a next step the person can run is.
+a workspace the person can use is. The fourth exists because a capability nothing reaches for
+is indistinguishable from one that was never built.
 
 **Leave alone.** [§9.6](DESIGN.md#96-how-knowledge-is-structured-inside-a-bundle) - the skill
-reads a bundle's style, it does not impose one.
+reads a bundle's style, it does not impose one. Bulk filing and deletion both move to
+[T8](#t8---iterate-on-the-cli-and-the-skill): the journal has three incidents between them and
+each wants a shape, not a paragraph, and this task is already the one that teaches four
+commands and onboards from nothing.
 
 ## T6 - Ship the standalone pre-commit hook
 
@@ -414,6 +449,17 @@ the first window could not reach.
 - Implement `search` when the journal earns it, in pure Python unless
   [§9.7](DESIGN.md#97-what-we-may-assume-is-installed) says otherwise. Output must be
   bundle-qualified, and a published bundle's hits must render as URLs.
+- Give **bulk filing** a shape. Two incidents on different axes: 66 concepts filed in one
+  pass, where nothing covered ordering an index that gains 61 entries or keeping index and
+  log self-consistent across 61 commits; and a session that generated genre notes for 67
+  pages against indexes it had itself written an hour earlier, so the style reference was its
+  own recent output and any drift propagated unchallenged. The second is the harder one, and
+  what it wants is a rule that a bulk operation pins its reference to pages predating the
+  session.
+- Give **deletion** one too. Removing a concept edits at least three other files - the
+  inbound link, the index entry, and the `log.md` line that announced it, which is a record
+  that the thing happened and so degrades to plain text rather than disappearing. The skill
+  files and has no notion of removing.
 - Watch for a **vocabulary split across bundles**, which [T4](#t4---finish-the-cli) declined
   to address. `resolve` reports one bundle's tags, so one subject spelled two ways in two
   bundles is invisible to it. The failure it would cause is a federated search returning
@@ -422,6 +468,27 @@ the first window could not reach.
   question until then is open and the coupling is not worth paying for in advance.
 - Fold back into `SKILL.md` and the CLI whatever else the window turns up, one change per
   incident.
+- **Propose workspace roots per operating system.** `fkb init --propose-roots` is the only
+  statement of those defaults, now that the skill asks rather than carrying its own copy, and
+  both of the two it offers are Unix habits: a visible `knowledge` directory and one under
+  the agent directory. `Path.home()` gets the separators right, so nothing is broken; what is
+  wrong is the advice. It is one function, deliberately, and it wants somebody who works on
+  Windows rather than a guess from here.
+- **Add the fifth cold-session test: a new bundle ends up with a gate.**
+  [§9.11](DESIGN.md#911-a-new-bundle-is-a-repository-and-the-agent-commits-into-it) splits
+  scaffolding between the CLI and the skill - `add --new` runs `git init`, and the agent pins
+  the hooks at a revision it looks up in the session and makes the first commit. Only the CLI
+  half is tested. The other half is prose, and prose is what regressed the last two times: a
+  cold session given a new bundle should leave behind a `.pre-commit-config.yaml` pinned to a
+  real SHA rather than a branch, an installed hook, and one commit that passed it.
+
+  It waits here rather than joining [T5](#t5---finish-the-skill)'s four because it is the
+  most expensive test in the suite to write honestly - it needs a network lookup and a real
+  hook run inside the disposable agent's redirected `HOME` - and because the decision it
+  checks was made at the end of T5 rather than designed into it. The gap it leaves is worth
+  naming: until it exists, "the agent pins the hooks" is a claim this repository makes about
+  itself and does not verify, which is the same shape as the `SKILL.md` instruction that no
+  test read.
 
 **Carried here from [T4](#t4---finish-the-cli): `fkb rename`.** The 2026-09-10 entry is a
 complete incident and argues for a command - a rename is a title, a filename, and every
@@ -449,9 +516,12 @@ declined to confirm.
 
 Work that belongs to no task, recorded so it is not looked for.
 
-- **The stale AGENTS.md block is removed** from `~/.config/opencode/AGENTS.md` (2026-09-02).
-  Cold sessions currently get no wiki instructions at all, which is correct until
-  [T4](#t4---finish-the-cli) gives them something true to say.
+- **The AGENTS.md block was removed and later rewritten** in `~/.config/opencode/AGENTS.md`
+  (removed 2026-09-02 because it described the retired architecture; the
+  [§5.4](DESIGN.md#54-the-schema) text is in place again). One line of it is a promise the
+  skill cannot yet keep - "before searching the web, check the bundles" - because filing is
+  all the skill does. [T5](#t5---finish-the-skill) is what makes that line true, and also
+  what teaches the skill to notice the block missing on somebody else's machine.
 - **The retired architecture is deleted** (2026-09-02): the six `fkb-*` skills, `manifest.py`,
   `install-glue`, the bundle commands and their tests. The last working state is preserved in
   git history, and what it cost is DESIGN.md appendix A. The disposable-agent test machinery

@@ -452,3 +452,19 @@ its whole taxonomy rebuilt. The gap is the subject of the third entry below.
   pairing with the setup branch being written for T5, which already tells the agent that "get
   me started" is the decision made and not a question to ask back; the same instinct fires one
   step later, in filing, and is not yet answered there.
+
+- **2026-09-16** commits - reviewing T5 asked what a bundle from `fkb add private --new` is
+  actually protected by, and the answer was nothing. It writes `index.md`, `log.md` and
+  `fkb.yaml`, and `SKILL.md` said "it never commits: the bundle is a git repository with its
+  own hooks, and those hooks are the real gate" - which is true of `ftschindler/knowledge`,
+  cloned with its `.pre-commit-config.yaml`, and false of every bundle this tooling creates
+  itself. `references/bundle-infrastructure.md` already recorded the gap ("A private bundle
+  with no hooks drifts faster than a public one, because nothing else ever looks at it") and
+  answered it with a person doing it later. The reason the wrong half was never noticed is
+  that the tests only ever `--new` a bundle and lint it, which passes exactly as well without
+  a repository. Done instead: `arrival.git_init` runs from `add --new`; `SKILL.md` step 9
+  commits and step 5 of setting up pins the hooks at a revision read from
+  `git ls-remote` in the session, since a revision written into a reference page is stale
+  invisibly; DESIGN §9.11 records the split and why each half sits where it does. Two tests
+  pin it - one that `--new` leaves a repository with no commits in it, one that `add` says
+  what it deliberately did not do.

@@ -36,6 +36,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from disposable_agent import NOT_PART_OF_A_SKILL
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SOURCE_SKILL = REPO_ROOT / "skills" / "fkb"
 
@@ -126,7 +128,7 @@ def build_fake_home(root: Path) -> FakeHome:
     """Install the skill into a new house and hand it back."""
     skill = root / ".agents" / "skills" / "fkb"
     skill.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(SOURCE_SKILL, skill)
+    shutil.copytree(SOURCE_SKILL, skill, ignore=shutil.ignore_patterns(*NOT_PART_OF_A_SKILL))
     (root / ".config").mkdir(parents=True, exist_ok=True)
     return FakeHome(root=root, skill=skill)
 

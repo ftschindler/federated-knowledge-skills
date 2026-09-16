@@ -17,7 +17,7 @@ import textwrap
 from pathlib import Path
 
 import pytest
-from disposable_agent import LEAKY_ENV_PREFIX, DisposableAgent
+from disposable_agent import LEAKY_ENV_PREFIX, LEAKY_ENV_VARS, DisposableAgent
 
 pytestmark = pytest.mark.agent
 
@@ -44,6 +44,13 @@ def test_a_bare_agent_runs_and_touches_nothing_real(bare_agent: DisposableAgent)
     # to their real profile. Nothing opencode-specific may survive from outside.
     leaked = sorted(k for k in bare_agent.env if k.startswith(LEAKY_ENV_PREFIX))
     assert not leaked, f"environment reaches outside the agent: {leaked}"
+
+    # `PWD` and `OLDPWD` arrive naming wherever pytest was started, which is the
+    # repository under test. The agent may read outside its home - it has to, to
+    # load skills - so an inherited absolute path is a route out of the sandbox
+    # rather than a cosmetic leak.
+    for var in LEAKY_ENV_VARS:
+        assert var not in bare_agent.env, f"{var} points the agent at the directory the tests ran from"
 
     # The permission grant is what lets a run reach ~/.agents/skills at all.
     config = bare_agent.home / ".config" / "opencode" / "opencode.json"

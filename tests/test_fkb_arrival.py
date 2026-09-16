@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 
 import pytest
@@ -56,6 +57,24 @@ def _registered(home: FakeHome, name: str) -> dict:
 def _init(home: FakeHome) -> None:
     result = home.run("init", "--workspace-root", str(home.workspace_root))
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_an_installed_skill_carries_no_build_artifacts(fake_home: FakeHome) -> None:
+    """An install is source, and nothing that names the machine it was built on.
+
+    A `.pyc` records the absolute path it was compiled from. Copying one puts the
+    author's checkout into somebody else's skills directory, and in a test home it
+    is worse than untidy: an agent that reads its own skill directory finds a path
+    out of the sandbox and into the repository under test. That is not
+    hypothetical - a cold-session test asking a question seeded in a bundle
+    answered out of the test file instead, citing it by line number.
+    """
+    strays = [
+        p
+        for p in fake_home.skill.rglob("*")
+        if p.suffix == ".pyc" or p.name in {"__pycache__", ".ruff_cache", ".pytest_cache"}
+    ]
+    assert not strays, f"the install carries build artifacts: {strays}"
 
 
 def test_init_writes_a_manifest_add_can_use(fake_home: FakeHome) -> None:
@@ -111,6 +130,50 @@ def test_add_scaffolds_a_bundle_that_passes_its_own_lint(fake_home: FakeHome) ->
     assert (root / "log.md").is_file()
     assert (root / "fkb.yaml").is_file()
     assert fake_home.run("lint", "notes").returncode == 0
+
+
+def test_a_scaffolded_bundle_is_a_git_repository(fake_home: FakeHome) -> None:
+    """`--new` leaves something committable, not a loose directory.
+
+    The agent is told to commit what it files, and the bundle's own hooks are
+    what checks a concept before it lands. Both of those need a repository, and
+    the bundle most likely to be created this way is somebody's first private
+    one - the least supervised bundle on the machine. Leaving `git init` to
+    prose meant the route that mattered most was the one that forgot.
+
+    Nothing is committed: a commit needs an author, and inventing one is not
+    this program's call.
+    """
+    if shutil.which("git") is None:
+        pytest.skip("no git on this machine, which is the branch that writes a plain directory")
+
+    _init(fake_home)
+    added = fake_home.run("add", "notes", "--new", "--writable")
+    assert added.returncode == 0, added.stdout + added.stderr
+
+    root = fake_home.workspace_root / "notes"
+    assert (root / ".git").is_dir(), "the scaffolded bundle is not a repository"
+
+    listed = subprocess.run(
+        ["git", "-C", str(root), "log", "--oneline"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert listed.returncode != 0 or not listed.stdout.strip(), "add made a commit of its own"
+
+
+def test_add_says_what_is_left_to_do_on_a_new_bundle(fake_home: FakeHome) -> None:
+    """The two halves `fkb` refuses are the two an agent has to be told about.
+
+    Pinning a hook revision means reading a remote as it is now, and the first
+    commit needs an author. Both are deliberately outside the CLI, so the CLI is
+    the only thing positioned to say they are outstanding.
+    """
+    _init(fake_home)
+    added = fake_home.run("add", "notes", "--new", "--writable")
+    assert "commit" in added.stdout
+    assert "hook" in added.stdout
 
 
 def test_add_fails_closed_on_policy_it_was_not_told(fake_home: FakeHome) -> None:
