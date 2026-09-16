@@ -35,7 +35,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # Installed at import so the module-level paths below can point at it. The copy
 # is what `npx skills add` or a symlink would leave on disk, minus the harness.
-INSTALLED = Path(tempfile.mkdtemp(prefix="fkb-installed-")) / "fkb"
+# Resolved, because Windows hands out the 8.3 short form of the temporary
+# directory (`RUNNER~1`) while the CLI prints the resolved long one, and a hint
+# compared against the short spelling fails over a difference no reader has.
+INSTALLED = Path(tempfile.mkdtemp(prefix="fkb-installed-")).resolve() / "fkb"
 shutil.copytree(REPO_ROOT / "skills" / "fkb", INSTALLED)
 
 SCRIPTS = INSTALLED / "scripts"
@@ -241,6 +244,11 @@ def test_a_hint_names_the_invocation_that_was_used(tmp_path: Path) -> None:
     assert "~" not in result.stdout, "`~` is expanded by the shell, and not by every shell"
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="an extensionless file on PATH is not a command on Windows: `PATHEXT` decides what is, "
+    "so the bare name would not run and the path is the right answer there",
+)
 def test_a_hint_drops_the_path_when_the_name_is_on_the_path(tmp_path: Path) -> None:
     """Installed as a command, it should say `fkb` rather than where it lives.
 
