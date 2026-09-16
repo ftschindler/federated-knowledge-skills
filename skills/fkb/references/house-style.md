@@ -43,8 +43,11 @@ is one. Bundles that have grown tend to move the definition of a category into t
 category's own index, so `findings/index.md` is where a bundle says what a Finding is, what
 its titles look like, and which order its list runs in.
 
-Reading the top-level index instead costs a whole pass over the bundle and still misses
-this. If the directory has no index, the top-level one is what there is.
+The two indexes divide the work rather than duplicating it. The top-level one says what each
+directory is for, which is how the directory got chosen in the first place; this one says
+what the category *is* once you are inside it. Reading only the top-level index gets you to
+the right folder and tells you nothing about how to write in it. If the directory has no
+index of its own, the top-level one is what there is.
 
 ### 4. Two existing concepts from that same directory
 

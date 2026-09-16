@@ -468,6 +468,27 @@ the first window could not reach.
   question until then is open and the coupling is not worth paying for in advance.
 - Fold back into `SKILL.md` and the CLI whatever else the window turns up, one change per
   incident.
+- **Propose workspace roots per operating system.** `fkb init --propose-roots` is the only
+  statement of those defaults, now that the skill asks rather than carrying its own copy, and
+  both of the two it offers are Unix habits: a visible `knowledge` directory and one under
+  the agent directory. `Path.home()` gets the separators right, so nothing is broken; what is
+  wrong is the advice. It is one function, deliberately, and it wants somebody who works on
+  Windows rather than a guess from here.
+- **Add the fifth cold-session test: a new bundle ends up with a gate.**
+  [§9.11](DESIGN.md#911-a-new-bundle-is-a-repository-and-the-agent-commits-into-it) splits
+  scaffolding between the CLI and the skill - `add --new` runs `git init`, and the agent pins
+  the hooks at a revision it looks up in the session and makes the first commit. Only the CLI
+  half is tested. The other half is prose, and prose is what regressed the last two times: a
+  cold session given a new bundle should leave behind a `.pre-commit-config.yaml` pinned to a
+  real SHA rather than a branch, an installed hook, and one commit that passed it.
+
+  It waits here rather than joining [T5](#t5---finish-the-skill)'s four because it is the
+  most expensive test in the suite to write honestly - it needs a network lookup and a real
+  hook run inside the disposable agent's redirected `HOME` - and because the decision it
+  checks was made at the end of T5 rather than designed into it. The gap it leaves is worth
+  naming: until it exists, "the agent pins the hooks" is a claim this repository makes about
+  itself and does not verify, which is the same shape as the `SKILL.md` instruction that no
+  test read.
 
 **Carried here from [T4](#t4---finish-the-cli): `fkb rename`.** The 2026-09-10 entry is a
 complete incident and argues for a command - a rename is a title, a filename, and every

@@ -11,8 +11,7 @@ opened. Nothing appears to go wrong, which is what makes it worth checking for.
 ## Checking whether it is there
 
 **Look in the user-level instructions file your own harness loads for every session.** You
-know which file that is and where it lives; this skill deliberately does not carry a list,
-because the list would be wrong for whichever harness it forgot. In opencode it is
+know which file that is and where it lives. In opencode it is
 `AGENTS.md` under the user config directory; other harnesses use their own name and their
 own location.
 
@@ -57,3 +56,26 @@ adapted:
 
 It is also deliberately short. It loads on every session, including the overwhelming
 majority that never touch a bundle, so its only job is to make the skill reachable.
+
+## Their own words for their own bundles
+
+The phrases above are the generic ones. Someone who regularly calls a bundle something the
+manifest does not - "my notes" for the bundle registered as `private`, "work" for the team
+one - is describing a mapping nothing on disk knows, and a session that has to ask about it
+will have to ask again tomorrow. One line in their section settles it:
+
+```markdown
+- "my notes" is the `private` bundle; "the work wiki" is `team`; "what does Felix say" means
+  `ftschindler`.
+```
+
+**Upstreams attract this more than anything else.** They are registered under their owner's
+name, because a subject is never exclusive and an owner is - but people then refer to them by
+person ("what does Felix think"), by subject ("the engineering practice one"), or by project,
+and only one of those is what the manifest says. The mapping is one line and it is stable for
+as long as the bundle is registered.
+
+This is where it goes because it is the only file that outlives the session the phrase was
+learned in. The other honest answer is to rename the bundle, which is the better one when the
+manifest name is simply *wrong* rather than merely different from what they say out loud.
+Offer both and let them choose; as above, propose rather than write.

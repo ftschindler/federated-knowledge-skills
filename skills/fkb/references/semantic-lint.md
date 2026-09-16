@@ -61,7 +61,7 @@ explicitly supersedes the older, and do not edit either without asking.
 A newer concept makes an older one wrong or redundant, and the older one still reads as
 current. The format has `status: deprecated` for exactly this, and a bundle that uses it
 gets the finding for free next time, because deprecation is something deterministic lint can
-see.
+see. When deprecating in favour of a newer concept, link to the newer from the deprecated one.
 
 The tell is usually a date gap plus an overlapping subject.
 

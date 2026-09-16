@@ -1248,6 +1248,40 @@ Two consequences for the tooling:
   across two spellings is given to semantic lint instead, because no string comparison
   detects an abbreviation (§6.5).
 
+### 9.11 A new bundle is a repository, and the agent commits into it
+
+**Settled: `fkb add --new` runs `git init`; the skill pins the hooks and makes every commit,
+including the first.** The earlier rule was that `fkb` creates no repository and the agent
+commits nothing, on the reasoning that a bundle is a git repository with its own hooks and
+those hooks are the real gate. Both halves were wrong, and they were wrong together.
+
+The gate argument assumed the hooks exist. `--new` wrote an index, a log and a floor, so the
+one bundle this design creates itself was the one bundle nothing checked - and that bundle is
+somebody's first private one, the least supervised content on the machine. "A person adds the
+layers later" is not a gate; it is a hope about a directory that already has notes in it.
+
+The split follows invariant 3, and the seam is sharper than it first looks:
+
+| What | Who does it | Why there |
+| --- | --- | --- |
+| `git init` | the CLI | No judgement in it. A bundle with history, hooks and a way to be shared beats one without, in every case, and a rule with no exceptions is not prose's to remember. |
+| The hook revision | the skill | It is a fact about a remote *right now*. A revision shipped in a file is stale the week after, and stale invisibly: the hooks run, they pass, and they are not the hooks anyone thinks they are. An agent can read `git ls-remote` as it writes the config; this repository cannot. |
+| Every commit, including the first | the skill | A commit needs an author. `fkb` inventing one would write a name no human chose into history that outlives the session. |
+
+**Committing is part of filing, not a favour.** A concept left in the working tree is a task
+handed back to the person who delegated it, and hooks only refuse what is actually committed -
+so not committing is itself how a bad concept evades the check. Three rules bound it: never
+`--no-verify`, never invent a git identity, never push. The first keeps the gate, the second
+keeps provenance honest the way §6.4 does for `generated.by`, and the third leaves disclosure
+with the person.
+
+> **This gives `fkb` no `commit` command** (§7). Nothing here wraps git: the CLI creates a
+> repository as part of creating a bundle, and everything after that is the agent using git
+> directly, which it already knows how to do.
+
+A machine without git still gets a bundle. Every check here runs over a directory, and
+history is the only layer that can be added afterwards without touching a single concept.
+
 ## 10. The way forward
 
 The implementation plan lives in [IMPLEMENTATION.md](IMPLEMENTATION.md): the tasks T1–T7 in

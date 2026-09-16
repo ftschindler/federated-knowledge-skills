@@ -14,6 +14,7 @@ rather than about output, and because they want testing directly.
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -151,3 +152,32 @@ def scaffold(root: Path, name: str, date: str) -> Path:
     (root / "log.md").write_text(TEMPLATE_LOG.format(date=date), encoding="utf-8")
     (root / "fkb.yaml").write_text(TEMPLATE_FLOOR, encoding="utf-8")
     return root
+
+
+def git_init(root: Path) -> bool:
+    """Make a scaffolded bundle a git repository. True if it now is one.
+
+    This is here rather than in the skill because it has no judgement in it: a
+    bundle that is a repository has history, hooks and a way to be shared, and a
+    bundle that is not has none of those and no compensating advantage. Leaving
+    it to prose meant every route to a new bundle had to remember, and the one
+    that mattered most - somebody's first private bundle - is the one written by
+    an agent that had just been told not to run git.
+
+    What stays in the skill is the half that cannot be hardcoded: which hook
+    revision to pin, which is a fact about a remote right now, and the first
+    commit, which needs an author this program has no business inventing.
+
+    A machine without git still gets a bundle. Every check here runs on a
+    directory, and history is the only layer that can be added later without
+    touching a single concept.
+    """
+    if shutil.which("git") is None:
+        return False
+    if (root / ".git").exists():
+        return True
+    done = subprocess.run(["git", "init", str(root)], capture_output=True, text=True, check=False)
+    if done.returncode != 0:
+        print(f"fkb: `git init` failed, leaving a plain directory\n{done.stderr}", file=sys.stderr)
+        return False
+    return True

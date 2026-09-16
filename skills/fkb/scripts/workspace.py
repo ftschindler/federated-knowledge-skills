@@ -13,12 +13,61 @@ fetching, so that a bundle can be linked to before its site exists.
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 from pathlib import Path
 
 import yaml
 
 CONFIG_FILE = "fkb.yaml"
+
+
+def invocation() -> str:
+    """How this program was started, written so a reader can type it back.
+
+    A message that names a command has to name one that works on the machine
+    reading it, and there are three ways in: a `PATH` entry, `uv run` with a
+    path, and the shebang. A hardcoded `fkb` is right only for the first, and the
+    skill's `uv run SKILLDIR/scripts/fkb` form is wrong for anyone who installed
+    the CLI on its own - which is supported, and is exactly the case a hardcoded
+    string fails without saying so.
+
+    The wrapper is not reconstructed, because it cannot be: `sys.argv[0]` carries
+    the script and never the `uv run` in front of it, and no environment variable
+    reliably reports that uv was used. So the question asked instead is whether
+    the bare name resolves, on `PATH`, to this same file. If it does, that is
+    what the caller typed and what will work again. If it does not, `uv run` with
+    an absolute path is the form that runs from any directory and does not rely
+    on the shebang, which is also why it is the one that works on Windows.
+
+    Lives here rather than in the command file because both this module and `fkb`
+    print commands, and two answers to "what am I called" is how they drift.
+    """
+    called = Path(sys.argv[0])
+    try:
+        resolved = called.resolve()
+    except OSError:
+        return f"uv run {called}"
+    on_path = shutil.which(called.name)
+    if on_path and Path(on_path).resolve() == resolved:
+        return called.name
+    return f"uv run {_quoted(resolved)}"
+
+
+def _quoted(path: Path) -> str:
+    """A path a shell will read as one argument, if it needs the help.
+
+    Not an edge case: the default home on Windows is `C:\\Users\\First Last`, so
+    an unquoted path there is a hint that silently runs the wrong thing for a
+    large share of that platform. Double quotes are the one form `sh`, PowerShell
+    and `cmd` all read the same way, which is what makes this affordable where
+    `&&` and `~` were not - those have no portable spelling at all.
+
+    Quoted only when there is whitespace, so the ordinary case stays copyable
+    without decoration.
+    """
+    text = str(path)
+    return f'"{text}"' if any(character.isspace() for character in text) else text
 
 
 def manifest_path() -> Path:
@@ -217,10 +266,11 @@ class Bundle:
 
 def load_bundles(*, allow_empty: bool = False) -> list[Bundle]:
     path = manifest_path()
+    me = invocation()
     if not path.is_file():
         sys.exit(
             f"fkb: no workspace manifest at {path}.\n"
-            "Run `fkb init` to create one, then `fkb add` to bring a bundle into it."
+            f"Run `{me} init` to create one, then `{me} add` to bring a bundle into it."
         )
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -235,7 +285,7 @@ def load_bundles(*, allow_empty: bool = False) -> list[Bundle]:
     # that were asked about a particular bundle, because there the answer is
     # that the named one does not exist.
     if not bundles and not allow_empty:
-        sys.exit(f"fkb: {path} declares no bundles yet. Add one with `fkb add`.")
+        sys.exit(f"fkb: {path} declares no bundles yet. Add one with `{me} add`.")
     loaded = [Bundle(name, entry or {}, root) for name, entry in bundles.items()]
     check_publish_prefixes(loaded)
     return loaded

@@ -22,6 +22,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -163,6 +164,22 @@ def test_omitted_policy_fails_closed(tmp_path: Path) -> None:
     assert "writable          false" in result.stdout
 
 
+def test_list_names_the_manifest_it_read(tmp_path: Path) -> None:
+    """Where the manifest lives is a machine fact, so it is asked for, not written down.
+
+    It is `XDG_CONFIG_HOME` when that is set and the user config directory when
+    it is not, which means no page can name it and be right on every machine -
+    `references/getting-started.md` used to try, and was wrong on any Windows
+    install. It is also the file to hand-edit to change policy, so a reader who
+    cannot find it cannot do the one thing the manifest is for.
+    """
+    _bundle(tmp_path / "kb", {"alpha.md": _concept("Alpha")})
+    env = _workspace(tmp_path, {"kb": str(tmp_path / "kb")})
+
+    result = _run(FKB, "list", env=env)
+    assert str(tmp_path / "config" / "fkb" / "workspace.yaml") in result.stdout, result.stdout
+
+
 def test_missing_manifest_sends_you_to_init(tmp_path: Path) -> None:
     """The error has to name the command that fixes it, and that command changed.
 
@@ -174,6 +191,121 @@ def test_missing_manifest_sends_you_to_init(tmp_path: Path) -> None:
     assert result.returncode != 0
     assert "workspace.yaml" in result.stderr
     assert "fkb init" in result.stderr
+
+
+def test_proposing_roots_writes_nothing_and_succeeds(tmp_path: Path) -> None:
+    """Asking which roots make sense is a question, and questions exit 0.
+
+    The skill delegates the defaults here rather than carrying its own copy, so
+    an agent reaches this on the onboarding path and reads the exit code before
+    it reads the output. A non-zero one is a failure to that reader, and the
+    proposals never get used.
+    """
+    config = tmp_path / "config"
+    result = _run(FKB, "init", "--propose-roots", env={"XDG_CONFIG_HOME": str(config)})
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert not (config / "fkb" / "workspace.yaml").exists(), "a question wrote a manifest"
+
+    proposed = [line.split("#")[0].strip() for line in result.stdout.splitlines() if line.startswith("  ")]
+    assert proposed, result.stdout
+    for root in proposed:
+        assert Path(root).is_absolute(), f"a proposal the caller cannot hand back: {root}"
+        assert "~" not in root, f"`~` only expands in some shells: {root}"
+
+
+def test_init_without_a_root_is_still_an_error(tmp_path: Path) -> None:
+    """The proposals got their own flag precisely so this case keeps failing.
+
+    Had the no-argument case been made to print them and exit 0, a caller that
+    forgot `--workspace-root` would be told `ok` and find no manifest afterwards.
+    """
+    config = tmp_path / "config"
+    result = _run(FKB, "init", env={"XDG_CONFIG_HOME": str(config)})
+    assert result.returncode != 0
+    assert "--propose-roots" in result.stdout, "the error does not name the command that answers it"
+    assert not (config / "fkb" / "workspace.yaml").exists()
+
+
+def test_a_hint_names_the_invocation_that_was_used(tmp_path: Path) -> None:
+    """A message naming a command must name one this caller can run.
+
+    The CLI is installed two ways: inside the skill, where it is reached as
+    `uv run <skill>/scripts/fkb`, and on its own by someone who wants the
+    command, where it is `fkb`. A hardcoded string is wrong for one of them and
+    wrong silently, since a hint that does not run reads exactly like one that
+    does. Here it is reached by path, so the hint has to carry that path rather
+    than a bare name nothing on this machine resolves.
+    """
+    result = _run(FKB, "init", env={"XDG_CONFIG_HOME": str(tmp_path / "config")})
+    assert str(FKB) in result.stdout, f"the hint does not name this copy:\n{result.stdout}"
+    assert "~" not in result.stdout, "`~` is expanded by the shell, and not by every shell"
+
+
+def test_a_hint_drops_the_path_when_the_name_is_on_the_path(tmp_path: Path) -> None:
+    """Installed as a command, it should say `fkb` rather than where it lives.
+
+    The other half of the case above, and the one that argues for asking `PATH`
+    rather than always printing a path: somebody who installed the CLI on its own
+    typed `fkb`, and telling them to run a copy buried in a skill directory is an
+    answer to a question they did not ask.
+    """
+    binaries = tmp_path / "bin"
+    shutil.copytree(SCRIPTS, binaries)
+    installed = binaries / "fkb"
+
+    result = _run(
+        installed,
+        "init",
+        env={"XDG_CONFIG_HOME": str(tmp_path / "config"), "PATH": f"{binaries}{os.pathsep}{os.environ['PATH']}"},
+    )
+    assert "`fkb init --propose-roots`" in result.stdout, result.stdout
+    assert str(binaries) not in result.stdout, "the path is noise once the name resolves"
+
+
+def test_a_hint_quotes_a_path_a_shell_would_split(tmp_path: Path) -> None:
+    """The default Windows home holds a space, so this is the common case there.
+
+    An unquoted path is a hint that runs something other than what it names, and
+    it fails by being interpreted rather than by erroring. Double quotes are the
+    one spelling `sh`, PowerShell and `cmd` agree on, which is why quoting is
+    allowed here while `&&` and `~` are not.
+    """
+    spaced = tmp_path / "Two Words"
+    shutil.copytree(SCRIPTS, spaced)
+
+    result = _run(spaced / "fkb", "init", env={"XDG_CONFIG_HOME": str(tmp_path / "config")})
+    assert f'"{spaced / "fkb"}"' in result.stdout, result.stdout
+
+
+def test_proposing_and_creating_cannot_be_asked_for_at_once(tmp_path: Path) -> None:
+    """One writes and one does not, so the pair is refused rather than ranked."""
+    result = _run(
+        FKB,
+        "init",
+        "--propose-roots",
+        "--workspace-root",
+        str(tmp_path / "kb"),
+        env={"XDG_CONFIG_HOME": str(tmp_path / "config")},
+    )
+    assert result.returncode != 0
+    assert "not allowed with" in result.stderr
+
+
+def test_a_proposed_root_is_one_init_accepts(tmp_path: Path) -> None:
+    """The two halves are one workflow, and nothing else checks they join up.
+
+    Reading a proposal and passing it straight back is what the skill tells an
+    agent to do, so the round trip is the behaviour, not the two commands.
+    """
+    config = tmp_path / "config"
+    env = {"XDG_CONFIG_HOME": str(config)}
+    proposals = _run(FKB, "init", "--propose-roots", env=env)
+    first = next(line.split("#")[0].strip() for line in proposals.stdout.splitlines() if line.startswith("  "))
+
+    created = _run(FKB, "init", "--workspace-root", first, env=env)
+    assert created.returncode == 0, created.stdout + created.stderr
+    manifest = (config / "fkb" / "workspace.yaml").read_text(encoding="utf-8")
+    assert first in manifest
 
 
 def test_lint_picks_up_the_bundles_own_floor(tmp_path: Path) -> None:
@@ -604,3 +736,28 @@ def test_the_body_still_prints_the_commands() -> None:
         if line.strip().startswith("uv run")
     ]
     assert commands, "the commands block moved; the shell-syntax test needs to follow it"
+
+
+@pytest.mark.parametrize("page", _prose_files(), ids=lambda p: p.name)
+def test_the_prose_names_no_flag_the_cli_does_not_have(page: Path) -> None:
+    """Every option the skill tells an agent to type has to exist.
+
+    The prose and the CLI drift in one direction only: a flag gets renamed in
+    argparse and the six pages that mention it keep reading as correct. Nothing
+    catches it, because the pages are prose and the CLI is never run with what
+    they say. The onboarding path made that expensive - the skill no longer
+    carries the workspace roots itself, it asks `init` for them, so a rename
+    breaks setting up rather than one sentence.
+    """
+    known: dict[str, set[str]] = {}
+    for subcommand in ("list", "lint", "resolve", "url", "init", "add"):
+        helped = _run(FKB, subcommand, "--help")
+        assert helped.returncode == 0, helped.stdout + helped.stderr
+        known[subcommand] = set(re.findall(r"--[a-z][a-z-]+", helped.stdout))
+
+    for number, line in enumerate(page.read_text(encoding="utf-8").splitlines(), start=1):
+        for subcommand, flags in known.items():
+            if f"fkb {subcommand}" not in line:
+                continue
+            for flag in re.findall(r"--[a-z][a-z-]+", line):
+                assert flag in flags, f"{page.name}:{number}: `fkb {subcommand}` has no `{flag}`"

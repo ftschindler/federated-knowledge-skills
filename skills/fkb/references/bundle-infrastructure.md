@@ -14,11 +14,11 @@ currently maintains the bundle you copy from.
 ## Read the reference implementation
 
 `ftschindler/knowledge` is the worked example, and onboarding already cloned it - it is the
-bundle registered as `practice`. Its *repository root* is the interesting part here, not the
+bundle registered as `ftschindler`. Its *repository root* is the interesting part here, not the
 bundle inside it:
 
 ```text
-uv run SKILLDIR/scripts/fkb list          # find where `practice` is checked out
+uv run SKILLDIR/scripts/fkb list          # find where `ftschindler` is checked out
 ls -a <that path>/..             # the repository root, one level above the bundle
 ```
 
@@ -56,6 +56,25 @@ and a bundle pins them by revision:
     args: [--bundle-root, docs, --floor, docs/fkb.yaml]
   - id: okf-bundle
     args: [--bundle-root, docs, --floor, docs/fkb.yaml]
+```
+
+**Look `<commit>` up, do not copy one.** A revision written into a page is stale the week
+after it is written, and a stale pin is invisible: the hooks run, they pass, and they are not
+the hooks anyone thinks they are. There are no tags to name, so the revision is a commit on
+`main`:
+
+```text
+git ls-remote https://github.com/ftschindler/federated-knowledge-skills main
+```
+
+Use the SHA it prints. Do not put a branch name there instead - the whole reason a hook is
+pinned is that it must not change under the bundle without someone deciding it should.
+
+Then make it run, and check it does:
+
+```text
+uvx prek install
+uvx prek run --all-files
 ```
 
 `okf-concepts` checks the whole bundle and fails only on findings in the files being
