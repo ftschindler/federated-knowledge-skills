@@ -1,0 +1,34 @@
+skills/fkb/references/bundle-infrastructure.md
+  s_798886934a1961::t_f24ebe774cc21d 119-125,135-138,142,145-148,153,156,166
+  s_798886934a1961::t_e926d3339cc222 112-117,126-133,141,151,160
+  s_798886934a1961::t_6ad76180a18412 46,56,58,61-77,97-99
+  s_798886934a1961::t_ad2f580ede5823 208
+skills/fkb/references/getting-started.md
+  s_798886934a1961::t_8b7ebc7f0d9f16 236-240,244-247
+skills/fkb/references/agents-block.md
+  h_66a52204f23ba9 60
+skills/fkb/references/federation.md
+  s_798886934a1961::t_d35e71bfcb47f8 49-77
+  s_798886934a1961::t_db336674bec95e 149-160
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "21d2a0532950ab22b17ab92c2d25681dd7bf953f",
+  "prompts": {},
+  "humans": {
+    "h_66a52204f23ba9": {
+      "author": "x <x@example.com>"
+    }
+  },
+  "sessions": {
+    "s_798886934a1961": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "0a1d9dfa-bb24-43d1-8c9d-684762fce30d",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "x <x@example.com>"
+    }
+  }
+}
