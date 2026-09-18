@@ -1,0 +1,107 @@
+---
+name: Merge back
+
+# The one part of the shared-bundle shape that ships from here rather than being
+# copied into each bundle, because it is the only part whose absence is silent.
+# Branch protection forgotten means an unreviewed page on the site, which a
+# person sees. Squash merging left on means a confusing release, which a person
+# sees. This missing means the two branches drift, every working copy holds a
+# stale wiki, and the first symptom is a concept filed twice by an agent that
+# could not see the first - several incidents later.
+#
+# A bundle calls it on every change to its default branch, pinned by full commit
+# SHA. Never by tag: this needs write access to the shared branch, which is a
+# larger trust step than a hook that only ever ran on a machine already holding
+# the files.
+#
+#   jobs:
+#     merge_back:
+#       uses: ftschindler/federated-knowledge-skills/.github/workflows/merge-back.yml@<sha>
+#       with:
+#         branch: staging
+#       permissions:
+#         contents: write
+#         pull-requests: write
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: The shared branch the reviewed one is merged into.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  merge_back:
+    name: Merge the reviewed branch into the shared one
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    # Two rapid changes to the default branch would otherwise race each other
+    # into the same branch, and the loser pushes a merge made from a tip that no
+    # longer exists. Not cancelled in progress: a merge that is abandoned
+    # half-way is the drift this workflow exists to prevent.
+    concurrency:
+      group: merge-back-${{ inputs.branch }}
+      cancel-in-progress: false
+    steps:
+
+    - name: Checkout the shared branch
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      with:
+        ref: ${{ inputs.branch }}
+        # The whole history, because a merge needs the ancestry the two branches
+        # share and a shallow clone has thrown it away.
+        fetch-depth: 0
+
+    - name: Merge, keeping the ancestry
+      id: merge
+      # A merge commit and never a squash or a rebase. Those write a new commit
+      # with the same content and no shared ancestry, so the two branches stop
+      # knowing they ever met: the next release re-displays everything already
+      # released, and the merge back conflicts content against a copy of itself.
+      # Silent for one cycle, permanent afterwards.
+      env:
+        REVIEWED: ${{ github.event.repository.default_branch }}
+        SHARED: ${{ inputs.branch }}
+      run: |
+        set -euo pipefail
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        if git merge --no-ff --no-edit "origin/${REVIEWED}" \
+            -m "Merge ${REVIEWED} back into ${SHARED}"; then
+          echo "conflicted=false" >> "${GITHUB_OUTPUT}"
+          git push origin "HEAD:${SHARED}"
+        else
+          echo "conflicted=true" >> "${GITHUB_OUTPUT}"
+          git merge --abort
+        fi
+
+    - name: Open a pull request when the merge conflicts
+      # A failed run is a red mark somebody has stopped reading. A pull request
+      # is a thing with a page, an assignee and a conflict view, which is what
+      # this actually needs from a person.
+      if: steps.merge.outputs.conflicted == 'true'
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REVIEWED: ${{ github.event.repository.default_branch }}
+        SHARED: ${{ inputs.branch }}
+      run: |-
+        set -euo pipefail
+        existing="$(gh pr list --base "${SHARED}" --head "${REVIEWED}" --state open --json number --jq 'length')"
+        if [ "${existing}" != "0" ]; then
+          echo "A merge-back pull request is already open; nothing to do."
+          exit 0
+        fi
+        gh pr create --base "${SHARED}" --head "${REVIEWED}" \
+          --title "Merge ${REVIEWED} back into ${SHARED}" \
+          --body "The automatic merge back conflicts, so it stopped and asked.
+
+        Until this is merged, every working copy of this bundle is missing what
+        was changed on \`${REVIEWED}\`, and an agent filing into it cannot see
+        those pages. Resolve the conflict here rather than on a machine."

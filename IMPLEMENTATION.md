@@ -592,6 +592,21 @@ agent on the second without either person running a git command by hand, the rev
 has only ever been changed through a pull request, the merge back has run unattended, and
 every row of the refusal table has a test.
 
+**Where it stands.** Everything except the last two clauses is built: `sync` in the manifest
+and in `resolve`, `fkb sync [bundle] [--check]` against the refusal table, `add --sync` which
+checks the branch out, the drifted-checkout warning in `lint`, union-merge `.gitattributes`
+in every scaffolded bundle, the narrowed push rule in the skill, the recipe in
+[`bundle-infrastructure.md`](skills/fkb/references/bundle-infrastructure.md), and the
+merge-back workflow in `.github/workflows/merge-back.yml`. Each row of the table has a test
+over real repositories with a bare remote, and one cold-session test files into a shared
+bundle and checks the concept reached that remote.
+
+**Two claims this repository still makes about itself.** The merge-back workflow is read by
+no test here - exercising it honestly needs a fixture repository with two branches and a real
+run - and no two machines have shared a bundle yet, so the branch shape is argued rather than
+lived. Both were named as gaps when the task was written and neither is closed by building
+the thing.
+
 **Settles.** Nothing in [§9](DESIGN.md#9-open-decisions) on its own. It is what produces the
 evidence for [§9.12](DESIGN.md#912-the-window-in-which-a-shared-concept-has-no-url), which
 needs a bundle being cited across the window rather than an argument about one.

@@ -66,6 +66,7 @@ uv run <skill>/scripts/fkb list                  # which bundles exist, and what
 uv run <skill>/scripts/fkb lint [name]           # check a bundle, or all of them
 uv run <skill>/scripts/fkb resolve <name>        # one bundle as JSON: policy, tags, types
 uv run <skill>/scripts/fkb url <name> <path> --from <name>   # cite a concept in another bundle
+uv run <skill>/scripts/fkb sync [name]           # carry a shared bundle's commits, or refuse
 uv run <skill>/scripts/fkb add <name> --clone <url>          # bring a bundle in
 uv run <skill>/scripts/fkb version               # this release, and the one your setup is on
 uv run <skill>/scripts/fkb migrate               # what an upgrade asks of an existing setup

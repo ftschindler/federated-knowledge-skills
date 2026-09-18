@@ -14,6 +14,7 @@ rather than about output, and because they want testing directly.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -48,6 +49,17 @@ required:
 - description
 - status
 - generated
+"""
+
+
+TEMPLATE_ATTRIBUTES = """# The two files everybody appends to, merged by keeping both sides.
+# A concept is one file one person wrote, so it never conflicts; the index and
+# the log are where two people writing on the same day would collide over lines
+# neither of them disagrees about. `union` keeps both, in order, and leaves a
+# real conflict - two people writing the same concept - as the only one a person
+# is asked about.
+index.md merge=union
+log.md merge=union
 """
 
 
@@ -144,6 +156,10 @@ def scaffold(root: Path, name: str, date: str) -> Path:
     and the floor is the only opinion this is entitled to have. The floor it
     writes is the one the existing bundles converged on, which a new bundle is
     free to edit before filing anything.
+
+    The `.gitattributes` beside them is written even for a bundle nobody shares,
+    because the day it is shared is not the day anyone remembers to add it, and
+    on a bundle of one it does nothing at all.
     """
     if root.exists() and any(root.iterdir()):
         sys.exit(f"fkb: {root} already exists and is not empty")
@@ -151,7 +167,48 @@ def scaffold(root: Path, name: str, date: str) -> Path:
     (root / "index.md").write_text(TEMPLATE_INDEX.format(name=name), encoding="utf-8")
     (root / "log.md").write_text(TEMPLATE_LOG.format(date=date), encoding="utf-8")
     (root / "fkb.yaml").write_text(TEMPLATE_FLOOR, encoding="utf-8")
+    (root / ".gitattributes").write_text(TEMPLATE_ATTRIBUTES, encoding="utf-8")
     return root
+
+
+def checkout(root: Path, branch: str) -> bool:
+    """Put a registered bundle on the branch it is shared on. True if it now is.
+
+    This is what makes leaving the reviewed branch as the repository's default
+    safe (DESIGN §10). A clone lands on the default branch, which is the one
+    protected against direct pushes, so a person who was never told would file
+    into the branch their commits cannot leave - and would find out days later,
+    from a teammate who never saw the concept.
+
+    A branch that exists locally or on a remote is checked out; one that exists
+    nowhere is created from where the checkout already is, since a bundle whose
+    shared branch has not been cut yet is a bundle at the start of being shared
+    rather than a mistake. Failure is reported to the caller rather than fatal:
+    the registration is still correct, and `sync` refuses loudly until the
+    checkout catches up.
+    """
+    if shutil.which("git") is None:
+        return False
+    quiet = {"GIT_TERMINAL_PROMPT": "0"}
+    inside = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "--git-dir"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if inside.returncode != 0:
+        return False
+    for attempt in (["checkout", branch], ["checkout", "-b", branch]):
+        done = subprocess.run(
+            ["git", "-C", str(root), *attempt],
+            capture_output=True,
+            text=True,
+            check=False,
+            env={**os.environ, **quiet},
+        )
+        if done.returncode == 0:
+            return True
+    return False
 
 
 def git_init(root: Path) -> bool:

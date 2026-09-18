@@ -189,6 +189,78 @@ public one, because nothing else ever looks at it.
 > and the agent instructions live in directories the copy did not bring. Start empty and add
 > layers deliberately. It is a shorter job than fixing the inherited one.
 
+## Sharing a bundle with several people
+
+A bundle several people file into has two clocks: what has been written, and what has been
+reviewed. **Two branches, and neither weakens the other.** The repository's default branch
+holds what has been reviewed and is what the site is built from; a long-lived shared branch -
+`staging`, conventionally - holds that plus everything not ready yet, and is where every
+checkout sits and every agent files.
+
+The manifest half is one field, and `fkb` does the rest:
+
+```text
+uv run SKILLDIR/scripts/fkb add NAME --clone <remote> --writable --sync staging
+```
+
+It checks the branch out, `fkb sync` moves commits to and from it, and `fkb lint` says so when
+a checkout has drifted onto another one. A bundle without the field behaves exactly as before:
+commit, never push, nothing fetched.
+
+The repository half is configuration, per bundle, and **none of it is enforced from here.**
+Four properties, each of which fails quietly rather than loudly when it is missing:
+
+| Load-bearing | What | Why, if it is missing |
+| --- | --- | --- |
+| yes | The default branch is protected: pull request and review | The careless web edit publishes unreviewed work; the review gate is decoration |
+| yes | Merge commits only - no squash, no rebase merging | The branches stop sharing ancestry, the next release re-displays everything, and the merge back conflicts content against a copy of itself |
+| yes | The merge back runs on **every** change to the default branch | The branches drift, every working copy goes stale, and the first symptom is a concept filed twice |
+| yes | CI runs the bundle's own checks on pushes to the shared branch | A web edit has no working copy, so the pre-commit hooks never ran on it |
+
+The third one ships from here as a reusable workflow, because it is the only one whose
+absence nobody sees. Call it from the bundle, **pinned at the same commit the bundle already
+pins for its hooks**, by full SHA and never by tag - it needs write access to the shared
+branch, which is a larger trust step than a hook that only ran on a machine already holding
+the files:
+
+```yaml
+name: Merge back
+on:
+  push:
+    branches: [main]
+jobs:
+  merge_back:
+    uses: ftschindler/federated-knowledge-skills/.github/workflows/merge-back.yml@<commit>
+    with:
+      branch: staging
+    permissions:
+      contents: write
+      pull-requests: write
+```
+
+It merges rather than squashes, and opens a pull request against the shared branch when the
+merge conflicts rather than failing a run somebody has stopped reading. It is GitHub Actions
+and therefore about one forge; a bundle elsewhere reproduces the behaviour in four lines of
+its own CI, and everything else here still holds.
+
+**Give the bundle a `.gitattributes`.** `fkb add --new` writes one; a bundle that predates it
+wants these two lines, at the bundle root:
+
+```text
+index.md merge=union
+log.md merge=union
+```
+
+Both files are append-only, so the common concurrent edit stops being a conflict at all: two
+people filing on the same day append different lines and both are kept. What remains is two
+people writing the same concept, which is a question about what is true and the only case
+worth a person's attention.
+
+**Releases are a pull request from the shared branch to the default one**, cut on a cadence
+you choose. Nothing here creates it: that is `gh pr create`, and a shorter cadence is also the
+cheapest answer to the one thing this shape gives up - a concept is on every teammate's disk
+as soon as it is pushed, and on the site only after the next release.
+
 ## What to adapt, and what never to copy
 
 A scan of someone else's repository cannot tell you which of their files are about *them*.

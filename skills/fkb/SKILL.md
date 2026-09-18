@@ -21,6 +21,7 @@ uv run SKILLDIR/scripts/fkb list                      # which bundles exist, and
 uv run SKILLDIR/scripts/fkb lint [name]               # check a bundle, or all of them
 uv run SKILLDIR/scripts/fkb resolve <name>            # one bundle as JSON: policy, tags, types
 uv run SKILLDIR/scripts/fkb url <name> <path> --from <name>   # cite a concept in another bundle
+uv run SKILLDIR/scripts/fkb sync [name]               # carry a shared bundle's commits, or refuse
 uv run SKILLDIR/scripts/fkb init --workspace-root <dir>       # create the workspace, once per machine
 uv run SKILLDIR/scripts/fkb add <name> ...            # bring a bundle in: --clone, --path or --new
 uv run SKILLDIR/scripts/fkb version                   # this release, and the one this setup stands at
@@ -140,6 +141,11 @@ Before searching the web, check what is already known. The bundles are the cheap
 the one that carries this person's own decisions.
 
 1. **`fkb list`** for the bundles and their paths.
+
+   If any bundle shows a `sync` branch, somebody else files into it too. Run
+   `uv run SKILLDIR/scripts/fkb sync <that bundle>` before reading it, which is what stops you
+   answering from a page a teammate corrected this morning. If it refuses, read the bundle anyway and repeat the
+   refusal in your answer, so the person knows what they are reading may be behind.
 
    If they named a source and nothing is called that - "what does Felix say about this", with
    no `felix` in the list - take the bundle that is plainly meant and say which you took.
@@ -315,8 +321,14 @@ the one that carries this person's own decisions.
    - **Do not invent an author.** If git has no `user.name` or `user.email` here, stop and
      say so rather than configuring one - a commit attributed to a guess is worse than an
      uncommitted file.
-   - **Do not push**, and do not commit anything you did not write. Publishing is theirs,
-     and a stray staged file is how something private leaves a machine.
+   - **Do not push a bundle whose `list` entry shows `sync null`.** Publishing is theirs, and
+     a stray staged file is how something private leaves a machine. Never commit anything you
+     did not write, in any bundle.
+   - **A bundle that shows a `sync` branch is shared with other people**, and getting the
+     concept to them is part of filing there. Run
+     `uv run SKILLDIR/scripts/fkb sync <bundle>` once the commit is made. If it refuses, say
+     what it said and stop - the refusal carries its own remedy, and a way around it is not
+     yours to find.
    - A bundle that is not a repository is left as written. Say so in one line.
 
 ## The journal
