@@ -1,47 +1,111 @@
 # federated-knowledge-skills
 
-A federated, agent-agnostic knowledge base: privacy-tiered bundles of plain markdown, each
-its own git repo, readable and writable by agents across harnesses and by humans in an
-editor.
+Durable knowledge, in plain markdown, that your agents read before the web and write back to
+when they learn something worth keeping. Several bundles sit side by side at different
+privacy tiers, each its own git repository, each readable and writable by agents across
+harnesses and by you in an editor.
 
 It is an implementation of the [LLM wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)
 idea over the [Open Knowledge Format](https://github.com/GoogleCloudPlatform/open-knowledge-format),
 with the federation and access tiers that neither of those specifies.
 
-> **Status: design stage.** The architecture is settled and written down. The
-> implementation is not built yet. An earlier attempt was, and was retired - see
-> [below](#history).
+You get a skill, a CLI it runs, and two pre-commit hooks each bundle pins for itself.
+[ftschindler.github.io/knowledge](https://ftschindler.github.io/knowledge/) is one of these
+bundles, published: what a bundle looks like when it has been lived in for a while.
 
-## Read this first
+## What to use it for
 
-**[DESIGN.md](DESIGN.md) is the sole source of truth.** It specifies what gets built, what
-was deliberately rejected, and which questions are still open.
-[IMPLEMENTATION.md](IMPLEMENTATION.md) carries the order of work: tasks T1–T7, what "done"
-means for each, and which open question each one settles. Together they are
-self-contained - everything needed to start is either in them or listed in
-IMPLEMENTATION.md's "before starting" section.
+**Keep what a session learned.** A decision and why, a principle you would want true in any
+repository, a fix that cost an afternoon. One idea per file, linked to the ones it rests on.
+The agent files it, indexes it, logs it and commits it.
 
-Three ideas carry most of the design:
+**Answer from what you already know.** A question the bundles hold is answered from them and
+cited by path, rather than re-derived from a web search that does not know what you decided
+last month.
 
-- **The markdown file is the source.** No ingest pipeline, no generated copies. An agent
-  writes the file you edit.
+**Keep work, clients and private notes apart without thinking about it.** A bundle declares
+who may cite it. A sealed bundle cannot be linked to from one that publishes, and the CLI
+refuses to write such a link rather than leaving it to an agent's judgement.
+
+**Publish a bundle, or do not.** The same directory serves as a private vault, a repository
+you share with a team, or a static site. Nothing about the files changes.
+
+Use something else if you want a search engine over everything you have ever read, an
+automatic transcript ingest, or a single vault with no privacy tiers. The first two are
+deliberately absent, and the third is more machinery than one tier is worth.
+
+## How to use it
+
+**Requirements:** [uv](https://docs.astral.sh/uv/), git, and an agent that loads skills.
+Nothing else, on Linux, macOS or Windows.
+
+**1. Install the skill.** Copy `skills/fkb/` into wherever your harness keeps skills, or let
+a skill installer do it:
+
+```text
+npx skills add ftschindler/federated-knowledge-skills
+```
+
+The CLI ships inside the skill as `scripts/fkb`, so there is no second install step. Nothing
+here ever installs anything itself.
+
+**2. Open a session and say what you want.** "Set up my knowledge base", or just "note this
+down". The skill takes it from there: it proposes where the bundles should live, creates
+your private one, adds the public bundles worth reading, and shows you the result. The
+[getting-started reference](skills/fkb/references/getting-started.md) is what it follows.
+
+**3. Add the block to your user-level instructions.** Without one line in the file your
+harness loads every session, nothing will make an agent reach for the bundles at all. The
+skill offers it and lets you place it; the text is in
+[agents-block.md](skills/fkb/references/agents-block.md).
+
+From then on you mostly do not type commands. When you want to, they are:
+
+```text
+uv run <skill>/scripts/fkb list                  # which bundles exist, and what each allows
+uv run <skill>/scripts/fkb lint [name]           # check a bundle, or all of them
+uv run <skill>/scripts/fkb resolve <name>        # one bundle as JSON: policy, tags, types
+uv run <skill>/scripts/fkb url <name> <path> --from <name>   # cite a concept in another bundle
+uv run <skill>/scripts/fkb add <name> --clone <url>          # bring a bundle in
+```
+
+**4. Give each bundle its gate.** A bundle is checked by its own pre-commit hooks, pinned by
+revision, so it holds up whether or not the federation layer is anywhere near it:
+
+```yaml
+- repo: https://github.com/ftschindler/federated-knowledge-skills
+  rev: <commit>
+  hooks:
+  - id: okf-concepts
+    args: [--bundle-root, docs, --floor, docs/fkb.yaml]
+```
+
+`okf-concepts` checks the whole bundle and fails only on the files being committed, so an
+unfinished page elsewhere never blocks an unrelated commit; with `--all-files` the same hook
+is strict in CI. `okf-bundle` adds index coverage and sits on the manual stage. Only two
+layers can fail a run: the format's hard rules, and the fields your own `fkb.yaml` declares.
+
+## How it is put together
+
+Three ideas carry most of it.
+
+- **The markdown file is the source.** No ingest pipeline, no generated copies, no drift
+  guard between two versions of one note. An agent writes the file you edit.
 - **A skill may run a command; a skill never invokes another skill.** Prose calling prose
   through an LLM is not control flow.
-- **The manifest is a guardrail, not a security boundary.** Access control is git remote
-  permissions and the CI publish gate.
+- **The manifest is a guardrail, not a security boundary.** It is one machine-local file
+  saying which bundles exist and what each allows. The boundary that holds is git remote
+  permissions and each bundle's own publish gate, so a bundle stays safe when an agent
+  bypasses the federation layer entirely.
 
-## What is in this repository today
+**[DESIGN.md](DESIGN.md) is the source of truth** for what this is, what was deliberately
+rejected and which questions are still open, including the ones that cost the most to
+answer. [IMPLEMENTATION.md](IMPLEMENTATION.md) is the order of work and what remains.
 
-| | |
-| --- | --- |
-| `DESIGN.md` | The design |
-| `IMPLEMENTATION.md` | The plan: tasks T1–T7, in order |
-| `tests/disposable_agent.py` | A throwaway agent: install skills into it, send it a message, throw it away |
-| `tests/test_disposable_agent.py` | Keeps that machinery exercised while there is nothing else to test |
-| `.scripts/` | Support scripts: build an agent by hand, extract dependencies, guard the mailmap and skill frontmatter |
-| dotfiles, `.github/` | Pre-commit hooks, linters, CI |
-
-No skills and no CLI. Those arrive with the tasks in [IMPLEMENTATION.md](IMPLEMENTATION.md).
+The reasoning behind it, written from the outside, is on the bundle it produced:
+[the decision](https://ftschindler.github.io/knowledge/decisions/federating_my_knowledge_base_as_privacy_tiered_okf_bundles/),
+[the architecture](https://ftschindler.github.io/knowledge/research/federated_okf_knowledge_bases_a_workspace_manifest_architecture/)
+and [what the first attempt taught](https://ftschindler.github.io/knowledge/explorations/wrapping_the_kb_skills_in_a_federation_layer/).
 
 ## Working on it
 
@@ -49,22 +113,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites, bootstrap and the test
 
 ```bash
 make bootstrap   # install the pre-commit hooks
-make test        # support scripts, then a real agent run
+make test        # support scripts, real bundles, then a real agent run
 make check       # the full guard suite over every file
 make agent       # build a disposable agent and drop into a shell inside it
 ```
 
-## History
-
-The first attempt wrapped the single-bundle `kb-*` skills from
-[stjbrown/agent-knowledge](https://github.com/stjbrown/agent-knowledge) in a federation
-layer. It reached 20 commits and a green test suite, and it did not work: skills invoking
-skills is not something an agent reliably carries out. That state is preserved on a tag,
-and what it cost is recorded in DESIGN.md appendix A.
-
-The disposable agent is what survived, because building a throwaway agent and talking to it
-is independent of what is being tested.
+Two things are worth knowing before changing anything. The skill is tested by installing it
+into a throwaway agent and asking that agent to do the thing, because prose is what regresses
+here and no unit test reads it. And `JOURNAL.md` records what the tooling could not do, one
+line per incident with the actual paths and queries: it is the evidence that decides what
+gets built next, which is why `fkb search` does not exist yet.
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE). The vendored OKF specification and validator carry their own, beside them in
+`skills/fkb/references/`.
