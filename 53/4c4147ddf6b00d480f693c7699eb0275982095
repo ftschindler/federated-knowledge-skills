@@ -1,0 +1,51 @@
+DESIGN.md
+  s_2d2217ee3f15f2::t_2cb39d4970c244 91
+  h_66a52204f23ba9 630,1348,1388-1389,1394,1397
+  s_2d2217ee3f15f2::t_5d654f1c90bed4 1467-1494,1498-1504
+  s_2d2217ee3f15f2::t_76c0b118e6ef91 82-83
+  s_2d2217ee3f15f2::t_5e9e244fbc2f3d 1382,1390,1398-1402,1404-1409
+  s_2d2217ee3f15f2::t_2b1618e30c1ab0 1290-1315
+  s_2d2217ee3f15f2::t_0a46024a4604bd 1416,1435,1460
+  s_2d2217ee3f15f2::t_876ca2d163485b 619,627,633-636
+  s_2d2217ee3f15f2::t_7fbc7f0e26bfd0 1317-1347,1349-1368,1372-1381,1383-1387,1391-1393,1395-1396,1403,1410-1415,1417-1434,1436-1459,1461-1466,1495-1497,1505-1512
+  s_2d2217ee3f15f2::t_2709c9df4fe7fd 42
+  s_2d2217ee3f15f2::t_8a4b0994d1a6c4 1369-1371
+IMPLEMENTATION.md
+  s_2d2217ee3f15f2::t_ab93e0443bf1ea 516-553,570,576-591,594-598,605
+  s_2d2217ee3f15f2::t_4e141b58d9a548 592
+  s_2d2217ee3f15f2::t_dec647bfbcf83d 593
+  s_2d2217ee3f15f2::t_dc6b24f0792bf2 599-604
+  s_2d2217ee3f15f2::t_01ca1f6cfbcbf7 554-569,571-575
+  s_2d2217ee3f15f2::t_0d510963657f15 23
+JOURNAL.md
+  s_5af7bf8bf1067f::t_e120589b1b120c 471-485
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "534c4147ddf6b00d480f693c7699eb0275982095",
+  "prompts": {},
+  "humans": {
+    "h_66a52204f23ba9": {
+      "author": "x <x@example.com>"
+    }
+  },
+  "sessions": {
+    "s_2d2217ee3f15f2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f4ab83d7cffeTZ6KOduA7Gg2pA",
+        "model": "claude-opus-5"
+      },
+      "human_author": "x <x@example.com>"
+    },
+    "s_5af7bf8bf1067f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f53ece845ffemJd4hZP6L5PQ1W",
+        "model": "claude-opus-5"
+      },
+      "human_author": "x <x@example.com>"
+    }
+  }
+}
