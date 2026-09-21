@@ -75,6 +75,23 @@ def manifest_path() -> Path:
     return Path(config) / "fkb" / "workspace.yaml"
 
 
+def read_manifest() -> dict:
+    """The manifest as data, or an empty mapping if there is none yet.
+
+    Silent about absence, unlike `load_bundles`, because the callers differ in
+    what absence means to them. A command asked about bundles has nothing to say
+    without a manifest and stops; a command asked what version this setup is has
+    an answer either way, and "there is no setup here" is one of the useful ones.
+    """
+    path = manifest_path()
+    if not path.is_file():
+        return {}
+    try:
+        return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError) as exc:
+        sys.exit(f"fkb: cannot read {path}: {exc}")
+
+
 class Publish:
     """Where a bundle's concepts are reachable from outside, and under what shape.
 

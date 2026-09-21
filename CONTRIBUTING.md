@@ -189,6 +189,34 @@ makes that unreachable, and turns the fallback into something a test can exercis
 reads `HOME` on Linux and `USERPROFILE` on Windows. Redirecting one of the two would make the
 isolation hold on one operating system and silently fail on the other.
 
+### Releasing
+
+Every merge to `main` ships, and the size of the release comes from a label on the pull
+request. Put exactly one of them on before merging:
+
+| label | when |
+| --- | --- |
+| `major` | a setup that works today stops working, or needs a hand to keep working |
+| `minor` | something new: a command, a field, a capability |
+| `patch` | a fix, or prose that ships inside the skill |
+| `no-release` | nothing that ships - CI, repository docs, this file |
+
+The release job writes `skills/fkb/VERSION`, commits it and tags it. **Do not bump that file
+in a pull request** - a hook and a CI check both refuse it. It is written in one place so a
+tag and the version installed from it cannot disagree, and so two open pull requests do not
+conflict over one line.
+
+The job needs a `RELEASE_TOKEN` secret that may push to protected `main`. Without one it
+falls back to the default token, which cannot, and the release fails visibly rather than
+tagging a commit it could not push.
+
+**If the change asks something of setups that already exist**, write the guide with it:
+`skills/fkb/references/migrations/<next version>.md`, in the voice described by
+[the README beside it](skills/fkb/references/migrations/README.md). You are naming a file
+for a version that does not exist yet, which is the one awkward part of this: take the
+current `VERSION`, apply your own label to it, and use that. Most changes need no guide, and
+a gap in the series is normal.
+
 ### Before you push
 
 Run the full pre-commit guard suite against every file (the same hooks that run on commit):

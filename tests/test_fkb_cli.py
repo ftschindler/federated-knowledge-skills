@@ -695,7 +695,7 @@ def _prose_files() -> list[Path]:
     """
     pages = [INSTALLED / "SKILL.md"]
     pages += sorted(
-        p for p in (INSTALLED / "references").glob("*.md") if p.name not in {"SPEC.md", "concept-template.md"}
+        p for p in (INSTALLED / "references").rglob("*.md") if p.name not in {"SPEC.md", "concept-template.md"}
     )
     return pages
 
@@ -769,3 +769,163 @@ def test_the_prose_names_no_flag_the_cli_does_not_have(page: Path) -> None:
                 continue
             for flag in re.findall(r"--[a-z][a-z-]+", line):
                 assert flag in flags, f"{page.name}:{number}: `fkb {subcommand}` has no `{flag}`"
+
+
+def _skill_at(root: Path, version: str, guides: tuple[str, ...] = ()) -> Path:
+    """A second installed copy of the skill, at a release of the test's choosing.
+
+    The version a copy claims is a file inside it, so a test about upgrades needs
+    a copy it may rewrite - and the shared `INSTALLED` one is read by every other
+    test in this module. Each of these gets its own, which is also the honest
+    shape of the thing under test: two installs of different ages is exactly the
+    situation the notice exists for.
+    """
+    skill = root / "skill" / "fkb"
+    shutil.copytree(INSTALLED, skill)
+    (skill / "VERSION").write_text(version + "\n", encoding="utf-8")
+    # Emptied first, so each of these tests states its own history. The guides
+    # this release actually ships are checked against the copy that ships them.
+    migrations = skill / "references" / "migrations"
+    for shipped in migrations.glob("*.md"):
+        shipped.unlink()
+    for name in guides:
+        (migrations / f"{name}.md").write_text(f"# {name}\n\nDo the thing.\n", encoding="utf-8")
+    return skill / "scripts" / "fkb"
+
+
+def _manifest(tmp_path: Path) -> Path:
+    return tmp_path / "config" / "fkb" / "workspace.yaml"
+
+
+def test_init_records_the_release_that_wrote_the_manifest(tmp_path: Path) -> None:
+    """A fresh workspace owes no guides, and says so by being stamped from the start.
+
+    Left unstamped it would be indistinguishable from a setup made years before
+    this field existed, and would be offered every migration ever written on its
+    first run.
+    """
+    env = {"XDG_CONFIG_HOME": str(tmp_path / "config"), "HOME": str(tmp_path), "USERPROFILE": str(tmp_path)}
+    fkb = _skill_at(tmp_path, "0.4.0", guides=("0.2.0",))
+    assert _run(fkb, "init", "--workspace-root", str(tmp_path / "kb"), env=env).returncode == 0
+    assert "version: 0.4.0" in _manifest(tmp_path).read_text(encoding="utf-8")
+    result = _run(fkb, "migrate", env=env)
+    assert "Nothing to migrate" in result.stdout, result.stdout
+
+
+def test_a_manifest_without_a_version_is_owed_every_guide(tmp_path: Path) -> None:
+    """The field is new, so its absence is a state to serve rather than an error.
+
+    Absence is read as the baseline rather than as the current release, because
+    reading it as current would declare every setup made before today already
+    migrated - and skip the first guide ever written, which is the one case the
+    mechanism exists for.
+    """
+    _bundle(tmp_path / "open", {"alpha.md": _concept("Alpha")})
+    env = _workspace(tmp_path, {"open": str(tmp_path / "open")})
+    fkb = _skill_at(tmp_path, "0.3.0", guides=("0.2.0", "0.3.0"))
+
+    listed = _run(fkb, "list", env=env)
+    assert listed.returncode == 0, listed.stdout + listed.stderr
+    assert "0.2.0.md" in listed.stdout and "0.3.0.md" in listed.stdout
+    assert "open" in listed.stdout, "a notice must not cost the answer the command was asked for"
+
+    result = _run(fkb, "migrate", env=env)
+    assert result.stdout.index("0.2.0.md") < result.stdout.index("0.3.0.md"), "guides apply oldest first"
+
+
+def test_a_guide_newer_than_the_skill_is_not_offered(tmp_path: Path) -> None:
+    """A copy may only offer the guides it carries, and only up to its own release."""
+    _bundle(tmp_path / "open", {"alpha.md": _concept("Alpha")})
+    env = _workspace(tmp_path, {"open": str(tmp_path / "open")})
+    fkb = _skill_at(tmp_path, "0.2.0", guides=("0.2.0", "0.9.0"))
+    result = _run(fkb, "migrate", env=env)
+    assert "0.2.0.md" in result.stdout
+    assert "0.9.0.md" not in result.stdout
+
+
+def test_migrate_stamps_only_when_told_to_and_keeps_the_comments(tmp_path: Path) -> None:
+    """Showing the work and recording it are separate, and the record is line surgery.
+
+    Separate because the work inside a guide is a conversation with a person, and
+    no command here can watch it go well. Line surgery because the manifest is
+    hand-edited: a `safe_dump` round-trip returns the data and drops the comments
+    that are the only record of why a policy was chosen.
+    """
+    _bundle(tmp_path / "open", {"alpha.md": _concept("Alpha")})
+    env = _workspace(tmp_path, {"open": str(tmp_path / "open")})
+    manifest = _manifest(tmp_path)
+    manifest.write_text("# a comment the person wrote\n" + manifest.read_text(encoding="utf-8"), encoding="utf-8")
+    fkb = _skill_at(tmp_path, "0.3.0", guides=("0.3.0",))
+
+    _run(fkb, "migrate", env=env)
+    assert "version" not in manifest.read_text(encoding="utf-8"), "reading must not record"
+
+    assert _run(fkb, "migrate", "--done", env=env).returncode == 0
+    text = manifest.read_text(encoding="utf-8")
+    assert "version: 0.3.0" in text
+    assert "# a comment the person wrote" in text
+    assert "0.3.0.md" not in _run(fkb, "list", env=env).stdout, "a recorded migration stops asking"
+
+
+def test_a_workspace_ahead_of_the_skill_is_a_remark_not_a_refusal(tmp_path: Path) -> None:
+    """One manifest, several harnesses, one of them upgraded: the ordinary case.
+
+    A stale second install must not stop anybody reading their own bundles, so
+    this says what it sees, names the copy to update, and answers the question it
+    was asked anyway.
+    """
+    _bundle(tmp_path / "open", {"alpha.md": _concept("Alpha")})
+    env = _workspace(tmp_path, {"open": str(tmp_path / "open")})
+    newer = _skill_at(tmp_path, "0.9.0")
+    assert _run(newer, "migrate", "--done", env=env).returncode == 0
+
+    older = _skill_at(tmp_path / "second", "0.4.0")
+    result = _run(older, "list", env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "0.9.0" in result.stdout and "0.4.0" in result.stdout
+    assert str(tmp_path / "second" / "skill" / "fkb") in result.stdout, "name the copy to update"
+    assert "open" in result.stdout
+
+
+def test_a_release_that_asks_nothing_says_nothing(tmp_path: Path) -> None:
+    """Most releases change nothing a setup must do, and those must stay quiet.
+
+    A notice printed on every upgrade is a notice nobody reads on the upgrade
+    that matters, so the trigger is a guide that applies rather than a number
+    that moved.
+    """
+    _bundle(tmp_path / "open", {"alpha.md": _concept("Alpha")})
+    env = _workspace(tmp_path, {"open": str(tmp_path / "open")})
+    fkb = _skill_at(tmp_path, "0.7.0")
+    result = _run(fkb, "list", env=env)
+    assert "migrate" not in result.stdout, result.stdout
+
+
+def test_the_shipped_version_is_one_the_cli_can_read(tmp_path: Path) -> None:
+    """The file that travels with an install, checked in the install it travels in.
+
+    `VERSION` is written by a release workflow rather than by hand, and a copy
+    whose version cannot be parsed falls back to the baseline - which is silent,
+    and would offer every guide ever written to every setup.
+    """
+    result = _run(FKB, "version", env={"XDG_CONFIG_HOME": str(tmp_path / "nothing")})
+    assert result.returncode == 0, result.stdout + result.stderr
+    shipped = (REPO_ROOT / "skills" / "fkb" / "VERSION").read_text(encoding="utf-8").strip()
+    assert re.fullmatch(r"\d+\.\d+\.\d+", shipped), f"VERSION holds {shipped!r}"
+    assert f"fkb {shipped}" in result.stdout
+    assert "none at" in result.stdout, "a machine with no workspace still has a version"
+
+
+def test_this_release_puts_its_own_guide_to_a_setup_that_predates_it(tmp_path: Path) -> None:
+    """The chain is walked once while nothing is at stake, on the copy that ships it.
+
+    Every workspace in existence predates the version field, so the first guide
+    is one every setup is owed - which makes it the only cheap chance to find out
+    whether the mechanism reaches a person at all before a real change rides on
+    it.
+    """
+    _bundle(tmp_path / "open", {"alpha.md": _concept("Alpha")})
+    env = _workspace(tmp_path, {"open": str(tmp_path / "open")})
+    result = _run(FKB, "list", env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "migrations/0.1.0.md" in result.stdout.replace("\\", "/"), result.stdout

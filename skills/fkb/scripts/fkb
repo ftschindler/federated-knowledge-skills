@@ -12,6 +12,12 @@ by calling the same checker a bundle's own pre-commit hook calls. `url` answers
 can answer alone. `resolve` answers "what does this bundle actually do", as
 opposed to what its manifest entry declares.
 
+`version` and `migrate` answer the two halves of "is this setup the one this
+skill was written for": what the installed copy is, and what the manifest on this
+machine has been brought up to. They are here rather than left to a release note
+because the skill is installed by copying, so an upgrade arrives with no
+announcement and nothing on the machine notices it happened.
+
 `search` is still withheld while the journal records whether the read path needs
 it, so that what gets built next answers an incident rather than a guess.
 """
@@ -33,8 +39,116 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import arrival
 import bundle_lint
+import versions
 import workspace
 from workspace import Bundle, load_bundles
+
+
+def version_notice() -> list[str]:
+    """What to say, if anything, about the distance between this skill and this setup.
+
+    Three states and three different readers. Level is the ordinary one and says
+    nothing: a line printed on every invocation is a line nobody reads on the one
+    invocation it matters.
+
+    Behind, with guides to show, is the case this exists for, and it names the
+    files rather than describing them - an agent that has been told a migration
+    is due and not told where to read about it will invent the difference.
+
+    Ahead is not a fault and is common: one manifest, several harnesses, a skill
+    copied into each, one of them upgraded. Saying so plainly beats the confusion
+    of a stale copy behaving like an old one for no visible reason. It is a
+    remark, never a refusal - a second install being out of date must not stop
+    anybody reading their own bundles.
+
+    Nothing here blocks. A version stamp is bookkeeping about capabilities, and
+    the bundles were readable before this field existed.
+    """
+    here = versions.skill_version()
+    there = versions.manifest_version(workspace.read_manifest())
+    if there == here:
+        return []
+    if there > here:
+        return [
+            f"This workspace was last migrated by fkb {versions.render(there)}; "
+            f"this skill is {versions.render(here)}.",
+            f"Update the copy at {versions.SKILL_ROOT} - another harness on this machine has a newer one.",
+        ]
+    due = versions.guides(there, here)
+    if not due:
+        return []
+    known = "predates the version field" if there == versions.BASELINE else versions.render(there)
+    return [
+        f"This workspace {known}; this skill is {versions.render(here)}, and "
+        f"{'one change asks' if len(due) == 1 else f'{len(due)} changes ask'} something of it.",
+        *(f"  read {guide}" for guide in due),
+        f"Then `{workspace.invocation()} migrate --done` to record it.",
+    ]
+
+
+def cmd_version(_: argparse.Namespace) -> int:
+    """Both versions and the distance between them, for when something looks wrong.
+
+    Prints the two numbers even when they agree, which is the difference between
+    this and the notice `list` carries: that one speaks when there is something
+    to do, this one is what you run when you want to know.
+    """
+    print(f"fkb {versions.render(versions.skill_version())}")
+    print(f"  installed at  {versions.SKILL_ROOT}")
+    path = workspace.manifest_path()
+    if not path.is_file():
+        print(f"  workspace     none at {path}")
+        return 0
+    stamped = versions.manifest_version(workspace.read_manifest())
+    seen = "unstamped (predates the version field)" if stamped == versions.BASELINE else versions.render(stamped)
+    print(f"  workspace     {seen}, at {path}")
+    for line in version_notice():
+        print(line)
+    return 0
+
+
+def cmd_migrate(args: argparse.Namespace) -> int:
+    """Name the guides this setup still owes, or record that it owes none.
+
+    Reading and doing are two commands' worth of consequence behind one name, so
+    they are split by a flag that has to be typed: bare `migrate` shows the work,
+    `--done` says it happened. The stamp is never a side effect of showing,
+    because the work in a guide is a conversation with a person - a decision
+    about what their bundles should now do - and no command here can observe
+    whether that conversation went well.
+
+    Declining a guide's offer still completes it. The question was put and
+    answered, and leaving the stamp behind would put it again next week.
+    """
+    path = workspace.manifest_path()
+    me = workspace.invocation()
+    if not path.is_file():
+        sys.exit(f"fkb: no workspace manifest at {path}. Nothing to migrate; `{me} init` starts one.")
+
+    here = versions.skill_version()
+    there = versions.manifest_version(workspace.read_manifest())
+    if there > here:
+        print(f"This workspace stands at {versions.render(there)}, ahead of this skill's {versions.render(here)}.")
+        print(f"Nothing to do here. Update the copy at {versions.SKILL_ROOT} to catch up.")
+        return 0
+
+    due = versions.guides(there, here)
+    if args.done:
+        versions.stamp(path, here)
+        print(f"{path} now records fkb {versions.render(here)}.")
+        return 0
+    if not due:
+        print(f"Nothing to migrate: this skill is {versions.render(here)} and asks nothing of this workspace.")
+        if there != here:
+            print(f"Record that with `{me} migrate --done`.")
+        return 0
+
+    print(f"fkb {versions.render(here)}, workspace at {versions.render(there) if there != versions.BASELINE else 'no recorded version'}.")
+    print("Read these in order and do what each says, deciding with the person, not for them:\n")
+    for guide in due:
+        print(f"  {guide}")
+    print(f"\nThen record it: `{me} migrate --done`. A change they decline is still migrated.")
+    return 0
 
 
 def cmd_list(_: argparse.Namespace) -> int:
@@ -45,7 +159,16 @@ def cmd_list(_: argparse.Namespace) -> int:
     and `conventions` are the two rows naming no manifest field, because one is
     discovered in the bundle rather than declared about it, and the other is
     declared by the bundle itself.
+
+    The version notice comes first and is printed in both branches, including the
+    empty one. `list` is the command the skill reaches for before anything else,
+    which makes it the only place a notice is certain to be read - and a
+    workspace with no bundles in it yet is exactly the setup most likely to be
+    standing on an old release.
     """
+    notice = version_notice()
+    if notice:
+        print("\n".join(notice) + "\n")
     bundles = load_bundles(allow_empty=True)
     if not bundles:
         print("No bundles yet.")
@@ -349,12 +472,17 @@ def cmd_init(args: argparse.Namespace) -> int:
         "# `path` is where a bundle's concepts start, which is not always the\n"
         "# repository root: a bundle that publishes usually keeps them under\n"
         "# `docs/`. Relative paths resolve under `workspace_root`.\n"
+        "#\n"
+        "# `version` is the fkb release this file was last brought up to. It is\n"
+        "# written by `fkb migrate --done` and is not yours to edit.\n"
+        f"version: {versions.render(versions.skill_version())}\n"
         f"workspace_root: {root}\n"
         "\n"
         "bundles: {}\n",
         encoding="utf-8",
     )
     print(f"wrote {path}")
+    print(f"  version         {versions.render(versions.skill_version())}")
     print(f"  workspace_root  {root}")
     print(f"\nAdd a bundle with `{me} add`.")
     return 0
@@ -440,6 +568,17 @@ def main() -> int:
 
     listing = sub.add_parser("list", help="bundles, paths, tiers and publish URLs")
     listing.set_defaults(func=cmd_list)
+
+    version = sub.add_parser("version", help="this skill's release, and the one this workspace stands at")
+    version.set_defaults(func=cmd_version)
+
+    migrate = sub.add_parser("migrate", help="the migration guides this workspace still owes")
+    migrate.add_argument(
+        "--done",
+        action="store_true",
+        help="record that every guide has been worked through; declining one still counts",
+    )
+    migrate.set_defaults(func=cmd_migrate)
 
     linting = sub.add_parser("lint", help="check a bundle against OKF and its declared floor")
     linting.add_argument("bundle", nargs="?", help="one bundle by name; omit for all of them")

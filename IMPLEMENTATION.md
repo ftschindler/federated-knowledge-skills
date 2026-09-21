@@ -516,6 +516,14 @@ declined to confirm.
 
 Work that belongs to no task, recorded so it is not looked for.
 
+- **The project is versioned and every merge releases** (2026-09-21). `skills/fkb/VERSION`
+  travels with an installed copy because nothing else does, the manifest records which
+  release a setup was last brought up to, and `fkb migrate` walks the guides in between.
+  The size of each release comes from a label on the pull request and the version file is
+  written by CI, never by hand. Reasoning in [§10](DESIGN.md#10-versioning-and-migration);
+  the first guide, `0.1.0.md`, asks nothing but walks the chain once while nothing is at
+  stake.
+
 - **The AGENTS.md block was removed and later rewritten** in `~/.config/opencode/AGENTS.md`
   (removed 2026-09-02 because it described the retired architecture; the
   [§5.4](DESIGN.md#54-the-schema) text is in place again). One line of it is a promise the
