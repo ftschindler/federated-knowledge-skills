@@ -28,6 +28,8 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from git_environment import without_git_variables
+
 WINDOWS = sys.platform == "win32"
 
 # npm ships as `npm.cmd` on Windows, and a .cmd is not an executable the OS can
@@ -246,10 +248,19 @@ LEAKY_ENV_PREFIX = "OPENCODE"
 # the test instead, twice, before this was found.
 LEAKY_ENV_VARS = ("PWD", "OLDPWD")
 
+# The `GIT_` namespace is dropped by `_isolated_env` for the same reason, one
+# step further out: when this suite is run from a git hook those variables name
+# the repository being committed to, and an agent that is told to commit what it
+# files would commit it there. See tests/git_environment.py.
+
 
 def _isolated_env(home: Path) -> dict[str, str]:
     """The developer's environment, minus anything that reaches back out of `home`."""
-    env = {k: v for k, v in os.environ.items() if not k.startswith(LEAKY_ENV_PREFIX) and k not in LEAKY_ENV_VARS}
+    env = {
+        k: v
+        for k, v in without_git_variables(os.environ).items()
+        if not k.startswith(LEAKY_ENV_PREFIX) and k not in LEAKY_ENV_VARS
+    }
     env.update(
         {
             "HOME": str(home),

@@ -19,12 +19,13 @@ test_fkb_federation.py behind the `federation` marker.
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
 from fake_home import FakeHome, have, local_remote
+from git_environment import outside_any_repository
 
 pytestmark = pytest.mark.python_scripts
 
@@ -159,6 +160,10 @@ def test_a_scaffolded_bundle_is_a_git_repository(fake_home: FakeHome) -> None:
         capture_output=True,
         text=True,
         check=False,
+        # Without the scrub this reads the repository the suite was started
+        # from when it runs inside a commit, and reports its history as the
+        # new bundle's.
+        env=outside_any_repository(),
     )
     assert listed.returncode != 0 or not listed.stdout.strip(), "add made a commit of its own"
 
@@ -400,7 +405,7 @@ def test_the_script_resolves_its_own_dependencies(fake_home: FakeHome) -> None:
         capture_output=True,
         text=True,
         check=False,
-        env={**os.environ, **fake_home.env},
+        env=outside_any_repository(**fake_home.env),
     )
     assert result.returncode == 0, result.stdout + result.stderr
 
@@ -458,3 +463,29 @@ def test_a_sample_that_matches_no_style_says_what_was_expected(fake_home: FakeHo
     )
     assert refused.returncode != 0
     assert "directory" in refused.stderr and "raw" in refused.stderr and "html" in refused.stderr
+
+
+def test_a_scaffolded_bundle_is_its_own_repository_even_inside_a_commit(
+    fake_home: FakeHome, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`fkb add --new` runs `git init`, and git init obeys `GIT_DIR` over its argument.
+
+    Which makes this the worst case of the whole environment leak: run from a
+    commit hook, the command that creates somebody's first private bundle
+    re-initialises the repository being committed to, and the bundle is left a
+    plain directory with no sign that anything went wrong. The scrub belongs in
+    `FakeHome.run` because `fkb` is what shells out to git here, not the test.
+    """
+    if shutil.which("git") is None:
+        pytest.skip("no git on this machine, which is the branch that writes a plain directory")
+
+    decoy = tmp_path / "decoy"
+    decoy.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=decoy, check=True, capture_output=True, text=True)
+    monkeypatch.setenv("GIT_DIR", str(decoy / ".git"))
+    monkeypatch.setenv("GIT_INDEX_FILE", str(decoy / ".git" / "index"))
+
+    _init(fake_home)
+    added = fake_home.run("add", "notes", "--new", "--writable")
+    assert added.returncode == 0, added.stdout + added.stderr
+    assert (fake_home.workspace_root / "notes" / ".git").is_dir(), "the bundle is not a repository"

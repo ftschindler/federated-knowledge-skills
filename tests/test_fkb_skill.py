@@ -16,7 +16,6 @@ Slow, needs network and node. Marked `agent`, like everything that drives one.
 from __future__ import annotations
 
 import importlib.util
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -24,6 +23,7 @@ from uuid import uuid4
 
 import pytest
 from disposable_agent import DisposableAgent
+from git_environment import outside_any_repository
 
 pytestmark = pytest.mark.agent
 
@@ -97,11 +97,10 @@ def _concepts_in(bundle: Path) -> list[Path]:
 
 def _run_cli(agent: DisposableAgent, *args: str) -> subprocess.CompletedProcess[str]:
     """Run `fkb` against the agent's home, to check what it left is usable."""
-    env = {
-        **os.environ,
-        "HOME": str(agent.home),
-        "XDG_CONFIG_HOME": str(agent.home / ".config"),
-    }
+    env = outside_any_repository(
+        HOME=str(agent.home),
+        XDG_CONFIG_HOME=str(agent.home / ".config"),
+    )
     if importlib.util.find_spec("yaml") is None:
         command = ["uv", "run", "--script", str(FKB), *args]
     else:
@@ -115,7 +114,7 @@ def _lint(bundle: Path) -> subprocess.CompletedProcess[str]:
         command = ["uv", "run", "--script", str(BUNDLE_LINT), *args]
     else:
         command = [sys.executable, str(BUNDLE_LINT), *args]
-    return subprocess.run(command, capture_output=True, text=True, check=False, env=os.environ.copy())
+    return subprocess.run(command, capture_output=True, text=True, check=False, env=outside_any_repository())
 
 
 def test_a_cold_session_answers_from_the_bundle_and_cites_it(agent_factory) -> None:

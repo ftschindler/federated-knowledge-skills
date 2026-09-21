@@ -37,6 +37,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from disposable_agent import NOT_PART_OF_A_SKILL
+from git_environment import outside_any_repository, without_git_variables
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SOURCE_SKILL = REPO_ROOT / "skills" / "fkb"
@@ -106,7 +107,11 @@ class FakeHome:
         # house overrides every variable that could lead out of it. A variable
         # the house deletes is deleted here too, or the fallback test would
         # silently keep reading the developer's own config.
-        merged = {k: v for k, v in os.environ.items() if k not in {"XDG_CONFIG_HOME", "HOME", "USERPROFILE"}}
+        # The `GIT_` namespace goes too, because `fkb` shells out to git and
+        # would otherwise scaffold a bundle straight into whichever repository
+        # this suite was started from. See tests/git_environment.py.
+        merged = without_git_variables(os.environ)
+        merged = {k: v for k, v in merged.items() if k not in {"XDG_CONFIG_HOME", "HOME", "USERPROFILE"}}
         merged.update(chosen)
         if "XDG_CONFIG_HOME" not in chosen:
             merged.pop("XDG_CONFIG_HOME", None)
@@ -155,12 +160,13 @@ def local_remote(path: Path, layout: dict[str, str]) -> str:
         "-c",
         "commit.gpgsign=false",
     ]
-    subprocess.run(["git", "init", "-q", "-b", "main", str(path)], check=True, env={**os.environ, **quiet})
-    subprocess.run(["git", "-C", str(path), "add", "-A"], check=True, env={**os.environ, **quiet})
+    env = outside_any_repository(**quiet)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(path)], check=True, env=env)
+    subprocess.run(["git", "-C", str(path), "add", "-A"], check=True, env=env)
     subprocess.run(
         ["git", "-C", str(path), *identity, "commit", "-qm", "initial"],
         check=True,
-        env={**os.environ, **quiet},
+        env=env,
     )
     # `Path.as_uri()` rather than an f-string: a Windows path pasted after
     # `file://` yields `file://C:\\...`, which git reads as a host named `c`.
