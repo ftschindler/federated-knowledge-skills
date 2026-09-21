@@ -1,0 +1,39 @@
+skills/fkb/scripts/versions.py
+  s_7c2d42aa45ece2::t_387f00850ab828 1-127
+skills/fkb/scripts/fkb
+  s_7c2d42aa45ece2::t_e93a07160f5ac0 572-582
+  s_7c2d42aa45ece2::t_21a0afd10c45a7 475-478,485
+  s_7c2d42aa45ece2::t_a96850a530d1f8 162-167,169-171
+  s_7c2d42aa45ece2::t_251efb8a36dc16 42,47-151
+  s_7c2d42aa45ece2::t_42481003311cee 15-20
+skills/fkb/references/migrations/README.md
+  s_7c2d42aa45ece2::t_ad2fe08b2dd80e 1-22
+tests/test_fkb_cli.py
+  s_7c2d42aa45ece2::t_14e51d009d191f 698
+.github/workflows/release.yml
+  s_7c2d42aa45ece2::t_40c64cf49f6649 1-181
+skills/fkb/VERSION
+  s_7c2d42aa45ece2::t_d5c567c4bfaf9e 1
+skills/fkb/references/migrations/0.1.0.md
+  s_7c2d42aa45ece2::t_37b5ab4fdadeaf 1-26
+.scripts/next-version.py
+  s_7c2d42aa45ece2::t_264d2c5d178fd8 1-54
+skills/fkb/scripts/workspace.py
+  s_7c2d42aa45ece2::t_ccee2d108e9660 78-94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "b7ec4af90f1ef4429bf59b09d1655ebcb6031fbd",
+  "prompts": {},
+  "sessions": {
+    "s_7c2d42aa45ece2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f3cce0972ffeyovmg1VZDRInNB",
+        "model": "claude-opus-5"
+      },
+      "human_author": "x <x@example.com>"
+    }
+  }
+}
