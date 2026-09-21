@@ -206,9 +206,20 @@ in a pull request** - a hook and a CI check both refuse it. It is written in one
 tag and the version installed from it cannot disagree, and so two open pull requests do not
 conflict over one line.
 
-The job needs a `RELEASE_TOKEN` secret that may push to protected `main`. Without one it
-falls back to the default token, which cannot, and the release fails visibly rather than
-tagging a commit it could not push.
+The job pushes to protected `main`, which the token a workflow is handed by default may not
+do. It borrows a GitHub App's instead, for an hour at a time. That App is set up once, by
+somebody with admin on the repository, and needs all four of:
+
+| what | where |
+| --- | --- |
+| a GitHub App with **Contents: read and write**, no webhook | your account's developer settings |
+| that App **installed on this repository** | the App's page → Install |
+| secrets `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY` (the whole `.pem`) | this repository's Actions secrets |
+| the App in the **bypass list** of the ruleset protecting `main` | Settings → Rules |
+
+The last row is not a permission and is the one that gets forgotten: without it the job
+pushes, is declined by the branch rule, and tags nothing. Which is the right failure - loud,
+and before a tag exists.
 
 **If the change asks something of setups that already exist**, write the guide with it:
 `skills/fkb/references/migrations/<next version>.md`, in the voice described by

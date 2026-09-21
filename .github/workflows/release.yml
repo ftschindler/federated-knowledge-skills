@@ -91,16 +91,32 @@ jobs:
       contents: write
     steps:
 
+    - name: Mint a token for the release bot
+      id: token
+      # The release commit has to pass branch protection on main, and the token
+      # a job is handed by default cannot: it is deliberately not allowed to
+      # bypass rules, which is the right default everywhere except here. An app
+      # installed on this repository can be, and is the better of the two ways
+      # to arrange that. It holds one permission (contents: write), the token it
+      # mints expires within the hour, and it is not a person - so revoking it
+      # touches nobody's own access and the release commits read as a bot's
+      # rather than as a maintainer's.
+      #
+      # Configured by hand, once, and only by somebody with admin on the
+      # repository: the app, its installation here, the two secrets below, and
+      # an entry for the app in the bypass list of the ruleset protecting main.
+      # The last of those is not a permission and is the one that gets
+      # forgotten; without it this pushes and is declined.
+      uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3.2.0
+      with:
+        app-id: ${{ secrets.RELEASE_APP_ID }}
+        private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
     - name: Checkout
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       with:
         fetch-depth: 0
-        # A push made with the default token starts no workflows, which is
-        # deliberate here - the release commit is not a change anybody needs
-        # tested twice - but it also cannot pass branch protection. A token with
-        # that permission is the one piece of this that has to be configured by
-        # hand; without it the job says so rather than half-releasing.
-        token: ${{ secrets.RELEASE_TOKEN || github.token }}
+        token: ${{ steps.token.outputs.token }}
 
     - name: Setup uv
       uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
@@ -143,6 +159,24 @@ jobs:
       env:
         steps_level: ${{ steps.bump.outputs.level }}
 
+    - name: Work out who the bot commits as
+      id: identity
+      if: steps.bump.outputs.level != 'none'
+      # A bot's noreply address has to carry its numeric user id, and a commit
+      # whose address does not match is attributed to nobody - it renders as a
+      # grey avatar and links nowhere, which is how a history stops answering
+      # "who did this". The id is asked for rather than pasted in because the
+      # app it belongs to is created by hand on some future afternoon, and a
+      # number hardcoded here is one nobody will think to change.
+      env:
+        GH_TOKEN: ${{ steps.token.outputs.token }}
+        SLUG: ${{ steps.token.outputs.app-slug }}
+      run: |
+        set -euo pipefail
+        id=$(gh api "/users/${SLUG}[bot]" --jq .id)
+        echo "name=${SLUG}[bot]" >> "${GITHUB_OUTPUT}"
+        echo "email=${id}+${SLUG}[bot]@users.noreply.github.com" >> "${GITHUB_OUTPUT}"
+
     - name: Write the version, commit it and tag it
       if: steps.bump.outputs.level != 'none'
       # One commit carrying the version, and the tag on that commit rather than
@@ -150,11 +184,13 @@ jobs:
       # that installs as its predecessor, and nothing downstream can tell.
       env:
         NEXT: ${{ steps.version.outputs.next }}
+        BOT_NAME: ${{ steps.identity.outputs.name }}
+        BOT_EMAIL: ${{ steps.identity.outputs.email }}
       run: |
         set -euo pipefail
         printf '%s\n' "${NEXT}" > skills/fkb/VERSION
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config user.name "${BOT_NAME}"
+        git config user.email "${BOT_EMAIL}"
         git add skills/fkb/VERSION
         git commit -m "Release ${NEXT}"
         git tag -a "v${NEXT}" -m "Release ${NEXT}"
