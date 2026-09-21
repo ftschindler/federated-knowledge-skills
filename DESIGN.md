@@ -162,6 +162,7 @@ owns.
 
 ```yaml
 # $XDG_CONFIG_HOME/fkb/workspace.yaml
+version: 0.1.0                        # the release this setup was last brought up to (§10)
 workspace_root: ~/.agents/knowledge   # relative bundle paths resolve under this
 
 bundles:
@@ -1282,7 +1283,64 @@ with the person.
 A machine without git still gets a bundle. Every check here runs over a directory, and
 history is the only layer that can be added afterwards without touching a single concept.
 
-## 10. The way forward
+## 10. Versioning and migration
+
+A skill is installed by copying `skills/fkb/` into wherever a harness keeps skills. That is
+the whole of the distribution story and it is a good one - no installer, no daemon, no
+registry - but it means an upgrade arrives without an announcement, and nothing on the
+machine knows it happened. A change that needs a decision from the person, like a new
+manifest field, would land silently and never be put to anybody.
+
+**One version for the whole project, in a file the copy carries.** `skills/fkb/VERSION`
+holds a semver, and `fkb version` reads it. Not a tag, not `git describe`, not the commit:
+none of those survive a copy, and a copy is what every install is. Every release tags the
+same number, so a report naming `fkb 0.4.2` names a tree.
+
+**The manifest records what the setup has been brought up to.** `$XDG_CONFIG_HOME/fkb/workspace.yaml`
+is the only state this project owns that outlives an upgrade - bundles belong to the person
+and the skill directory is replaced wholesale - so it is the only place such a stamp can
+live. A manifest with no `version` is every setup made before the field existed; it reads as
+`0.0.0`, never as an error, and never as the current release. Reading it as current would
+declare all of them already migrated and skip the first guide ever written.
+
+**A migration is prose, not a script.** `references/migrations/<version>.md`, one file per
+release that asks something of an existing setup, named for the release that introduced the
+change. `fkb migrate` prints the ones between the manifest's version and the skill's, oldest
+first; the agent reads them and carries them out with the person. Most changes here are
+additive - a field that did not exist, a command worth adopting - so the work is a question
+put to a human, which is exactly the work a script cannot do. `fkb migrate --done` stamps,
+separately and only when asked, because nothing here can observe whether that conversation
+went well. A change the person declined is still migrated: the question was asked, and an
+unrecorded refusal is a question asked again next week.
+
+**Nothing about this blocks.** `fkb list` carries a notice and every command keeps working.
+A stamp is bookkeeping about capabilities, and the bundles were readable before the field
+existed. Three states, three readings:
+
+| manifest vs skill | what it means | what happens |
+| --- | --- | --- |
+| equal | the ordinary case | nothing is printed |
+| behind, guides apply | an upgrade arrived | `list` names the guides; `migrate` walks them |
+| behind, no guide applies | a release that asked nothing | nothing is printed |
+| ahead | another harness on this machine has a newer copy | `list` says which copy to update |
+
+The last row is common rather than exotic: one manifest, several harnesses, a skill copied
+into each, one of them upgraded. Refusing there would break a working setup over a second
+install being old.
+
+**Every merge to main releases**, with the size taken from a label on the pull request
+(`major`, `minor`, `patch`, `no-release`) and `VERSION` written by the release job rather
+than by hand. Hand-bumping disagrees with its tag the first time somebody forgets, and makes
+every concurrent pull request conflict on one line. The label is the one judgement a
+reviewer is already making.
+
+> **Bundles are versioned elsewhere and deliberately.** A bundle's on-disk format is OKF,
+> checked by the pre-commit hooks each bundle pins by revision. That number moves for
+> different reasons and belongs to the bundle rather than to this machine's setup; one
+> version pretending to cover both would tie a person's vault to when they last upgraded a
+> skill.
+
+## 11. The way forward
 
 The implementation plan lives in [IMPLEMENTATION.md](IMPLEMENTATION.md): the tasks T1–T7 in
 order, what "done" means for each, and which of the open questions in §9 each one settles.

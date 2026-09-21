@@ -67,7 +67,14 @@ uv run <skill>/scripts/fkb lint [name]           # check a bundle, or all of the
 uv run <skill>/scripts/fkb resolve <name>        # one bundle as JSON: policy, tags, types
 uv run <skill>/scripts/fkb url <name> <path> --from <name>   # cite a concept in another bundle
 uv run <skill>/scripts/fkb add <name> --clone <url>          # bring a bundle in
+uv run <skill>/scripts/fkb version               # this release, and the one your setup is on
+uv run <skill>/scripts/fkb migrate               # what an upgrade asks of an existing setup
 ```
+
+**Upgrading.** Copy the new `skills/fkb/` over the old one; that is the whole of it. A
+release that needs something of a setup already on disk says so the next time you run
+`fkb list`, and `fkb migrate` names the page to read. Nothing is blocked while you have not:
+a version stamp here is bookkeeping about capabilities, not a lock on your bundles.
 
 **4. Give each bundle its gate.** A bundle is checked by its own pre-commit hooks, pinned by
 revision, so it holds up whether or not the federation layer is anywhere near it:
@@ -93,6 +100,9 @@ Three ideas carry most of it.
   guard between two versions of one note. An agent writes the file you edit.
 - **A skill may run a command; a skill never invokes another skill.** Prose calling prose
   through an LLM is not control flow.
+- **A copy of the skill can tell you how old it is.** It ships with a `VERSION` file,
+  because nothing else survives being copied into a skills directory, and the manifest
+  records which release your setup was last brought up to.
 - **The manifest is a guardrail, not a security boundary.** It is one machine-local file
   saying which bundles exist and what each allows. The boundary that holds is git remote
   permissions and each bundle's own publish gate, so a bundle stays safe when an agent

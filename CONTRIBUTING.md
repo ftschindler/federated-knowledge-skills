@@ -189,6 +189,45 @@ makes that unreachable, and turns the fallback into something a test can exercis
 reads `HOME` on Linux and `USERPROFILE` on Windows. Redirecting one of the two would make the
 isolation hold on one operating system and silently fail on the other.
 
+### Releasing
+
+Every merge to `main` ships, and the size of the release comes from a label on the pull
+request. Put exactly one of them on before merging:
+
+| label | when |
+| --- | --- |
+| `major` | a setup that works today stops working, or needs a hand to keep working |
+| `minor` | something new: a command, a field, a capability |
+| `patch` | a fix, or prose that ships inside the skill |
+| `no-release` | nothing that ships - CI, repository docs, this file |
+
+The release job writes `skills/fkb/VERSION`, commits it and tags it. **Do not bump that file
+in a pull request** - a hook and a CI check both refuse it. It is written in one place so a
+tag and the version installed from it cannot disagree, and so two open pull requests do not
+conflict over one line.
+
+The job pushes to protected `main`, which the token a workflow is handed by default may not
+do. It borrows a GitHub App's instead, for an hour at a time. That App is set up once, by
+somebody with admin on the repository, and needs all four of:
+
+| what | where |
+| --- | --- |
+| a GitHub App with **Contents: read and write**, no webhook | your account's developer settings |
+| that App **installed on this repository** | the App's page → Install |
+| secrets `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY` (the whole `.pem`) | this repository's Actions secrets |
+| the App in the **bypass list** of the ruleset protecting `main` | Settings → Rules |
+
+The last row is not a permission and is the one that gets forgotten: without it the job
+pushes, is declined by the branch rule, and tags nothing. Which is the right failure - loud,
+and before a tag exists.
+
+**If the change asks something of setups that already exist**, write the guide with it:
+`skills/fkb/references/migrations/<next version>.md`, in the voice described by
+[the README beside it](skills/fkb/references/migrations/README.md). You are naming a file
+for a version that does not exist yet, which is the one awkward part of this: take the
+current `VERSION`, apply your own label to it, and use that. Most changes need no guide, and
+a gap in the series is normal.
+
 ### Before you push
 
 Run the full pre-commit guard suite against every file (the same hooks that run on commit):

@@ -23,6 +23,8 @@ uv run SKILLDIR/scripts/fkb resolve <name>            # one bundle as JSON: poli
 uv run SKILLDIR/scripts/fkb url <name> <path> --from <name>   # cite a concept in another bundle
 uv run SKILLDIR/scripts/fkb init --workspace-root <dir>       # create the workspace, once per machine
 uv run SKILLDIR/scripts/fkb add <name> ...            # bring a bundle in: --clone, --path or --new
+uv run SKILLDIR/scripts/fkb version                   # this release, and the one this setup stands at
+uv run SKILLDIR/scripts/fkb migrate [--done]          # what an upgrade asks of this setup
 ```
 
 There is no search command yet. Reading is step 2 of
@@ -31,6 +33,8 @@ There is no search command yet. Reading is step 2 of
 ## Which way in
 
 - **`fkb list` says there is no workspace manifest** - nothing is set up. Go to *Setting up*.
+- **`fkb list` opens with a notice about versions** - this skill has been upgraded past the
+  setup on this machine. Go to *Migrating*, then carry on with what was asked.
 - **A question that the bundles might answer** - go to *Answering from the bundles*.
 - **Something worth keeping** - go to *Filing*.
 - **Asked to audit, review or tidy a bundle** - run `fkb lint` first, then work through
@@ -108,6 +112,27 @@ Without a line in the user's session instructions, nothing will make a future se
 for the bundles at all. Check whether it is present and offer it if not:
 [the block and how to check](references/agents-block.md). Propose it, do not write it - that
 file loads into every session they run.
+
+## Migrating
+
+The skill is installed by copying, so an upgrade arrives without announcement and nothing on
+the machine notices. `fkb list` notices, by comparing this copy's release against the one
+recorded in the manifest, and says so when a change since then asks something of this setup.
+
+1. **`fkb migrate`** names the guides that apply, oldest first. Read them in that order.
+2. **Do what each says**, and put its decisions to the person rather than taking them. These
+   are mostly new capabilities, not breakages - "there is now a way to share a bundle with
+   your team; do you want that here" is the shape of it, and no is a complete answer.
+3. **`fkb migrate --done`** once the last one is worked through. A change they declined is
+   still migrated: the question was asked, and leaving it unrecorded asks it again next week.
+
+Do it when the notice appears, before the work it interrupted, unless they are mid-question -
+then answer them first and come back to it. Never edit the manifest's `version` by hand, and
+never stamp guides you have not read: the field's only job is to be trustworthy about what
+has been put to this person.
+
+If they say to leave it, leave it. The notice returns, nothing breaks, and that is the
+design - a version stamp is bookkeeping about capabilities, not a lock on the bundles.
 
 ## Answering from the bundles
 

@@ -145,3 +145,43 @@ def test_code_fences_exempt(tmp_path: Path) -> None:
     body = "# T\n\n```yaml\n---\nkey: value \u2014 quoted\n```\n"
     result = _run_markdown_style(tmp_path, body)
     assert result.returncode == 0, result.stdout
+
+
+NEXT_VERSION = REPO_ROOT / ".scripts" / "next-version.py"
+
+
+def _next(current: str, level: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(NEXT_VERSION), current, level],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+@pytest.mark.parametrize(
+    ("current", "level", "expected"),
+    [
+        ("0.4.2", "patch", "0.4.3"),
+        ("0.4.2", "minor", "0.5.0"),
+        # The one worth pinning: a major zeroes what is beneath it. Getting this
+        # wrong yields 1.4.2, which looks like a version and is permanent.
+        ("0.4.2", "major", "1.0.0"),
+        ("0.9.9", "minor", "0.10.0"),
+    ],
+)
+def test_the_bump_is_the_one_the_label_named(current: str, level: str, expected: str) -> None:
+    result = _next(current, level)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.strip() == expected
+
+
+def test_something_that_is_not_a_version_is_refused(tmp_path: Path) -> None:
+    """A release computed from a `VERSION` somebody edited by hand must stop here.
+
+    The next line of the workflow writes the result back and tags it, and a tag
+    is not takeable-back once a copy of it is on somebody's disk.
+    """
+    result = _next("v0.4", "patch")
+    assert result.returncode != 0
+    assert "not a version" in result.stderr
