@@ -35,6 +35,16 @@ jobs:
 
     - name: Setup uv
       uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+      with:
+        # This repository has no pyproject.toml and no lockfile: every script
+        # carries its own dependencies in a PEP 723 header, so those files are
+        # what a cache here has to be keyed on. Left to the default globs the
+        # action matches nothing, says so, and keeps a cache that can never be
+        # invalidated - which is worse than none, because it goes stale in
+        # silence.
+        cache-dependency-glob: |
+          .scripts/*.py
+          skills/fkb/scripts/*
 
     - name: Refuse a checkout whose symlinks did not survive
       # A Windows runner clones without `core.symlinks`, so a committed symlink
@@ -68,6 +78,16 @@ jobs:
 
     - name: Setup uv
       uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+      with:
+        # This repository has no pyproject.toml and no lockfile: every script
+        # carries its own dependencies in a PEP 723 header, so those files are
+        # what a cache here has to be keyed on. Left to the default globs the
+        # action matches nothing, says so, and keeps a cache that can never be
+        # invalidated - which is worse than none, because it goes stale in
+        # silence.
+        cache-dependency-glob: |
+          .scripts/*.py
+          skills/fkb/scripts/*
 
     - name: Run the CLI against real bundles
       run: uv run .scripts/run-tests.py federation
@@ -101,6 +121,16 @@ jobs:
 
     - name: Setup uv
       uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+      with:
+        # This repository has no pyproject.toml and no lockfile: every script
+        # carries its own dependencies in a PEP 723 header, so those files are
+        # what a cache here has to be keyed on. Left to the default globs the
+        # action matches nothing, says so, and keeps a cache that can never be
+        # invalidated - which is worse than none, because it goes stale in
+        # silence.
+        cache-dependency-glob: |
+          .scripts/*.py
+          skills/fkb/scripts/*
 
     - name: Drive a disposable agent
       run: uv run .scripts/run-tests.py agent

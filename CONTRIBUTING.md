@@ -223,12 +223,16 @@ somebody with admin on the repository, and needs all four of:
 | --- | --- |
 | a GitHub App with **Contents: read and write**, no webhook | your account's developer settings |
 | that App **installed on this repository** | the App's page → Install |
-| secrets `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY` (the whole `.pem`) | this repository's Actions secrets |
+| secrets `RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY` (the whole `.pem`) | this repository's Actions secrets |
 | the App in the **bypass list** of the ruleset protecting `main` | Settings → Rules |
 
 The last row is not a permission and is the one that gets forgotten: without it the job
 pushes, is declined by the branch rule, and tags nothing. Which is the right failure - loud,
 and before a tag exists.
+
+`RELEASE_APP_CLIENT_ID` is the App's **Client ID**, the `Iv...` string on its settings page,
+not the numeric App ID printed beside it. Both identify the same App and the action accepts
+either, but it deprecates the numeric one.
 
 **If the change asks something of setups that already exist**, write the guide with it:
 `skills/fkb/references/migrations/<next version>.md`, in the voice described by
