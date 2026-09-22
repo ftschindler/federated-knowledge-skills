@@ -1,0 +1,65 @@
+skills/fkb/scripts/workspace.py
+  s_92c61c0698e7e0::t_8bdb1fbeb0a5b0 205
+  s_92c61c0698e7e0::t_a7554a54d0c2a3 218-247
+.github/workflows/merge-back.yml
+  s_92c61c0698e7e0::t_9b2ce2cf4f323a 94
+  s_92c61c0698e7e0::t_98c86aa70001f2 1-93,95-107
+IMPLEMENTATION.md
+  s_92c61c0698e7e0::t_34691f41d1bd26 595-609
+tests/test_fkb_skill.py
+  s_92c61c0698e7e0::t_fda8e32553b8a5 1,9-12,226
+  s_92c61c0698e7e0::t_f3c2d35002a95a 180-225,227-230
+skills/fkb/scripts/sharing.py
+  s_92c61c0698e7e0::t_447034605c12af 23,71
+  s_92c61c0698e7e0::t_1b6b92a61f5683 249-250,287
+  s_92c61c0698e7e0::t_0db0c4ccd38173 128-130,137-139,162-199,201-202,206-207,209-221,223-245,251-286,288-297
+  s_92c61c0698e7e0::t_25243239fbfcb3 1-22,24-70,72-127,131-136,140-161,200,203-205,208,222,246-248,298-312,325-351
+  s_92c61c0698e7e0::t_e325d3e8f0bd77 313-324
+README.md
+  s_92c61c0698e7e0::t_6a208246b8a536 69
+skills/fkb/scripts/fkb
+  s_92c61c0698e7e0::t_c48bc0284bcc0e 611-618
+  s_92c61c0698e7e0::t_7959cebb000ae4 263-288
+  s_92c61c0698e7e0::t_a0547f629250bf 376-415
+  s_92c61c0698e7e0::t_d22f53518383b6 640-646
+  s_92c61c0698e7e0::t_84802d5e138ce5 194-199
+  s_92c61c0698e7e0::t_1e6d50f0456eb5 44
+  s_92c61c0698e7e0::t_bdba9885a28afa 13-15
+  s_92c61c0698e7e0::t_34ac4cbedb5e84 453
+  s_92c61c0698e7e0::t_7846939dace38a 696-705
+  s_92c61c0698e7e0::t_9f773c3a72aa3b 735-739
+  s_92c61c0698e7e0::t_c6d0f2a65327e5 307
+skills/fkb/references/bundle-infrastructure.md
+  s_92c61c0698e7e0::t_b18f8ed7516db9 254-257
+  s_92c61c0698e7e0::t_efa3e6c62445b9 192-253,258-263
+skills/fkb/scripts/arrival.py
+  s_92c61c0698e7e0::t_49aa1814b36f28 170
+  s_92c61c0698e7e0::t_79c8775fdf6b75 159-162
+  s_92c61c0698e7e0::t_1cef50703ac45b 174-213
+  s_92c61c0698e7e0::t_15b18354b96e1d 55-65
+  s_92c61c0698e7e0::t_a0e862262421cf 17
+skills/fkb/SKILL.md
+  s_92c61c0698e7e0::t_a68dbacd1fada8 324-330
+  s_92c61c0698e7e0::t_1b1a291fecd8de 24
+  s_92c61c0698e7e0::t_4719e53f7196ae 145-149
+tests/test_fkb_sync.py
+  s_92c61c0698e7e0::t_52dd203281c5b5 76-81
+  s_92c61c0698e7e0::t_99fcf59a5e514b 1-75,82-191,193-354
+  s_92c61c0698e7e0::t_9b2ce2cf4f323a 192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "0feef912ab0276e74c447989550a4ef1db841945",
+  "prompts": {},
+  "sessions": {
+    "s_92c61c0698e7e0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f4a633137ffewOAr3Vofz6JJSa",
+        "model": "claude-opus-5"
+      },
+      "human_author": null
+    }
+  }
+}
