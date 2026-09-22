@@ -243,6 +243,12 @@ merge conflicts rather than failing a run somebody has stopped reading. It is Gi
 and therefore about one forge; a bundle elsewhere reproduces the behaviour in four lines of
 its own CI, and everything else here still holds.
 
+That pull request is the one part of it with a repository setting behind it. The run opens it
+with its own token, so **Workflow permissions, under Settings > Actions > General, has to
+allow GitHub Actions to create pull requests.** Left off, the conflict path ends in a
+permission error rather than in a page somebody is assigned - in the one situation where this
+workflow is the only thing still watching the two branches.
+
 **Give the bundle a `.gitattributes`.** `fkb add --new` writes one; a bundle that predates it
 wants these two lines, at the bundle root:
 
@@ -260,6 +266,13 @@ worth a person's attention.
 you choose. Nothing here creates it: that is `gh pr create`, and a shorter cadence is also the
 cheapest answer to the one thing this shape gives up - a concept is on every teammate's disk
 as soon as it is pushed, and on the site only after the next release.
+
+**A check that forbids merge commits on pull requests has to exempt these two branches.** It
+is a common guard and it is right for the branches a person opens, but the release pull
+request carries every merge the workflow above pushed onto the shared branch, and the conflict
+one carries whatever the default branch merged. Both have multi-parent commits by
+construction, so a guard that reads every commit rejects precisely the two pull requests this
+shape is made of. Exempt them by head branch rather than dropping the guard.
 
 ## What to adapt, and what never to copy
 
