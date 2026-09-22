@@ -30,6 +30,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+from git_environment import outside_any_repository
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -105,7 +106,9 @@ def _interpreter() -> list[str]:
 
 def _run(script: Path, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     command = [*_interpreter(), str(script), *args]
-    return subprocess.run(command, capture_output=True, text=True, check=False, env={**os.environ, **(env or {})})
+    return subprocess.run(
+        command, capture_output=True, text=True, check=False, env=outside_any_repository(**(env or {}))
+    )
 
 
 def test_list_speaks_the_manifests_own_field_names(tmp_path: Path) -> None:
@@ -681,7 +684,7 @@ def test_the_cli_runs_from_any_working_directory(tmp_path: Path) -> None:
         text=True,
         check=False,
         cwd=elsewhere,
-        env={**os.environ, **env},
+        env=outside_any_repository(**env),
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "kb" in result.stdout

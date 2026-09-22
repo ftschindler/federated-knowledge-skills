@@ -189,6 +189,15 @@ makes that unreachable, and turns the fallback into something a test can exercis
 reads `HOME` on Linux and `USERPROFILE` on Windows. Redirecting one of the two would make the
 isolation hold on one operating system and silently fail on the other.
 
+**Every `git` a test runs is handed an environment with the whole `GIT_` namespace removed**,
+by `tests/git_environment.py`. Git exports `GIT_DIR`, `GIT_INDEX_FILE` and friends to its
+hooks, the `support-script-tests` hook runs this suite from inside a commit, and a fixture
+that then runs `git init` or `git commit` operates on *this* repository rather than on the
+throwaway one it just built. Nothing fails when that happens, which is the problem: it
+surfaced as commits by a test's fictional author on a working branch, and a file staged out
+of a fixture. If you add a test that runs `git`, or that runs something which runs `git`,
+take its environment from there.
+
 ### Releasing
 
 Every merge to `main` ships, and the size of the release comes from a label on the pull
