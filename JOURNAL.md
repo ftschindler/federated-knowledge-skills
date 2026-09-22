@@ -468,3 +468,18 @@ its whole taxonomy rebuilt. The gap is the subject of the third entry below.
   invisibly; DESIGN §9.11 records the split and why each half sits where it does. Two tests
   pin it - one that `--new` leaves a repository with no commits in it, one that `add` says
   what it deliberately did not do.
+
+- **2026-09-16** filing - asked to write a tool page about `giodra96/project-wiki` into the
+  public bundle and "relate it to other tool entries or llm wiki concepts". Read the target
+  directory's two neighbours per step 5, wrote the page, committed. Only when asked a second
+  time, explicitly, did I search the read-only upstream bundle - and it held four concepts the
+  page needed: `ecosystem/landscape.md` has a category the tool belongs to, `ecosystem/
+  critiques.md` names the objection the tool answers *and* the one it does not,
+  `concepts/progressive_disclosure.md` defines a term the tool's own README uses. That cost a
+  second commit rewriting a page that had just been called finished. The gap is in step 5:
+  "read two existing concepts from that directory" bounds the reading to the directory being
+  written into, which is the right instruction for voice and the wrong one for links. Step 7
+  then says to link to the concepts read in step 5, so the search that would have found them
+  never happens. Nothing in filing sends the agent to the other bundles, even a read-only one
+  that exists to be cited, and "answering from the bundles" - which does search - is a
+  different entry point that a filing request never passes through.

@@ -1,4 +1,4 @@
-"""End-to-end tests of the fkb skill: four cold sessions, no prior context.
+"""End-to-end tests of the fkb skill: five cold sessions, no prior context.
 
 Everything else in this suite checks parts in isolation. Here a real agent is
 given a sentence and has to find the skill, work out what it is being asked for,
@@ -6,9 +6,10 @@ and act. The checks are deliberately about what it left behind rather than what
 it said: a file on disk, a manifest, a link in a concept. An agent can describe
 any of these convincingly without having done them.
 
-The four cover the two directions and the two edges: read from a bundle, write
-into one, arrive at a machine where nothing exists, and link between two bundles
-that do not know about each other.
+They cover the two directions and the three edges: read from a bundle, write
+into one, arrive at a machine where nothing exists, link between two bundles that
+do not know about each other, and get a concept out to the people who share the
+bundle it was filed into.
 
 Slow, needs network and node. Marked `agent`, like everything that drives one.
 """
@@ -173,6 +174,57 @@ def test_a_cold_session_files_a_conformant_concept(agent_factory) -> None:
     index = (bundle / "index.md").read_text(encoding="utf-8")
     assert any(path.name in index for path in written), (
         f"the concept was written but never linked from the index:\n{index}"
+    )
+
+
+def test_a_cold_session_gets_a_shared_bundles_concept_off_the_machine(agent_factory) -> None:
+    """Filing into a shared bundle includes getting it to the people who share it.
+
+    The instruction to run the command is prose, and prose is what regresses -
+    the "never push" rule it narrows was absolute for two tasks and reads as a
+    safety rule, which is exactly the kind of line a model keeps following after
+    it has been changed. So the assertion is on the bare remote: a concept that
+    is committed and not pushed is one nobody else can read.
+    """
+    agent: DisposableAgent = agent_factory(REPO_SKILLS)
+    remote = agent.home / "remotes" / "team.git"
+    remote.mkdir(parents=True)
+    subprocess.run(["git", "init", "--bare", "-q", "-b", "main", str(remote)], check=True, env=outside_any_repository())
+
+    bundle = _bundle(agent.home / "knowledge" / "team")
+    for args in (
+        ["init", "-q", "-b", "main", "."],
+        ["config", "user.email", "test@invalid"],
+        ["config", "user.name", "Test"],
+        ["add", "-A"],
+        ["commit", "-qm", "initial"],
+        ["remote", "add", "origin", remote.as_uri()],
+        ["push", "-q", "-u", "origin", "main"],
+        ["checkout", "-q", "-b", "staging"],
+        ["push", "-q", "-u", "origin", "staging"],
+    ):
+        subprocess.run(["git", "-C", str(bundle), *args], check=True, env=outside_any_repository())
+    _manifest(agent, f"bundles:\n  team:\n    path: {bundle}\n    writable: true\n    sync: staging\n")
+
+    result = agent.run(f"Note this down in the team knowledge base: {FACT}.")
+    assert result.returncode == 0, f"opencode exited {result.returncode}\n{result.stderr}"
+
+    subprocess.run(
+        ["git", "-C", str(bundle), "fetch", "-q", "origin", "staging"], check=False, env=outside_any_repository()
+    )
+    on_remote = subprocess.run(
+        ["git", "-C", str(bundle), "ls-tree", "-r", "--name-only", "origin/staging"],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=outside_any_repository(),
+    ).stdout
+    written = [path.name for path in _concepts_in(bundle)]
+    assert written, f"nothing was filed.\n--- transcript ---\n{result.text.strip() or '(empty)'}"
+    assert any(name in on_remote for name in written), (
+        "the concept was filed and never left the machine, so nobody else in the team can "
+        f"read it.\nthe shared branch holds: {on_remote}\n"
+        f"--- transcript ---\n{result.text.strip() or '(empty)'}"
     )
 
 

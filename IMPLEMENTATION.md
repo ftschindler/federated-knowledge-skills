@@ -20,6 +20,7 @@ This is the implementation plan. It assumes nothing from this repository except
 - [x] **[T6](#t6---ship-the-standalone-pre-commit-hook)** - Ship the standalone pre-commit hook, *built early, verified in T4*
 - [ ] **[T7](#t7---second-bundle-then-retire-the-old-architecture)** - Second bundle, then retire the old architecture
 - [ ] **[T8](#t8---iterate-on-the-cli-and-the-skill)** - Iterate on the CLI and the skill, *open-ended, keeps discovering*
+- [ ] **[T9](#t9---share-one-bundle-between-several-people)** - Share one bundle between several people
 
 ## How to use it
 
@@ -511,6 +512,117 @@ pressure to settle it with.
 **Leave alone.** Anything the journal has not asked for. The failure mode of an open-ended
 task is building the obvious thing, and the obvious thing is what the first window already
 declined to confirm.
+
+## T9 - Share one bundle between several people
+
+**Goal.** Make one bundle writable by several people at once, without weakening the review
+that guards what it publishes. Specified in
+[§11](DESIGN.md#11-collaboration-and-syncing): one optional manifest field, one command, and
+a branch shape that lives in the bundle's repository rather than here.
+
+**It does not wait for [T8](#t8---iterate-on-the-cli-and-the-skill)**, which has no end by
+construction. It needs [T7](#t7---second-bundle-then-retire-the-old-architecture) only for
+the manifest to hold more than one writable bundle, and its first real test needs a bundle
+that a second person actually files into.
+
+**Why it is not part of [T5](#t5---finish-the-skill).** Filing was specified for one person
+on one machine, and "never push" was a rule the skill could state absolutely because nothing
+contradicted it. Sharing makes pushing part of filing for exactly one class of bundle, and
+that is a change to the CLI's contract rather than to the skill's prose - which is the whole
+argument for building it as a command.
+
+**Steps.**
+
+- **Add `sync` to the manifest schema**, optional, a branch name, meaningful only on a
+  writable bundle. A non-writable bundle that declares one is a manifest error, raised where
+  the mutually-non-prefixing `publish` check is raised, so a bad manifest fails on load
+  rather than at the first push.
+- **Teach `fkb add` to check the branch out**, when the bundle is registered with one. This
+  is the step that makes the reviewed branch safe to leave as the repository's default:
+  nobody has to remember that a fresh clone lands in the wrong place.
+- **Implement `fkb sync [bundle]`** against the refusal table in
+  [§11](DESIGN.md#11-collaboration-and-syncing). Fetch, rebase, push; no stashing, no branch
+  switching, no conflict resolution, no flag that overrides the manifest. `--check` is a dry
+  run of the same code path.
+- **Have `fkb lint` report a checkout on the wrong branch** for a bundle that declares one.
+  It is the cheap half of the same fact, available without a network call, and it is what
+  tells somebody why their filing has stopped leaving the machine.
+- **Narrow the skill's push rule rather than deleting it.** It becomes *never push a bundle
+  with no `sync` branch*; for one that has it, filing runs the command on the way in and on
+  the way out. The skill must not inspect what the command prints - it relays the refusal and
+  stops, which is why the refusal text has to carry its own remedy.
+- **Publish the merge back as a reusable workflow**, in `.github/workflows/`, called by a
+  bundle with the shared branch as its one input. It merges the default branch in after every
+  change to it, never squashing, and opens a pull request against the shared branch when the
+  merge conflicts rather than failing a run nobody reads. A concurrency group keeps two rapid
+  changes to the default branch from racing each other.
+
+  It is built here rather than left to the recipe because it is the one part of the shape
+  whose absence is silent: the branches drift, every working copy goes stale, and the first
+  symptom is a concept filed twice. Bundles must pin it at the same commit they pin the hooks
+  at, by full SHA, since it needs write access to the shared branch.
+
+  **Name the test gap rather than closing it.** A workflow is infrastructure no test in this
+  repository reads, which is the same shape as the `SKILL.md` instructions that regressed
+  twice. Exercising it honestly needs a fixture repository with two branches and a real run,
+  and until that exists "the merge back works" is a claim this repository makes about itself.
+- **Write the rest of the repository recipe once**, in
+  [`bundle-infrastructure.md`](skills/fkb/references/bundle-infrastructure.md): reviewed
+  branch as the default and protected, shared branch open to push, merge commits only, the
+  call to the workflow above, and the bundle's own checks in CI on pushes to the shared
+  branch. None of that is enforced from here, and the reference is the only place it is
+  stated. Mark which lines are load-bearing, so a bundle on another forge reproducing them by
+  hand knows what it cannot drop.
+- **Give the bundle `.gitattributes`.** `index.md` and `log.md` are append-only and get a
+  union merge, which is what makes the common concurrent edit a non-event. A real conflict
+  then means two people wrote the same concept, which is the only case worth a human.
+- **Test the refusal table, one case per row**, over fixture repositories with a local bare
+  remote. These are unit tests and cheap; the table is the whole product and an untested row
+  is a row that will be wrong.
+- **Add one cold-session test**: an agent files into a bundle registered with a `sync` branch
+  and the concept arrives at the bare remote, with the hooks having run. It is the same shape
+  as [T5](#t5---finish-the-skill)'s tests and for the same reason - the instruction to run
+  the command is prose, and prose is what regresses.
+- **Write the migration guide with it**, as
+  [§10](DESIGN.md#10-versioning-and-migration) now requires of a change that asks something
+  of a setup already on disk: `references/migrations/0.2.0.md`, named for the release this
+  ships in, and asking a question rather than making an edit. Almost every setup answers "no
+  bundle of mine is shared" and is finished, which is the shape these guides are for.
+- **Keep the journal on refusals.** The entry that matters here is a refusal that was wrong:
+  the command declined, the person looked, and pushing would have been fine. Each of those
+  argues for removing a row, and nothing else should.
+
+**Done when.** Two machines share one bundle. A concept filed on the first is read by an
+agent on the second without either person running a git command by hand, the reviewed branch
+has only ever been changed through a pull request, the merge back has run unattended, and
+every row of the refusal table has a test.
+
+**Where it stands.** Everything except the last two clauses is built: `sync` in the manifest
+and in `resolve`, `fkb sync [bundle] [--check]` against the refusal table, `add --sync` which
+checks the branch out, the drifted-checkout warning in `lint`, union-merge `.gitattributes`
+in every scaffolded bundle, the `0.2.0` migration guide, the narrowed push rule in the skill,
+the recipe in
+[`bundle-infrastructure.md`](skills/fkb/references/bundle-infrastructure.md), and the
+merge-back workflow in `.github/workflows/merge-back.yml`. Each row of the table has a test
+over real repositories with a bare remote, and one cold-session test files into a shared
+bundle and checks the concept reached that remote.
+
+**Two claims this repository still makes about itself.** The merge-back workflow is read by
+no test here - exercising it honestly needs a fixture repository with two branches and a real
+run - and no two machines have shared a bundle yet, so the branch shape is argued rather than
+lived. Both were named as gaps when the task was written and neither is closed by building
+the thing.
+
+**Settles.** Nothing in [§9](DESIGN.md#9-open-decisions) on its own. It is what produces the
+evidence for [§9.12](DESIGN.md#912-the-window-in-which-a-shared-concept-has-no-url), which
+needs a bundle being cited across the window rather than an argument about one.
+
+**Leave alone.** Conflict resolution, release pull request creation, and a second published
+site for the shared branch. The first is a human's decision about what is true; the second is
+`gh`; the third is the answer [§11](DESIGN.md#11-collaboration-and-syncing) declined, and
+taking it early would settle
+[§9.12](DESIGN.md#912-the-window-in-which-a-shared-concept-has-no-url) by assumption in the
+one direction that cannot be walked back.
 
 ## Already done
 

@@ -202,6 +202,7 @@ class Bundle:
         self.path = path
         self.referenceable_by = entry.get("referenceable_by", [])
         self.writable = bool(entry.get("writable", False))
+        self.sync = self._sync_branch(name, entry)
         raw_publish = entry.get("publish")
         if raw_publish is None:
             self.publish: Publish | None = None
@@ -213,6 +214,36 @@ class Bundle:
                 "It is a mapping now: `url:` and `style:` "
                 f"({', '.join(Publish.STYLES)})."
             )
+
+    @staticmethod
+    def _sync_branch(name: str, entry: dict) -> str | None:
+        """The branch this bundle is shared on, if anyone else writes into it.
+
+        Absent is the default and means what it has always meant: commits stay
+        on the machine that made them, and nothing is ever fetched. Present, it
+        asserts three things at once (DESIGN §10) - the checkout belongs on that
+        branch, commits made here may leave the machine, and somebody else is
+        filing into this bundle too.
+
+        A non-writable bundle declaring one is a contradiction rather than a
+        harmless surplus: nothing here may author into it, so there is nothing
+        of ours to push, and the reading that would make the field useful -
+        "fetch, do not push" - is not what the field means. Refused on load
+        beside the prefix check, so a bad manifest fails before the first push
+        rather than during one.
+        """
+        branch = entry.get("sync")
+        if branch is None:
+            return None
+        if not isinstance(branch, str) or not branch.strip():
+            sys.exit(f"fkb: bundle `{name}` declares `sync` as `{branch!r}`; it is a branch name")
+        if not entry.get("writable", False):
+            sys.exit(
+                f"fkb: bundle `{name}` declares `sync: {branch}` but is not writable.\n"
+                "`sync` says commits made here may leave the machine, and nothing here may "
+                "make one. Either set `writable: true` or drop `sync`."
+            )
+        return branch.strip()
 
     def may_be_cited_by(self, other: str) -> bool:
         """The reference rule, as §4 states it: inbound, and failing closed.

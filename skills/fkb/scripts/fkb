@@ -10,7 +10,9 @@ answered before anything is written. `lint` answers "does this bundle hold up",
 by calling the same checker a bundle's own pre-commit hook calls. `url` answers
 "how do I link to a concept over there", which is the one question neither bundle
 can answer alone. `resolve` answers "what does this bundle actually do", as
-opposed to what its manifest entry declares.
+opposed to what its manifest entry declares. `sync` answers "may these commits
+leave this machine right now", which is the only question in here whose wrong
+answer tramples somebody's work rather than misinforming them.
 
 `version` and `migrate` answer the two halves of "is this setup the one this
 skill was written for": what the installed copy is, and what the manifest on this
@@ -39,6 +41,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import arrival
 import bundle_lint
+import sharing
 import versions
 import workspace
 from workspace import Bundle, load_bundles
@@ -188,6 +191,12 @@ def cmd_list(_: argparse.Namespace) -> int:
         print(f"  path              {bundle.path}")
         print(f"  referenceable_by  {bundle.citation}")
         print(f"  writable          {'true' if bundle.writable else 'false'}")
+        if bundle.sync is None:
+            print("  sync              null (not shared: commits stay on this machine)")
+        else:
+            on = sharing.checked_out_branch(bundle.path)
+            drifted = "" if on in (bundle.sync, None) else f"  (checked out on {on})"
+            print(f"  sync              {bundle.sync}{drifted}")
         if bundle.publish is None:
             print("  publish           null (no published location: nothing may link here)")
         else:
@@ -251,6 +260,32 @@ def check_references(bundle: Bundle, others: list[Bundle], findings: bundle_lint
                 break
 
 
+def check_shared_branch(bundle: Bundle, findings: bundle_lint.Findings) -> None:
+    """Say when a shared bundle's checkout has drifted off the branch it is shared on.
+
+    The cheap half of what `sync` knows, and the half available without touching
+    a network. A checkout on another branch still takes commits and still passes
+    every other check here, and the only visible symptom is that nothing this
+    person files reaches anybody - which is a thing to be told rather than to
+    work out.
+
+    A warning rather than a blocking finding: nothing about the knowledge is
+    wrong, and a lint that refuses a good concept because a branch is elsewhere
+    would be teaching people to file past it.
+    """
+    if bundle.sync is None:
+        return
+    on = sharing.checked_out_branch(bundle.path)
+    if on is None or on == bundle.sync:
+        return
+    findings.add(
+        "",
+        f"this bundle is shared on `{bundle.sync}` and the checkout is on `{on}`, "
+        "so nothing filed here is reaching anyone",
+        blocks=False,
+    )
+
+
 def cmd_lint(args: argparse.Namespace) -> int:
     bundles = load_bundles()
     selected = bundles
@@ -269,6 +304,7 @@ def cmd_lint(args: argparse.Namespace) -> int:
             continue
         findings = bundle_lint.lint(bundle.path, floor=bundle.floor, coverage=args.coverage)
         check_references(bundle, [b for b in bundles if b.name != bundle.name], findings)
+        check_shared_branch(bundle, findings)
 
         # An upstream we cannot edit is not a failure state, and a lint that
         # fails on what nobody here can fix is a lint you learn to ignore - along
@@ -337,6 +373,46 @@ def cmd_url(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_sync(args: argparse.Namespace) -> int:
+    """Move commits to and from the bundles this machine shares with other people.
+
+    Safe at any moment, which is what lets the skill call it without deciding
+    anything: run before reading and it fast-forwards, run after filing and it
+    pushes. Everything it will not do is in
+    [sharing.py](sharing.py) and in DESIGN §10 - it moves commits, it never
+    makes one, and it refuses rather than resolving.
+
+    With no bundle named it visits every one that declares a `sync` branch, as
+    `lint` does over all of them. A bundle that declares none is printed as
+    nothing to do rather than skipped silently: "this bundle is not shared" is
+    the answer to the question that was asked.
+    """
+    bundles = load_bundles()
+    if args.bundle:
+        by_name = {b.name: b for b in bundles}
+        if args.bundle not in by_name:
+            sys.exit(f"fkb: no bundle named `{args.bundle}` (have: {', '.join(by_name)})")
+        selected = [by_name[args.bundle]]
+    else:
+        selected = [b for b in bundles if b.sync is not None]
+        if not selected:
+            print("No bundle in this workspace is shared, so there is nothing to sync.")
+            print("A bundle becomes shared by naming the branch it is shared on: `sync: <branch>`.")
+            return 0
+
+    status = 0
+    for bundle in selected:
+        outcome = sharing.sync(bundle.name, bundle.path, bundle.sync, check=args.check)
+        print(f"{bundle.name}  {outcome.summary}")
+        for line in outcome.details:
+            print(f"  {line}")
+        if outcome.remedy:
+            print(f"  {outcome.remedy}")
+        if outcome.blocked:
+            status = 1
+    return status
+
+
 def cmd_resolve(args: argparse.Namespace) -> int:
     """One bundle as JSON: what it is allowed to do, and what it actually does.
 
@@ -374,6 +450,7 @@ def cmd_resolve(args: argparse.Namespace) -> int:
         "path": str(bundle.path),
         "referenceable_by": bundle.referenceable_by,
         "writable": bundle.writable,
+        "sync": bundle.sync,
         "publish": None if bundle.publish is None else {"url": bundle.publish.url, "style": bundle.publish.style},
         "conventions": None if bundle.conventions is None else str(bundle.conventions),
         "directories": sorted(p.name for p in bundle.path.iterdir() if p.is_dir() and not p.name.startswith(".")),
@@ -531,6 +608,14 @@ def cmd_add(args: argparse.Namespace) -> int:
         "referenceable_by": _citers(args.referenceable_by),
         "writable": bool(args.writable),
     }
+    if args.sync:
+        if not args.writable:
+            sys.exit(
+                "fkb: `--sync` says commits made here may leave the machine, which only means "
+                "something for a bundle this machine may write to. Add `--writable`, or drop it."
+            )
+        entry["sync"] = args.sync
+        checked_out = arrival.checkout(bundle_root, args.sync)
 
     if args.publish_sample:
         if not args.publish_sample_path:
@@ -551,6 +636,13 @@ def cmd_add(args: argparse.Namespace) -> int:
     # it is used, and because `add` had to ask for policy it could not infer.
     print(f"registered `{args.name}` in {path}:")
     print(textwrap.indent(yaml.safe_dump({args.name: entry}, sort_keys=False).rstrip(), "  "))
+
+    if args.sync:
+        if checked_out:
+            print(f"\nThe checkout is on `{args.sync}`, which is where filing into a shared bundle belongs.")
+        else:
+            print(f"\nCould not check `{args.sync}` out here, so this checkout is on whatever it was.")
+            print("Until it is on that branch, `sync` will refuse to push and `lint` will say so.")
 
     if scaffolded and repository:
         print(f"\n`git init` ran in {bundle_root}; nothing is committed yet.")
@@ -601,6 +693,16 @@ def main() -> int:
     resolve.add_argument("bundle")
     resolve.set_defaults(func=cmd_resolve)
 
+    syncing = sub.add_parser("sync", help="move commits to and from a live-shared bundle, or refuse")
+    syncing.add_argument("bundle", nargs="?", help="one bundle by name; omit for every shared one")
+    syncing.add_argument(
+        "--check",
+        action="store_true",
+        help="report what would happen and change nothing; a flag rather than a second command, "
+        "so the dry run and the real one cannot come to disagree about the rules",
+    )
+    syncing.set_defaults(func=cmd_sync)
+
     init = sub.add_parser("init", help="create the workspace manifest, once per machine")
     # Mutually exclusive so asking and doing cannot be requested at once: the two
     # answer different questions and only one of them writes anything.
@@ -630,6 +732,11 @@ def main() -> int:
         help="comma-separated bundle names, or `*`; omit to seal the bundle so nothing may cite it",
     )
     add.add_argument("--writable", action="store_true", help="allow agents to author into this bundle")
+    add.add_argument(
+        "--sync",
+        metavar="BRANCH",
+        help="the branch this bundle is shared on; the checkout is put on it and `fkb sync` may push it",
+    )
     add.add_argument("--publish-url", help="the prefix its concepts hang under")
     add.add_argument("--publish-style", choices=workspace.Publish.STYLES)
     add.add_argument(

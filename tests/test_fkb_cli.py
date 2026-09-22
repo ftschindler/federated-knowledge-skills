@@ -774,7 +774,7 @@ def test_the_prose_names_no_flag_the_cli_does_not_have(page: Path) -> None:
                 assert flag in flags, f"{page.name}:{number}: `fkb {subcommand}` has no `{flag}`"
 
 
-def _skill_at(root: Path, version: str, guides: tuple[str, ...] = ()) -> Path:
+def _skill_at(root: Path, version: str, guides: tuple[str, ...] = (), *, keep_shipped: bool = False) -> Path:
     """A second installed copy of the skill, at a release of the test's choosing.
 
     The version a copy claims is a file inside it, so a test about upgrades needs
@@ -789,8 +789,9 @@ def _skill_at(root: Path, version: str, guides: tuple[str, ...] = ()) -> Path:
     # Emptied first, so each of these tests states its own history. The guides
     # this release actually ships are checked against the copy that ships them.
     migrations = skill / "references" / "migrations"
-    for shipped in migrations.glob("*.md"):
-        shipped.unlink()
+    if not keep_shipped:
+        for shipped in migrations.glob("*.md"):
+            shipped.unlink()
     for name in guides:
         (migrations / f"{name}.md").write_text(f"# {name}\n\nDo the thing.\n", encoding="utf-8")
     return skill / "scripts" / "fkb"
@@ -902,6 +903,29 @@ def test_a_release_that_asks_nothing_says_nothing(tmp_path: Path) -> None:
     fkb = _skill_at(tmp_path, "0.7.0")
     result = _run(fkb, "list", env=env)
     assert "migrate" not in result.stdout, result.stdout
+
+
+def test_the_sharing_guide_reaches_a_setup_made_before_it(tmp_path: Path) -> None:
+    """The guide written for the next release, checked against the copy shipping it.
+
+    A guide is named for a version that does not exist yet, so nothing offers it
+    until the release job writes that number into `VERSION`. That gap is where a
+    guide can be misnamed, or put in the wrong directory, and stay invisible
+    until the release it was written for has already gone out. So this stands the
+    copy at the version its guide names and asks whether the mechanism finds it.
+    """
+    _bundle(tmp_path / "open", {"alpha.md": _concept("Alpha")})
+    env = _workspace(tmp_path, {"open": str(tmp_path / "open")})
+    fkb = _skill_at(tmp_path, "0.2.0", keep_shipped=True)
+    assert _run(fkb, "migrate", "--done", env=env).returncode == 0
+    manifest = _manifest(tmp_path)
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace("version: 0.2.0", "version: 0.1.1"), encoding="utf-8"
+    )
+
+    result = _run(fkb, "migrate", env=env)
+    assert "migrations/0.2.0.md" in result.stdout.replace("\\", "/"), result.stdout
+    assert "0.1.0.md" not in result.stdout, "a guide already behind the stamp is not owed again"
 
 
 def test_the_shipped_version_is_one_the_cli_can_read(tmp_path: Path) -> None:

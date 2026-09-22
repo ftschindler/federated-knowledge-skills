@@ -39,6 +39,7 @@ would have told us.
 | 9.5 | How a bundle lints standalone, without knowing it is federated | T6 |
 | 9.6 | How knowledge is structured inside a bundle - directories, `tags`, publishing nav | T1, per bundle |
 | 9.7 | Whether we may assume more than `uv` is installed | T4 |
+| 9.12 | Whether a shared concept having no URL until the next release hurts enough to fix | T9 |
 
 §9.10 records what is settled.
 
@@ -78,8 +79,8 @@ knowledge when you learn it.
 
 ## 4. Bundles and the manifest
 
-One file couples otherwise-independent repos: `$XDG_CONFIG_HOME/fkb/workspace.yaml`. Four
-fields per bundle.
+One file couples otherwise-independent repos: `$XDG_CONFIG_HOME/fkb/workspace.yaml`. Five
+fields per bundle, the last of which most bundles omit.
 
 | field | question it answers | default |
 | --- | --- | --- |
@@ -87,6 +88,7 @@ fields per bundle.
 | `referenceable_by` | who may point *at* me | `[]` (no one) |
 | `writable` | may an agent author into me here | `false` |
 | `publish` | where my concepts are reachable from outside, if anywhere | `null` |
+| `sync` | which branch I am shared on, if I am shared live (§11) | `null` (not shared) |
 
 Both security-relevant defaults fail closed, so a new bundle discloses nothing until you
 open it deliberately.
@@ -615,21 +617,24 @@ run.
 
 ## 7. The CLI
 
-Six commands, and we stay suspicious of the seventh. Single-file PEP 723 Python, run through
+Seven commands, and we stay suspicious of the eighth. Single-file PEP 723 Python, run through
 `uv`.
 
 ```text
 fkb list                    # bundles, paths, tiers, publish URLs
-fkb search <query>          # ripgrep across bundles, bundle-qualified hits
 fkb lint [bundle]           # vendored OKF validator plus the bundle's floor
 fkb resolve <bundle>        # one bundle as JSON: policy plus observed vocabulary
 fkb url <bundle> <path> --from <bundle>   # one concept's cross-bundle URL, or a refusal
+fkb sync [bundle]           # move commits to and from a live-shared bundle, or refuse
 fkb init                    # create the workspace manifest — once per machine
 fkb add <what>              # bring a bundle into the workspace — once per bundle
+fkb search <query>          # ripgrep across bundles, bundle-qualified hits
 ```
 
-`can-reference` folds into `lint`, being a check rather than a workflow. Clone, pull, commit
-and file creation get no command, since git and the editor already do them clearly.
+`can-reference` folds into `lint`, being a check rather than a workflow. Clone, commit and
+file creation get no command, since git and the editor already do them clearly. `sync` is the
+exception that proves the rule and §11 is its justification: what it sells is not the four
+git calls but the list of situations in which running them is wrong.
 
 ### `fkb url` is the whole of cross-bundle linking
 
@@ -1283,6 +1288,33 @@ with the person.
 A machine without git still gets a bundle. Every check here runs over a directory, and
 history is the only layer that can be added afterwards without touching a single concept.
 
+### 9.12 The window in which a shared concept has no URL
+
+**Open.** A bundle shared live (§11) publishes from its reviewed branch, so a concept is on
+every teammate's disk as soon as it is pushed and on the site only after the next release.
+In between, it exists and has no published location.
+
+That is invisible to everything we have. `fkb url` refuses on a bundle with no `publish` and
+on a concept that is not on disk; this concept is on disk and its bundle publishes, so the
+URL is produced and is correct about where the page *will* be. It is the same property §4
+already accepts for a `publish` promise made before a site exists - only here the gap is
+routine rather than a one-off, and it recurs every release cycle.
+
+Whether it matters is a question about how often a fresh concept is cited from another
+bundle before it is released, and nothing can answer that in advance. The cheap instruments,
+in the order they would be reached for:
+
+- shorten the release cadence, which costs nothing and is not a change to this software;
+- have `lint` warn when a link points into a bundle at a concept not present on that
+  bundle's published branch, which is a fetch or a second working tree and is the first
+  thing here that would need either;
+- publish a second site from the shared branch, which answers it completely and gives up
+  the property that review decides what the world sees.
+
+The third is the option §11 declined, and it stays declined until an incident argues for it.
+The journal is what would carry that argument: a link handed to somebody that 404'd, or a
+page cited twice because the first citation looked broken.
+
 ## 10. Versioning and migration
 
 A skill is installed by copying `skills/fkb/` into wherever a harness keeps skills. That is
@@ -1340,7 +1372,202 @@ reviewer is already making.
 > version pretending to cover both would tie a person's vault to when they last upgraded a
 > skill.
 
-## 11. The way forward
+## 11. Collaboration and syncing
+
+One bundle, many people, each with it checked out on their own machine and an agent filing
+into it. The constraint that shapes everything below is a bundle whose default branch takes
+no direct pushes: changes reach it through a pull request and a review. That is the normal
+shape for a repository a team shares, and it is a gate measured in days, against knowledge
+generated in minutes.
+
+**So the bundle gets two clocks, and neither one weakens the other.** A long-lived branch
+carries what has been written; the default branch carries what has been reviewed. Everyone
+works on the first, and the second is what the site is built from.
+
+This costs one optional manifest field, one command, and no new concepts. A bundle that does
+not set the field behaves exactly as it did before.
+
+### The branch shape
+
+| | the default branch | the staging branch |
+| --- | --- | --- |
+| Holds | what has been reviewed, and what is published | everything reviewed, plus what is not ready |
+| Protected | yes: pull request and review | no: open to push for anyone with write access |
+| Who works here | nobody directly | every checkout, every agent |
+| Reaches the other by | a release pull request, on a cadence | a merge, after every single change to the default |
+
+Four properties make that stable, and each fails quietly rather than loudly when it is
+missing.
+
+**The default branch stays the reviewed one.** A person who edits a file in the forge's web
+editor edits the branch they are looking at, and arriving at a protected branch means the
+"commit directly" option is not offered to them. The careless click therefore produces a pull
+request, which is the outcome the review gate was for. The price is that a fresh clone lands
+on the wrong branch for filing, which is what the manifest field below fixes.
+
+**Merge commits only.** Squash and rebase merging write a new commit with the same content
+and no shared ancestry, so the two branches stop knowing they ever met. The next release then
+re-displays everything already released, and the merge back conflicts content against a copy
+of itself. The failure is silent for one cycle and permanent afterwards.
+
+**The merge back runs on every change to the default branch, automatically.** Work arrives
+there by routes other than the release - a web edit, a pull request from someone's local
+checkout - so the default branch is not downstream of staging and never was. Skipping the
+merge back does not lose content, because a merge preserves what the other side never
+touched. It does something slower: the page corrected on the default branch is absent from
+every working copy, so an agent answers from the old version or files a second concept on the
+same idea. A wiki that is stale by a day is worse than one stale by a month, because nobody
+expects the first.
+
+**Continuous integration runs the bundle's own checks on pushes to staging**, not only on
+pull requests. The pre-commit hooks a bundle pins protect a working copy, and a web edit has
+no working copy - so every route into the repository that bypasses a clone needs the same
+check restated where the commit lands.
+
+> Only the merge back is shipped from here, as a reusable workflow a bundle calls; the rest
+> is repository configuration, per bundle, and belongs beside the rest of a bundle's
+> infrastructure rather than in a manifest one machine can see. The manifest is a guardrail, not a security boundary (§3), and this is the
+> same division: `fkb` refuses to push into a shape it was not told about, and the branch
+> protection is what actually holds.
+
+### The manifest field
+
+```yaml
+team:
+  path: ./team/docs
+  referenceable_by: [private]
+  writable: true
+  sync: staging
+  publish:
+    url: https://team.example/kb/
+    style: directory
+```
+
+`sync` names the branch this bundle is shared on - conventionally `staging`, but needs to match
+the bundle-specific merge-back workflow. The key is the capability,
+the field means three things at once, and they are deliberately one field rather than three:
+
+- this bundle's checkout belongs on that branch, so `add` checks it out and `lint` says so
+  when a working copy has drifted onto another one;
+- commits made here may leave the machine automatically, which we otherwise cannot assert;
+- someone else is filing into this bundle too, so reading it means reading it fresh.
+
+Its absence is the default and the backwards compatible behaviour: commit, never push, nothing fetched.
+`writable: false` together with a `sync` branch is a contradiction the manifest is checked
+for when it is loaded, in the same pass as the prefix check in §4.
+
+**The branch is named per bundle rather than assumed.** A default value would be a guess
+about a repository this machine does not administer, and the cost of guessing wrong is
+pushing a concept onto a branch somebody is using for something else.
+
+> It is a scalar, and `publish` is the precedent for what happens if that stops being
+> enough. A second key - a remote name, a fetch policy - turns it into `sync: {branch: ...}`,
+> nested the way `url` and `style` are, and that is a change every existing manifest has to
+> make. One key nested alone is overhead we are not paying yet; the growth path is written
+> down here so that meeting it is a decision rather than a surprise.
+
+### `fkb sync [bundle]`
+
+**It moves commits; it does not make them.** Fetch, rebase, push - and nothing else. Filing
+still commits through the bundle's own hooks, where §9.11 put it, so the gate stays in the
+one place it can run. With no bundle named it visits every writable bundle that declares a
+`sync` branch, as `lint` does.
+
+It is safe to run at any moment, which is what lets the skill call it without deciding
+anything. Run before reading a bundle it fast-forwards; run after filing it pushes.
+
+**It refuses; it never resolves.** It does not stash, does not switch branches, does not
+abandon a rebase in progress, and does not commit a file it was not handed. Every one of
+those situations means a person was in the middle of something deliberate, and the cost of
+guessing what is their work, unrecoverable. The cost of refusing is a line of output.
+
+| Situation | What happens |
+| --- | --- |
+| On the staging branch, nothing else uncommitted | Fetch, rebase, push |
+| Push rejected, someone pushed first | Rebase onto the new tip and push again, once, then stop |
+| The rebase conflicts | Abort it, keep the commit, name the file |
+| Other uncommitted work in the tree | Keep the commit, do not push, say why |
+| The checkout is on another branch | Do not push; report the branch, and the one expected |
+| Mid-rebase, mid-merge, or detached head | Nothing at all, reported as such |
+| No remote, or no upstream for the branch | Commit stands, nothing pushed |
+| The bundle declares no `sync` branch | Nothing to do, and not an error |
+
+Two rows carry most of the design. **An unpushed commit is not a failure**: the knowledge is
+saved under the hooks, the person's other work is untouched, and the next clean run carries
+it along with everything else at a cost of one hour's delay for a teammate. And **a conflict
+stops the machine every time** - the append-only files are union-merged by the bundle's own
+git attributes, so a real conflict means two people wrote the same concept, which is a
+question about what is true and the last thing to hand to an agent working quickly.
+
+**There is no flag to override the branch check.** An override would be a way to contradict
+the manifest from the command line, and both honest ways to do that already exist: change the
+branch in the manifest, or use git directly. A person deliberately preparing a pull request
+needs neither permission nor a warning, and an agent should not be able to talk itself into
+either.
+
+`--check` reports what would happen and changes nothing. It is a flag rather than a second
+command so that the dry run and the real one cannot come to disagree about the rules.
+
+### What the skill keeps
+
+Two lines, and no conditional. Run the command. If it refuses, repeat the reason and stop.
+
+The refusal carries its own remedy in prose, which is why the skill needs no branch of its
+own: an agent that had to compare a branch name against the manifest would be reading command
+output and deciding, which invariant 3 exists to prevent. The "never push" rule from §9.11
+narrows rather than disappears - it now reads *never push a bundle with no `sync` branch*,
+and for one that has one, pushing is part of filing in the same way committing is.
+
+The one place this reaches beyond filing: a bundle that is shared is read fresh. Pulling at
+the start of a session is what stops an agent answering from a page a teammate corrected this
+morning, and it is the same command.
+
+### The merge back is shipped from here, and the rest is not
+
+Everything above is repository configuration except one piece, and the exception is
+deliberate. **This repository publishes the merge-back as a reusable workflow, and a bundle
+calls it.**
+
+The reason is not that it saves lines. It is that the merge back is the only part of the
+shape whose absence destroys the bundle rather than inconveniencing it. Branch protection
+forgotten means an unreviewed page on the site, which a person sees. Squash merging left on
+means a confusing release, which a person sees. The merge back missing means the two branches
+drift silently, every working copy holds a stale wiki, and the first symptom is a concept
+filed twice by an agent that could not see the first. Nobody sees that until it has happened
+several times.
+
+So this one is not left to be copied correctly. It ships with its behaviour fixed: merge
+rather than squash, and a conflict opens a pull request against the shared branch rather than
+failing a run somebody has stopped reading.
+
+**Pin it at the same commit the bundle already pins for its hooks.** A bundle then carries one
+revision of this repository, and the gate and the workflow cannot come from two different
+versions of the same decision. Pin by full commit SHA and never by tag: the workflow needs
+write access to the shared branch, which is a larger trust step than a hook that only ever ran
+on a machine already holding the files.
+
+It is GitHub Actions and therefore about one forge, which is what §7 refuses for the CLI. The
+difference is that nothing depends on it. A bundle elsewhere reproduces the behaviour in four
+lines of its own CI, and every part of this design except the convenience still holds.
+
+### What this deliberately does not build
+
+- **No conflict resolution**, per the table above.
+- **No pull request creation for the release.** Cutting it is `gh pr create`, and a command
+  that wrapped it would put a forge in the CLI rather than in an optional workflow.
+- **No second published site for the shared branch.** That is the other answer to the
+  question in §9.12, and taking it would mean the review gate no longer decides what the
+  world sees.
+
+### What is not settled
+
+Review on the default branch is a **publish gate**: unreviewed material must not appear on the
+site. The consequence is that a concept is shared with the team before it is reachable by
+URL, so a cross-bundle citation written today points at a page the site will not carry until
+the next release. Nothing detects this, because `fkb url` checks that the file exists on this
+disk, and it does. §9.12 states the question and what would settle it.
+
+## 12. The way forward
 
 The implementation plan lives in [IMPLEMENTATION.md](IMPLEMENTATION.md): the tasks T1–T7 in
 order, what "done" means for each, and which of the open questions in §9 each one settles.
