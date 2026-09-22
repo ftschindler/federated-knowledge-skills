@@ -583,6 +583,11 @@ argument for building it as a command.
   and the concept arrives at the bare remote, with the hooks having run. It is the same shape
   as [T5](#t5---finish-the-skill)'s tests and for the same reason - the instruction to run
   the command is prose, and prose is what regresses.
+- **Write the migration guide with it**, as
+  [§10](DESIGN.md#10-versioning-and-migration) now requires of a change that asks something
+  of a setup already on disk: `references/migrations/0.2.0.md`, named for the release this
+  ships in, and asking a question rather than making an edit. Almost every setup answers "no
+  bundle of mine is shared" and is finished, which is the shape these guides are for.
 - **Keep the journal on refusals.** The entry that matters here is a refusal that was wrong:
   the command declined, the person looked, and pushing would have been fine. Each of those
   argues for removing a row, and nothing else should.
@@ -595,7 +600,8 @@ every row of the refusal table has a test.
 **Where it stands.** Everything except the last two clauses is built: `sync` in the manifest
 and in `resolve`, `fkb sync [bundle] [--check]` against the refusal table, `add --sync` which
 checks the branch out, the drifted-checkout warning in `lint`, union-merge `.gitattributes`
-in every scaffolded bundle, the narrowed push rule in the skill, the recipe in
+in every scaffolded bundle, the `0.2.0` migration guide, the narrowed push rule in the skill,
+the recipe in
 [`bundle-infrastructure.md`](skills/fkb/references/bundle-infrastructure.md), and the
 merge-back workflow in `.github/workflows/merge-back.yml`. Each row of the table has a test
 over real repositories with a bare remote, and one cold-session test files into a shared
