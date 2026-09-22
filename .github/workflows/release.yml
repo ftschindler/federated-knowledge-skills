@@ -116,7 +116,11 @@ jobs:
       # forgotten; without it this pushes and is declined.
       uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3.2.0
       with:
-        app-id: ${{ secrets.RELEASE_APP_ID }}
+        # The client id rather than the numeric app id, which the action now
+        # deprecates. Both name the same app; the client id is the one GitHub
+        # has standardised on for authenticating as it, and it is on the app's
+        # own settings page beside the id it replaces.
+        client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
         private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
     - name: Checkout
@@ -127,6 +131,16 @@ jobs:
 
     - name: Setup uv
       uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+      with:
+        # This repository has no pyproject.toml and no lockfile: every script
+        # carries its own dependencies in a PEP 723 header, so those files are
+        # what a cache here has to be keyed on. Left to the default globs the
+        # action matches nothing, says so, and keeps a cache that can never be
+        # invalidated - which is worse than none, because it goes stale in
+        # silence.
+        cache-dependency-glob: |
+          .scripts/*.py
+          skills/fkb/scripts/*
 
     - name: Find the bump this merge asked for
       id: bump
