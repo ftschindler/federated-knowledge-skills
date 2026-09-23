@@ -98,10 +98,19 @@ jobs:
           echo "A merge-back pull request is already open; nothing to do."
           exit 0
         fi
-        gh pr create --base "${SHARED}" --head "${REVIEWED}" \
+        if gh pr create --base "${SHARED}" --head "${REVIEWED}" \
           --title "Merge ${REVIEWED} back into ${SHARED}" \
           --body "The automatic merge back conflicts, so it stopped and asked.
 
         Until this is merged, every working copy of this bundle is missing what
         was changed on \`${REVIEWED}\`, and an agent filing into it cannot see
-        those pages. Resolve the conflict here rather than on a machine."
+        those pages. Resolve the conflict here rather than on a machine."; then
+          exit 0
+        fi
+        # A repository that has not granted Actions the right to open pull
+        # requests fails here, and the raw error names a permission rather than
+        # a thing to do. Which matters more than usual: this is the branch that
+        # only ever runs when the drift has already happened, so an unreadable
+        # failure here is the same silence the workflow exists to break.
+        echo "::error::The merge back conflicted and the pull request asking a person to resolve it could not be opened. Allow GitHub Actions to create pull requests under Settings > Actions > General > Workflow permissions, then re-run this job. Until ${REVIEWED} is merged into ${SHARED} by hand, every working copy of this bundle is stale."
+        exit 1
