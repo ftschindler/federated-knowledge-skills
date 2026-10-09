@@ -9,9 +9,12 @@
 
 import { spawnSync } from "node:child_process";
 
-// ATTENTION: keep in sync with the @umbrelladocs/linkspector version pinned in
-// .pre-commit-config.yaml, as the comment there says.
-const CHROME = "chrome@152.0.7977.64";
+// ATTENTION: this is the Chrome that `puppeteer` pinned in
+// .pre-commit-config.yaml ships as its own default. Puppeteer launches its
+// default rather than whatever was installed here, so the two must be the same
+// build or this install is wasted and an unrelated Chrome runs instead.
+// puppeteer 25.10.0 -> 152.0.7977.75.
+const CHROME = "chrome@152.0.7977.75";
 
 const steps = [
   ["npx", ["--yes", "puppeteer", "browsers", "install", CHROME]],

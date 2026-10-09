@@ -115,7 +115,7 @@ answer. [IMPLEMENTATION.md](IMPLEMENTATION.md) is the order of work and what rem
 
 The reasoning behind it, written from the outside, is on the bundle it produced:
 [the decision](https://ftschindler.github.io/knowledge/decisions/federating_my_knowledge_base_as_privacy_tiered_okf_bundles/),
-[the architecture](https://ftschindler.github.io/knowledge/research/federated_okf_knowledge_bases_a_workspace_manifest_architecture/)
+[the architecture](https://ftschindler.github.io/knowledge/investigations/federated_okf_knowledge_bases_a_workspace_manifest_architecture/)
 and [what the first attempt taught](https://ftschindler.github.io/knowledge/explorations/wrapping_the_kb_skills_in_a_federation_layer/).
 
 ## Working on it

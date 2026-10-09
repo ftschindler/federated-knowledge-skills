@@ -65,7 +65,10 @@ repos:
 
 # Broken-link checking. Pins the exact Chrome puppeteer drives, tied to the
 # linkspector version (pin the transitive runtime, not just the tool).
-# ATTENTION: keep chrome@... and @umbrelladocs/linkspector@... versions matched.
+# ATTENTION: `puppeteer`, the `chrome@...` in .scripts/linkspector.mjs and
+# `@umbrelladocs/linkspector@...` move together. Puppeteer is the one that
+# decides which browser actually launches, so an unpinned one silently replaces
+# the Chrome installed a line earlier the moment upstream ships a new default.
 - repo: local
   hooks:
   - id: linkspector
@@ -74,7 +77,7 @@ repos:
     # run by contributors on Windows too, where bash is not a given.
     entry: node .scripts/linkspector.mjs
     language: node
-    additional_dependencies: ["@umbrelladocs/linkspector@0.5.6", "puppeteer"]
+    additional_dependencies: ["@umbrelladocs/linkspector@0.5.6", "puppeteer@25.10.0"]
     pass_filenames: false
     files: \.md$
 
