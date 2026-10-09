@@ -51,12 +51,19 @@ jobs:
       cancel-in-progress: false
     steps:
 
-    - name: Checkout the shared branch
+    - name: Checkout
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       with:
-        ref: ${{ inputs.branch }}
+        # The commit that was pushed, not the shared branch, because the shared
+        # branch is not guaranteed to exist when this runs. GitHub deletes a
+        # pull request's head branch on merge where the repository asks it to,
+        # and a pull request opened from the shared branch makes it one: the
+        # branch is gone before this job starts, and a checkout naming it fails
+        # with "a branch or tag with the name X could not be found".
+        #
         # The whole history, because a merge needs the ancestry the two branches
-        # share and a shallow clone has thrown it away.
+        # share and a shallow clone has thrown it away. At this depth the fetch
+        # brings every branch, so the shared one is here if it exists at all.
         fetch-depth: 0
 
     - name: Merge, keeping the ancestry
@@ -73,6 +80,24 @@ jobs:
         set -euo pipefail
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+        # A shared branch that is missing was deleted by the merge that started
+        # this run, so everything it held is in the reviewed branch already and
+        # recreating it there loses nothing. Recreate rather than fail: the
+        # branch every checkout tracks does not exist, and a red run leaves it
+        # that way until somebody reads the Actions tab.
+        if ! git ls-remote --exit-code --heads origin "${SHARED}" >/dev/null 2>&1; then
+          git push origin "refs/remotes/origin/${REVIEWED}:refs/heads/${SHARED}"
+          echo "conflicted=false" >> "${GITHUB_OUTPUT}"
+          echo "::warning title=Shared branch recreated::\
+        '${SHARED}' did not exist and was recreated from '${REVIEWED}'. It was \
+        most likely deleted by the merge that triggered this run, which means a \
+        pull request was opened from the shared branch. Protect '${SHARED}' \
+        against deletion, and branch off it for pull requests instead."
+          exit 0
+        fi
+
+        git checkout -B "${SHARED}" "origin/${SHARED}"
         if git merge --no-ff --no-edit "origin/${REVIEWED}" \
             -m "Merge ${REVIEWED} back into ${SHARED}"; then
           echo "conflicted=false" >> "${GITHUB_OUTPUT}"
