@@ -9,7 +9,8 @@ It is an implementation of the [LLM wiki](https://gist.github.com/karpathy/442a6
 idea over the [Open Knowledge Format](https://github.com/GoogleCloudPlatform/open-knowledge-format),
 with the federation and access tiers that neither of those specifies.
 
-You get a skill, a CLI it runs, and two pre-commit hooks each bundle pins for itself.
+You get a skill, the rule that makes an agent reach for it, a CLI the skill runs, and two
+pre-commit hooks each bundle pins for itself.
 [ftschindler.github.io/knowledge](https://ftschindler.github.io/knowledge/) is one of these
 bundles, published: what a bundle looks like when it has been lived in for a while.
 
@@ -39,12 +40,30 @@ deliberately absent, and the third is more machinery than one tier is worth.
 **Requirements:** [uv](https://docs.astral.sh/uv/), git, and an agent that loads skills.
 Nothing else, on Linux, macOS or Windows.
 
-**1. Install the skill.** Copy `skills/fkb/` into wherever your harness keeps skills, or let
-a skill installer do it:
+**1. Install the skill and the rule beside it.** The skill is what an agent opens; the rule
+is the few lines in your session instructions that make it reach for the skill at all.
+Without the second, nothing goes wrong visibly and the bundles are simply never consulted.
+One command takes both:
+
+```text
+uvx --from federated-agent-kits akit add --global ftschindler/federated-knowledge-skills fkb
+```
+
+[akit](https://github.com/ftschindler/federated-agent-kits) subscribes to skills and rules
+from ordinary git repositories and writes them where each harness looks. It needs `uv`, which
+the `fkb` CLI needs anyway, and `akit update` later brings the skill and the rule current
+together.
+
+**Or take the skill alone**, with a skill installer or by copying `skills/fkb/` into wherever
+your harness keeps skills:
 
 ```text
 npx skills add ftschindler/federated-knowledge-skills
 ```
+
+That path leaves the rule to you: put the body of [rules/fkb.md](rules/fkb.md) into your
+session instructions file as its own section. A copy placed by hand is yours from then on and
+no upgrade will touch it.
 
 The CLI ships inside the skill as `scripts/fkb`, so there is no second install step. Nothing
 here ever installs anything itself.
@@ -52,12 +71,8 @@ here ever installs anything itself.
 **2. Open a session and say what you want.** "Set up my knowledge base", or just "note this
 down". The skill takes it from there: it proposes where the bundles should live, creates
 your private one, adds the public bundles worth reading, and shows you the result. The
-[getting-started reference](skills/fkb/references/getting-started.md) is what it follows.
-
-**3. Add the block to your user-level instructions.** Without one line in the file your
-harness loads every session, nothing will make an agent reach for the bundles at all. The
-skill offers it and lets you place it; the text is in
-[agents-block.md](skills/fkb/references/agents-block.md).
+[getting-started reference](skills/fkb/references/getting-started.md) is what it follows. It
+also checks whether the rule is in place and offers the command above when it is not.
 
 From then on you mostly do not type commands. When you want to, they are:
 
@@ -72,12 +87,14 @@ uv run <skill>/scripts/fkb version               # this release, and the one you
 uv run <skill>/scripts/fkb migrate               # what an upgrade asks of an existing setup
 ```
 
-**Upgrading.** Copy the new `skills/fkb/` over the old one; that is the whole of it. A
-release that needs something of a setup already on disk says so the next time you run
-`fkb list`, and `fkb migrate` names the page to read. Nothing is blocked while you have not:
-a version stamp here is bookkeeping about capabilities, not a lock on your bundles.
+**Upgrading.** `akit update` brings the skill and the rule current together. Where the skill
+was installed by hand, copy the new `skills/fkb/` over the old one instead; that is the whole
+of it either way. A release that needs something of a setup already on disk says so the next
+time you run `fkb list`, and `fkb migrate` names the page to read. Nothing is blocked while
+you have not: a version stamp here is bookkeeping about capabilities, not a lock on your
+bundles.
 
-**4. Give each bundle its gate.** A bundle is checked by its own pre-commit hooks, pinned by
+**3. Give each bundle its gate.** A bundle is checked by its own pre-commit hooks, pinned by
 revision, so it holds up whether or not the federation layer is anywhere near it:
 
 ```yaml
