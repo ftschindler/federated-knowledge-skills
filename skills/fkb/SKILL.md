@@ -107,11 +107,12 @@ bundle is sealed unless they say otherwise, and sealed is right for anything pri
 One thing this does *not* do: it never guesses that some directory it found is a bundle. A
 bundle is registered because someone said so.
 
-### While you are there: the AGENTS.md block
+### While you are there: the rule that gets this skill reached for
 
-Without a line in the user's session instructions, nothing will make a future session reach
-for the bundles at all. Check whether it is present and offer it if not:
-[the block and how to check](references/agents-block.md). Propose it, do not write it - that
+Without a few lines in the user's session instructions, nothing will make a future session
+reach for the bundles at all. Those lines are a rule that ships beside this skill rather than
+inside it, and one `akit` command subscribes to both:
+[how to check, and what to offer](references/reachability.md). Ask before running it - that
 file loads into every session they run.
 
 ## Migrating
@@ -149,10 +150,10 @@ the one that carries this person's own decisions.
 
    If they named a source and nothing is called that - "what does Felix say about this", with
    no `felix` in the list - take the bundle that is plainly meant and say which you took.
-   Then offer the mapping a line in
-   [the AGENTS.md block](references/agents-block.md), so the next session does not have to
-   work it out again. A name that has to be re-derived every time is one that will eventually
-   be derived wrongly.
+   Then offer the mapping a line in their own section of the user-level instructions file,
+   [as described in reachability](references/reachability.md), so the next session does not
+   have to work it out again. A name that has to be re-derived every time is one that will
+   eventually be derived wrongly.
 2. **Search the concept files.** Use `rg` if it is available; if it is not, use your own
    file-reading and glob tools over the same paths - a bundle is markdown in a directory and
    needs nothing special to read. Search titles, `description` and body together; the useful
@@ -205,9 +206,9 @@ the one that carries this person's own decisions.
 
        Then offer to stop it recurring, because the same phrase will come back next session.
        Either the manifest name is wrong for what they call it, which is a one-line edit, or
-       the phrase is simply theirs and belongs in
-       [the AGENTS.md block](references/agents-block.md), where one line maps it to a bundle
-       for every future session. Propose it; that file is theirs to edit.
+       the phrase is simply theirs and belongs in the user-level instructions file,
+       [as described in reachability](references/reachability.md), where one line maps it to
+       a bundle for every future session. Propose it; that file is theirs to edit.
    - **Otherwise choose by sensitivity**:
      - Write only where `writable` is `true`.
      - `referenceable_by "*"` means any bundle may cite it, so treat it as published.

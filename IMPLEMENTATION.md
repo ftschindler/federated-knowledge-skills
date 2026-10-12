@@ -628,6 +628,17 @@ one direction that cannot be walked back.
 
 Work that belongs to no task, recorded so it is not looked for.
 
+- **The AGENTS.md block became a subscribed rule** (2026-10-12). Its text moved out of
+  `skills/fkb/references/agents-block.md` to `rules/fkb.md` at the repository root, which is
+  now the only copy. A skill and a rule sharing one name are one kit to
+  [`akit`](https://github.com/ftschindler/federated-agent-kits), so
+  `akit add --global ftschindler/federated-knowledge-skills fkb` installs both and renders
+  the rule in whichever shape each harness wants, and `akit update` keeps them current
+  together. `references/reachability.md` replaces the old file: it says how to check whether
+  the rule is in place, offers the subscription, and names `rules/fkb.md` rather than
+  quoting it. `akit` stays optional - the `npx skills add` path still works and leaves the
+  five lines to the person. Reasoning in [§5.4](DESIGN.md#54-the-schema).
+
 - **The project is versioned and every merge releases** (2026-09-21). `skills/fkb/VERSION`
   travels with an installed copy because nothing else does, the manifest records which
   release a setup was last brought up to, and `fkb migrate` walks the guides in between.

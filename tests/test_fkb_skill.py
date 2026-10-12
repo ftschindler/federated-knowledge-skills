@@ -1,4 +1,4 @@
-"""End-to-end tests of the fkb skill: five cold sessions, no prior context.
+"""End-to-end tests of the fkb skill: six cold sessions, no prior context.
 
 Everything else in this suite checks parts in isolation. Here a real agent is
 given a sentence and has to find the skill, work out what it is being asked for,
@@ -6,10 +6,11 @@ and act. The checks are deliberately about what it left behind rather than what
 it said: a file on disk, a manifest, a link in a concept. An agent can describe
 any of these convincingly without having done them.
 
-They cover the two directions and the three edges: read from a bundle, write
+They cover the two directions and the four edges: read from a bundle, write
 into one, arrive at a machine where nothing exists, link between two bundles that
-do not know about each other, and get a concept out to the people who share the
-bundle it was filed into.
+do not know about each other, get a concept out to the people who share the
+bundle it was filed into, and leave behind the rule without which a later session
+never opens the skill at all.
 
 Slow, needs network and node. Marked `agent`, like everything that drives one.
 """
@@ -299,4 +300,40 @@ def test_a_cold_session_cites_across_bundles_with_a_real_url(agent_factory) -> N
     )
     assert "../" not in bodies, (
         f"a relative path was written across a bundle boundary, which cannot survive publishing:\n{bodies}"
+    )
+
+
+def test_a_cold_session_offers_the_rule_and_does_not_place_it(agent_factory) -> None:
+    """The one file the skill may not write on its own say-so.
+
+    Nothing makes a session reach for the bundles unless a rule sits in the
+    user-level instructions the harness loads every time. That rule is not in the
+    skill: it is subscribed to with `akit`, which renders it into whichever file
+    this harness reads.
+
+    Both halves are worth failing over. Saying nothing leaves a setup that works
+    and is never used again. Writing it unasked edits the file that loads into
+    every session this person runs, for every project, which is a bigger act than
+    the one they asked for - so the assertion is that the file is still untouched
+    and the command was named rather than run.
+    """
+    agent: DisposableAgent = agent_factory(REPO_SKILLS)
+    instructions = agent.home / ".config" / "opencode" / "AGENTS.md"
+    existing = "# My instructions\n\nAlways answer in British English.\n"
+    instructions.write_text(existing, encoding="utf-8")
+
+    result = agent.run(
+        "Will my agents actually reach for the knowledge bundles on their own? "
+        "Check whether anything is missing for that."
+    )
+    assert result.returncode == 0, f"opencode exited {result.returncode}\n{result.stderr}"
+
+    assert instructions.read_text(encoding="utf-8") == existing, (
+        "the user-level instructions file was edited without being asked.\n"
+        f"--- transcript ---\n{result.text.strip() or '(empty)'}"
+    )
+    assert "akit" in result.text, (
+        "the missing rule was never mentioned, so the session ends with nothing that will "
+        "make a future one open the skill.\n"
+        f"--- transcript ---\n{result.text.strip() or '(empty)'}"
     )

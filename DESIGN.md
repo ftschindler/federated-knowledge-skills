@@ -63,16 +63,17 @@ Three layers, each doing one thing.
 
 | Layer | Carries | Loads |
 | --- | --- | --- |
-| **AGENTS.md block** (~5 lines) | that fkb exists here, and when to reach for it | always |
+| **The `fkb` rule** (~5 lines) | that fkb exists here, and when to reach for it | always |
 | **The `fkb` skill** | conventions, workflow, OKF reference, house style | on activation, then on demand |
 | **The `fkb` CLI** | bundle resolution, lint, policy checks | on invocation |
 
 The skill is the portable artifact. `~/.agents/skills/` is read natively by Codex, Cursor,
 Gemini CLI, Zed and Goose; Claude Code reaches it through a symlink from
-`~/.claude/skills/`. Every harness names its instruction file differently, so the block is
-the harness-specific part.
+`~/.claude/skills/`. Every harness names its instruction file differently and wants the rule
+in a different shape, which is the harness-specific part and the one we hand to `akit`
+([§5.4](#54-the-schema)).
 
-The block exists for **activation**. The failure it prevents is an agent that never reaches
+The rule exists for **activation**. The failure it prevents is an agent that never reaches
 for the skill and writes a markdown file wherever it happens to be. It carries the two
 triggers an agent does not infer: check fkb before web-searching, and file durable
 knowledge when you learn it.
@@ -317,31 +318,48 @@ Whatever the location, two rules hold:
 
 ### 5.4 The schema
 
-The AGENTS.md block and the skill. This is where "how we do it" lives, and it is the layer
+The rule and the skill. This is where "how we do it" lives, and it is the layer
 we co-evolve.
 
-#### The AGENTS.md block
+#### The rule
 
-It loads on every session, so it stays at roughly this length. Its only job is to make an
-agent reach for the skill; everything else lives one hop away.
-
-```markdown
-## Knowledge bundles (fkb)
-
-Durable knowledge — decisions, research, fixes worth keeping — lives in privacy-tiered
-markdown bundles managed by the `fkb` skill. When the user says "the wiki", "my notes"
-or "the team wiki", they mean these.
-
-- Before searching the web, check the bundles.
-- When something durable is learned, file it.
-- Load the `fkb` skill for how; it carries the conventions and the commands.
-
-If the `fkb` skill is not installed, skip this silently.
-```
+It loads on every session, so it stays at roughly five lines. Its only job is to make an
+agent reach for the skill; everything else lives one hop away. The text is
+[`rules/fkb.md`](rules/fkb.md) in this repository, which is the only copy of it anywhere.
 
 Three properties matter more than the wording. It names the trigger phrases, because an
 agent will not guess that "my notes" means a bundle. It defers everything procedural to the
 skill, so the two cannot drift. It fails silent, so a machine without fkb loses nothing.
+
+#### It is subscribed to, and that is why it sits outside the skill
+
+Every harness wants the rule somewhere else and in a different shape: a marker block inside a
+file the person also writes in, a directory of files carrying `applyTo` frontmatter, or a
+name only that harness knows. Writing that translation ourselves is a second project, and the
+skill would be carrying a list of paths that rot.
+
+[`akit`](https://github.com/ftschindler/federated-agent-kits) already does it. A skill and a
+rule sharing one name are one kit there, so a single `akit add` subscribes to both and
+renders each where its harness reads it. We get the harness matrix without owning it, and an
+upgrade carries the rule along with the skill rather than leaving a hand-placed copy behind.
+
+**So the skill does not ship the rule's text, and the repository holds exactly one copy.**
+The alternative, a copy in `references/` for people to paste, is a copy no release can
+reach: it would sit in somebody's instructions file while the authoritative wording moved on,
+and neither half would know. `references/reachability.md` therefore carries how to check
+whether the rule is in place and what to offer when it is not, and names the file rather than
+quoting it.
+
+The cost is real and bounded. Somebody who declines `akit`, has no `uv`, or uses a harness
+`akit` has no adapter for gets a path to a file in a repository rather than text on screen.
+That is one worse turn for the uncommon case, against a copy that silently drifts for
+everybody in the common one.
+
+**`akit` is not a dependency of anything here**, which is what keeps
+[invariant 4](#2-invariants) intact. The skill, the CLI and the hooks work with no `akit` on
+the machine, nothing is configured after install, and the skill never calls another skill.
+What the subscription buys is the placement of five lines, and a person who places them by
+hand has the same setup.
 
 ## 6. The skill
 
@@ -379,17 +397,17 @@ short and almost entirely control flow, well under 500 lines.
     ├── house-style.md           # ours
     ├── federation.md            # ours
     ├── semantic-lint.md         # ours — the audit checklist (§6.5)
-    └── agents-block.md          # ours — the block, and how to check for it (§5.4)
+    └── reachability.md          # ours — checking the rule is in place (§5.4)
 ```
 
 Three of those were not in the original list, and each is a lookup that would otherwise have
 sat in the body. `semantic-lint.md` is the checklist §6.5 places in "`SKILL.md` prose": the
 trigger stays in the body and the checklist moves here, because §6.1's rule is that a table
-an agent consults belongs in `references/`. `agents-block.md` carries the §5.4 text plus the
-instruction to look for it in whatever user-level file the *harness* loads, which is
-knowledge the agent has and this repository cannot. `bundle-infrastructure.md` describes the
-layers a bundle grows - hooks, conventions, a site, a publish gate - as a shape rather than
-as files, and sends the reader to a working example instead of reproducing one.
+an agent consults belongs in `references/`. `reachability.md` says to look for the rule in
+whatever user-level file the *harness* loads, which is knowledge the agent has and this
+repository cannot, and what to offer when it is not there. `bundle-infrastructure.md`
+describes the layers a bundle grows - hooks, conventions, a site, a publish gate - as a shape
+rather than as files, and sends the reader to a working example instead of reproducing one.
 
 > **That last one is a deliberate refusal to write something down.** Infrastructure is the
 > fastest-rotting thing here: name a site generator and a hook revision and the page is wrong
@@ -401,6 +419,12 @@ as files, and sends the reader to a working example instead of reproducing one.
 Shipping the CLI inside the skill as `scripts/` means one `npx skills add …` installs both,
 and there is no separate step to forget. The manifest lives outside, in
 `$XDG_CONFIG_HOME/fkb/`, because it is machine-local user data rather than code.
+
+**One thing is deliberately not in that tree.** `rules/fkb.md` sits at the repository root
+and never inside the skill, because it is not a thing the skill reads: it goes into the
+file a harness loads before every session, which is somewhere only that harness and `akit`
+know ([§5.4](#54-the-schema)). Putting a copy of it in `references/` would be a second copy
+nothing can update.
 
 **Nothing installs anything.** Installation is a one-time human command. The skill's
 contract is: present, use it; absent, stay quiet; present but broken, tell the human and
