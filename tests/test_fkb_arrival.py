@@ -78,6 +78,33 @@ def test_an_installed_skill_carries_no_build_artifacts(fake_home: FakeHome) -> N
     assert not strays, f"the install carries build artifacts: {strays}"
 
 
+def test_the_0_3_0_guide_still_names_a_file_this_release_does_not_ship(fake_home: FakeHome) -> None:
+    """A migration guide that tells people to delete a file that came back.
+
+    Neither way of upgrading removes a file a release deleted. Copying the new
+    `skills/fkb/` over the old one leaves it, and `akit` only ever touches files
+    it wrote, so `akit doctor` stays silent about it too. The 0.3.0 guide is the
+    only thing that clears `references/agents-block.md` away, and it clears it by
+    naming the path.
+
+    So the guide is wrong the moment that file ships again, or the moment the
+    reference that replaced it is renamed - and wrong quietly, because an agent
+    reading it would delete a file that is in use.
+    """
+    references = fake_home.skill / "references"
+    guide = (references / "migrations" / "0.3.0.md").read_text(encoding="utf-8")
+
+    assert not (references / "agents-block.md").exists(), (
+        "the skill ships `references/agents-block.md` again, and the 0.3.0 guide tells people to delete it"
+    )
+    assert (references / "reachability.md").is_file(), (
+        "`references/reachability.md` is what replaced it, and the guide says so by name"
+    )
+    assert "agents-block.md" in guide and "reachability.md" in guide, (
+        "the guide no longer names both files, so nothing clears the stale one away"
+    )
+
+
 def test_init_writes_a_manifest_add_can_use(fake_home: FakeHome) -> None:
     """Setup is two steps because they answer different questions.
 
