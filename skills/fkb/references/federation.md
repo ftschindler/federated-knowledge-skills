@@ -88,7 +88,7 @@ one:
 So ask it:
 
 ```text
-uv run SKILLDIR/scripts/fkb url <target-bundle> <path/inside/it.md> --from <bundle-you-are-writing-in>
+uv run --script SKILLDIR/scripts/fkb url <target-bundle> <path/inside/it.md> --from <bundle-you-are-writing-in>
 ```
 
 It prints one absolute URL, and that is what goes in the markdown link.
@@ -123,8 +123,8 @@ That covers the cases `url` never saw: a link pasted by hand, one written before
 existed, and one that became a violation when `referenceable_by` was tightened afterwards.
 
 ```text
-uv run SKILLDIR/scripts/fkb lint            # every bundle
-uv run SKILLDIR/scripts/fkb lint <bundle>   # one of them
+uv run --script SKILLDIR/scripts/fkb lint            # every bundle
+uv run --script SKILLDIR/scripts/fkb lint <bundle>   # one of them
 ```
 
 Findings in a bundle this machine cannot write to are reported as warnings and never block.

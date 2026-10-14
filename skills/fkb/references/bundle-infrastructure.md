@@ -18,7 +18,7 @@ bundle registered as `ftschindler`. Its *repository root* is the interesting par
 bundle inside it:
 
 ```text
-uv run SKILLDIR/scripts/fkb list          # find where `ftschindler` is checked out
+uv run --script SKILLDIR/scripts/fkb list          # find where `ftschindler` is checked out
 ls -a <that path>/..             # the repository root, one level above the bundle
 ```
 
@@ -138,8 +138,8 @@ tells you nothing about the other two.
    inbound: it says who may point *here*, not where this bundle may point.
 
    ```text
-   uv run SKILLDIR/scripts/fkb add NAME --new --writable --referenceable-by '*'
-   uv run SKILLDIR/scripts/fkb add NAME --new --writable --referenceable-by private,team
+   uv run --script SKILLDIR/scripts/fkb add NAME --new --writable --referenceable-by '*'
+   uv run --script SKILLDIR/scripts/fkb add NAME --new --writable --referenceable-by private,team
    ```
 
    If this bundle also needs to cite existing ones, that is a change to *their* entries and
@@ -157,7 +157,7 @@ tells you nothing about the other two.
    already open is the safest way to get both halves right:
 
    ```text
-   uv run SKILLDIR/scripts/fkb add NAME --path <bundle root>  --publish-sample https://example.com/kb/topic/a-concept/  --publish-sample-path topic/a_concept.md
+   uv run --script SKILLDIR/scripts/fkb add NAME --path <bundle root>  --publish-sample https://example.com/kb/topic/a-concept/  --publish-sample-path topic/a_concept.md
    ```
 
    It may also be declared before the site exists, since it is a promise about where the
@@ -172,7 +172,7 @@ tells you nothing about the other two.
 Simpler, and with one specific trap.
 
 ```text
-uv run SKILLDIR/scripts/fkb add private --new --writable
+uv run --script SKILLDIR/scripts/fkb add private --new --writable
 ```
 
 Sealed by default, which is what you want: nothing may cite it, so nothing in it can surface
@@ -200,7 +200,7 @@ checkout sits and every agent files.
 The manifest half is one field, and `fkb` does the rest:
 
 ```text
-uv run SKILLDIR/scripts/fkb add NAME --clone <remote> --writable --sync staging
+uv run --script SKILLDIR/scripts/fkb add NAME --clone <remote> --writable --sync staging
 ```
 
 It checks the branch out, `fkb sync` moves commits to and from it, and `fkb lint` says so when
@@ -290,7 +290,7 @@ directory their tooling generates.
 **Check afterwards**, in this order, because each catches what the previous one cannot:
 
 ```text
-uv run SKILLDIR/scripts/fkb lint NAME     # conformance, and the floor as `fkb` discovers it
+uv run --script SKILLDIR/scripts/fkb lint NAME     # conformance, and the floor as `fkb` discovers it
 prek run --all-files             # the bundle's own hooks, which are the real gate
 ```
 

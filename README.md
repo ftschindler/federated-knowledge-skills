@@ -77,14 +77,14 @@ also checks whether the rule is in place and offers the command above when it is
 From then on you mostly do not type commands. When you want to, they are:
 
 ```text
-uv run <skill>/scripts/fkb list                  # which bundles exist, and what each allows
-uv run <skill>/scripts/fkb lint [name]           # check a bundle, or all of them
-uv run <skill>/scripts/fkb resolve <name>        # one bundle as JSON: policy, tags, types
-uv run <skill>/scripts/fkb url <name> <path> --from <name>   # cite a concept in another bundle
-uv run <skill>/scripts/fkb sync [name]           # carry a shared bundle's commits, or refuse
-uv run <skill>/scripts/fkb add <name> --clone <url>          # bring a bundle in
-uv run <skill>/scripts/fkb version               # this release, and the one your setup is on
-uv run <skill>/scripts/fkb migrate               # what an upgrade asks of an existing setup
+uv run --script <skill>/scripts/fkb list                  # which bundles exist, and what each allows
+uv run --script <skill>/scripts/fkb lint [name]           # check a bundle, or all of them
+uv run --script <skill>/scripts/fkb resolve <name>        # one bundle as JSON: policy, tags, types
+uv run --script <skill>/scripts/fkb url <name> <path> --from <name>   # cite a concept in another bundle
+uv run --script <skill>/scripts/fkb sync [name]           # carry a shared bundle's commits, or refuse
+uv run --script <skill>/scripts/fkb add <name> --clone <url>          # bring a bundle in
+uv run --script <skill>/scripts/fkb version               # this release, and the one your setup is on
+uv run --script <skill>/scripts/fkb migrate               # what an upgrade asks of an existing setup
 ```
 
 **Upgrading.** `akit update` brings the skill and the rule current together. Where the skill
