@@ -54,7 +54,7 @@ issue; nothing on this page needs you to.
 ## Step 1: do you already have one?
 
 ```text
-uv run SKILLDIR/scripts/fkb list
+uv run --script SKILLDIR/scripts/fkb list
 ```
 
 Three things it can say:
@@ -72,13 +72,13 @@ Run it with no root first. It proposes the ones that make sense here and says wh
 for, which is not the same list on every operating system. It writes nothing:
 
 ```text
-uv run SKILLDIR/scripts/fkb init --propose-roots
+uv run --script SKILLDIR/scripts/fkb init --propose-roots
 ```
 
 Then run it again with the one you picked:
 
 ```text
-uv run SKILLDIR/scripts/fkb init --workspace-root WORKSPACE
+uv run --script SKILLDIR/scripts/fkb init --workspace-root WORKSPACE
 ```
 
 The proposals come out as absolute paths, which is what to pass back. **Write `WORKSPACE`
@@ -113,9 +113,9 @@ These are read-only: you cite them, you never write into them. Both are worth ha
 the first day, and between them they answer most of "what is this and how should I use it".
 
 ```text
-uv run SKILLDIR/scripts/fkb add stjbrown  --clone https://github.com/stjbrown/agent-knowledge  --referenceable-by '*'  --publish-url https://github.com/stjbrown/agent-knowledge/blob/main/knowledge/  --publish-style raw
+uv run --script SKILLDIR/scripts/fkb add stjbrown  --clone https://github.com/stjbrown/agent-knowledge  --referenceable-by '*'  --publish-url https://github.com/stjbrown/agent-knowledge/blob/main/knowledge/  --publish-style raw
 
-uv run SKILLDIR/scripts/fkb add ftschindler  --clone https://github.com/ftschindler/knowledge  --referenceable-by '*'  --publish-url https://ftschindler.github.io/knowledge/  --publish-style directory
+uv run --script SKILLDIR/scripts/fkb add ftschindler  --clone https://github.com/ftschindler/knowledge  --referenceable-by '*'  --publish-url https://ftschindler.github.io/knowledge/  --publish-style directory
 ```
 
 `stjbrown` is about the idea itself: what an agent-maintained wiki is, why one idea per file,
@@ -143,7 +143,7 @@ Somewhere to actually write. This one is not a question - everybody needs a plac
 own notes, and sealed is the right setting for it permanently:
 
 ```text
-uv run SKILLDIR/scripts/fkb add private --new --writable
+uv run --script SKILLDIR/scripts/fkb add private --new --writable
 ```
 
 That scaffolds a conformant bundle under the workspace root - an index, a log, and a file
@@ -182,7 +182,7 @@ Three shapes, and each is the previous one plus something:
 | **Published** | The same, plus a site generator, its navigation, and CI that gates the publish | as above, plus `publish` once the site has an address |
 
 ```text
-uv run SKILLDIR/scripts/fkb add team --new --writable --referenceable-by '*'
+uv run --script SKILLDIR/scripts/fkb add team --new --writable --referenceable-by '*'
 ```
 
 **The middle row is the one people skip past, and it is often the right answer.** A bundle on
@@ -203,7 +203,7 @@ Step 3 cloned one and step 4 created one. The third case is a bundle already sit
 machine, perhaps without anyone having called it a bundle:
 
 ```text
-uv run SKILLDIR/scripts/fkb add kb --path PATH/TO/THE/CHECKOUT --writable
+uv run --script SKILLDIR/scripts/fkb add kb --path PATH/TO/THE/CHECKOUT --writable
 ```
 
 | Arrival | Command | What happens |
@@ -267,7 +267,7 @@ answer two abstract questions, hand over one page you can already open and let `
 backwards:
 
 ```text
-uv run SKILLDIR/scripts/fkb add kb --path PATH/TO/THE/CHECKOUT --publish-sample https://example.com/kb/topic/some-concept/ --publish-sample-path topic/some_concept.md
+uv run --script SKILLDIR/scripts/fkb add kb --path PATH/TO/THE/CHECKOUT --publish-sample https://example.com/kb/topic/some-concept/ --publish-sample-path topic/some_concept.md
 ```
 
 If the URL is not how that path would be published under any known style, it says so and
@@ -282,8 +282,8 @@ where it is now. That is what lets two unpublished bundles link to each other.
 ## What to do next
 
 ```text
-uv run SKILLDIR/scripts/fkb list          # what you now have, and what each allows
-uv run SKILLDIR/scripts/fkb lint          # every bundle, checked where it lies
+uv run --script SKILLDIR/scripts/fkb list          # what you now have, and what each allows
+uv run --script SKILLDIR/scripts/fkb lint          # every bundle, checked where it lies
 ```
 
 Then read three or four concepts from `ftschindler` to see what a good one looks like. The

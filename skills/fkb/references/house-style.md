@@ -132,7 +132,7 @@ find the file.
 **Tags come from what the bundle already uses.** Ask it:
 
 ```text
-uv run SKILLDIR/scripts/fkb resolve <bundle>
+uv run --script SKILLDIR/scripts/fkb resolve <bundle>
 ```
 
 That reports every tag in use with the number of concepts carrying it. Prefer an existing

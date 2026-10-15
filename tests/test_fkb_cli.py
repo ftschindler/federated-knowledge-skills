@@ -244,6 +244,9 @@ def test_a_hint_names_the_invocation_that_was_used(tmp_path: Path) -> None:
     """
     result = _run(FKB, "init", env={"XDG_CONFIG_HOME": str(tmp_path / "config")})
     assert str(FKB) in result.stdout, f"the hint does not name this copy:\n{result.stdout}"
+    assert "uv run --script" in result.stdout, (
+        f"the hint names a form `uv run` cannot read on an extensionless file:\n{result.stdout}"
+    )
     assert "~" not in result.stdout, "`~` is expanded by the shell, and not by every shell"
 
 
@@ -735,6 +738,30 @@ def test_the_skill_prescribes_no_shell_syntax(page: Path) -> None:
         assert not line.startswith("cd "), f"{page.name}: the CLI needs no working directory: {line}"
 
 
+@pytest.mark.parametrize("page", _prose_files(), ids=lambda p: p.name)
+def test_the_skill_tells_uv_that_the_cli_is_a_script(page: Path) -> None:
+    """Every printed `uv run` of this CLI has to carry `--script`.
+
+    `scripts/fkb` has no `.py` suffix, and the suffix is all `uv run` reads to
+    decide it was handed a script rather than a command to hand to the operating
+    system. Without `--script` it is handed over, which on POSIX means the
+    shebang runs it and on Windows means nothing runs it at all: an extensionless
+    file is not executable there, whatever `PATHEXT` says. That is the failure a
+    user reported, and the prose is where it lived - the suite itself has always
+    used `--script` (see `_interpreter`), so nothing here could see it.
+
+    Checked over every page for the reason the shell-syntax guard beside it is:
+    the references carry more commands than the body does, and they are read by
+    the same agent typing into the same shell.
+    """
+    for line in (line.strip() for line in page.read_text(encoding="utf-8").splitlines()):
+        if not line.startswith("uv run") or "scripts/fkb" not in line:
+            continue
+        assert line.startswith("uv run --script"), (
+            f"{page.name}: `uv run` cannot tell this is a script without `--script`: {line}"
+        )
+
+
 def test_the_body_still_prints_the_commands() -> None:
     """The check above passes trivially on a page that prints nothing.
 
@@ -759,6 +786,11 @@ def test_the_prose_names_no_flag_the_cli_does_not_have(page: Path) -> None:
     they say. The onboarding path made that expensive - the skill no longer
     carries the workspace roots itself, it asks `init` for them, so a rename
     breaks setting up rather than one sentence.
+
+    Only the part of the line after the subcommand is read. What comes before it
+    belongs to `uv run` - `--script` is uv's flag, not the CLI's - and scanning
+    the whole line makes every one of uv's options look like a CLI option the
+    prose invented.
     """
     known: dict[str, set[str]] = {}
     for subcommand in ("list", "lint", "resolve", "url", "init", "add"):
@@ -768,9 +800,11 @@ def test_the_prose_names_no_flag_the_cli_does_not_have(page: Path) -> None:
 
     for number, line in enumerate(page.read_text(encoding="utf-8").splitlines(), start=1):
         for subcommand, flags in known.items():
-            if f"fkb {subcommand}" not in line:
+            marker = f"fkb {subcommand}"
+            if marker not in line:
                 continue
-            for flag in re.findall(r"--[a-z][a-z-]+", line):
+            typed = line[line.index(marker) + len(marker) :]
+            for flag in re.findall(r"--[a-z][a-z-]+", typed):
                 assert flag in flags, f"{page.name}:{number}: `fkb {subcommand}` has no `{flag}`"
 
 
