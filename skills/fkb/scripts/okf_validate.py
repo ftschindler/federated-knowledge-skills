@@ -65,9 +65,11 @@ FENCE = re.compile(r"^(```|~~~)")
 # markdown link target capture: [text](target) — ignores images ![...]
 LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 CITATIONS = re.compile(r"^#{1,6}[ \t]+Citations[ \t]*$", re.M)
-# a footnote *reference* in the body; the definition line `[^id]: …` matches too,
-# which is harmless — both carry the same label, the join key into `sources`.
+# a footnote *reference* in the body; the definition line `[^id]: …` matches too.
 FOOTNOTE = re.compile(r"\[\^([^\]\s]+)\]")
+# a footnote *definition*. A label the page defines itself is its own footnote,
+# not a citation, so it is never joined against `sources`.
+FOOTNOTE_DEF = re.compile(r"^[ ]{0,3}\[\^([^\]\s]+)\]:", re.M)
 
 # --migrate only. `timestamp` is a top-level key (§4.1), so anchor at column 0 —
 # an indented one belongs to something else and must not be hoisted.
@@ -308,8 +310,10 @@ def check_sources(meta: dict, body: str, rel: str, report: Report) -> None:
         if last_mod is not None and not ISO_DATE.match(str(last_mod)):
             report.warn(rel, f"§5.1 `sources[{i}].last_modified` `{last_mod}` is not YYYY-MM-DD")
     # Attribution joins on the label, not on position (§5.1) — a footnote whose
-    # label names no source silently attributes a claim to nothing.
-    for label in sorted(set(FOOTNOTE.findall(body)) - ids):
+    # label names no source silently attributes a claim to nothing. A label the
+    # page defines itself is an ordinary footnote, and attributes nothing.
+    defined = set(FOOTNOTE_DEF.findall(body))
+    for label in sorted(set(FOOTNOTE.findall(body)) - ids - defined):
         report.warn(rel, f"§5.1 footnote `[^{label}]` matches no `sources[].id`")
 
 

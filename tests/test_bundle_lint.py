@@ -160,3 +160,16 @@ def test_coverage_accepts_a_subdirectory_index(tmp_path: Path) -> None:
     _write(root, "sub/index.md", "# Sub\n\n- [beta](beta.md)\n")
     result = _run("--bundle-root", str(root), "--coverage")
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_only_undefined_footnotes_are_read_as_citations(tmp_path: Path) -> None:
+    """A footnote the page defines itself attributes nothing; one with no definition must cite a source."""
+    concept = _concept("Alpha").replace(
+        "\n---\n\n", "\nsources:\n  - id: guide\n    resource: https://example.com/guide\n---\n\n", 1
+    ) + ("\nCited[^guide], annotated[^aside] and dangling[^missing].\n\n[^aside]: The page's own note.\n")
+    root = _bundle(tmp_path, {"alpha.md": concept}, links=("alpha.md",))
+    result = _run("--bundle-root", str(root))
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "`[^missing]` matches no" in result.stdout
+    assert "[^aside]" not in result.stdout
+    assert "[^guide]" not in result.stdout
